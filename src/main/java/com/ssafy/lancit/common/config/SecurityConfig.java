@@ -15,31 +15,33 @@ import com.ssafy.lancit.common.jwt.JwtAuthenticationFilter;
 import com.ssafy.lancit.common.jwt.JwtTokenProvider;
 
 import lombok.RequiredArgsConstructor;
- 
+
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
- 
+
     private final JwtTokenProvider jwtTokenProvider;
- 
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
- 
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers(
-                		"/**"
-//                    "/api/auth/**",      // 로그인, 회원가입, 비밀번호 찾기
-//                    "/ws/**"             // STOMP 핸드쉐이크
-                ).permitAll()
-                .anyRequest().authenticated()
+                .requestMatchers("/**").permitAll() // TODO 지원: 개발 완료 후 아래 주석으로 교체
+                // TODO 지원: 개발 완료 후 아래로 교체
+                //   .requestMatchers("/api/auth/**").permitAll()  // 로그인, 회원가입, 비밀번호 찾기
+                //   .requestMatchers("/ws/**").permitAll()        // STOMP 핸드쉐이크
+                //   .requestMatchers(HttpMethod.POST, "/api/recruitments").hasRole("COMPANY")  // 공고 등록은 회사만
+                //   .requestMatchers("/api/portfolios/**").hasRole("USER")                     // 포트폴리오는 프리랜서만
+                //   .anyRequest().authenticated()
+                .anyRequest().permitAll()
             )
             .addFilterBefore(
                 new JwtAuthenticationFilter(jwtTokenProvider),

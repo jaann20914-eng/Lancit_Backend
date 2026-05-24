@@ -1,4 +1,4 @@
-package com.ssafy.lancit.domain.application.dto;
+package com.ssafy.lancit.domain.recruitment.application.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

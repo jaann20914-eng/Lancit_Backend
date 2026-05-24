@@ -1,4 +1,4 @@
-package com.ssafy.lancit.recruitment.post.dto;
+package com.ssafy.lancit.domain.recruitment.post.dto;
 
 import java.time.LocalDateTime;
 

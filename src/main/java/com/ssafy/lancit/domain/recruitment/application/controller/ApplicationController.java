@@ -1,4 +1,4 @@
-package com.ssafy.lancit.domain.application.controller;
+package com.ssafy.lancit.domain.recruitment.application.controller;
 
 import java.util.List;
 
@@ -11,8 +11,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ssafy.lancit.common.response.ApiResponse;
-import com.ssafy.lancit.domain.application.dto.ApplicationDTO;
-import com.ssafy.lancit.domain.application.service.ApplicationService;
+import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationDTO;
+import com.ssafy.lancit.domain.recruitment.application.service.ApplicationService;
 
 import lombok.RequiredArgsConstructor;
  

@@ -1,9 +1,44 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.lancit.domain.user.mapper.UserMapper">
- 
-    <!-- TODO 지원: SQL 작성 -->
- 
+<mapper namespace="com.ssafy.lancit.domain.user.mapper.UserMapper">
+
+    <!-- TODO 지원: 유저 단건 조회
+         - WHERE email = #{email} -->
+    <select id="findByEmail" resultType="com.ssafy.lancit.domain.user.dto.UserDTO">
+
+    </select>
+
+    <!-- TODO 지원: 유저 삽입
+         - useGeneratedKeys 불필요 (PK = email)
+         - profile_file_id = null 로 INSERT -->
+    <insert id="insert">
+
+    </insert>
+
+    <!-- TODO 지원: 유저 수정
+         - null 인 필드는 업데이트 제외 → <if test="xxx != null"> 사용
+         - WHERE email = #{email} -->
+    <update id="update">
+
+    </update>
+
+    <!-- TODO 지원: 유저 삭제
+         - WHERE email = #{email} -->
+    <delete id="delete">
+
+    </delete>
+
+    <!-- TODO 지원: 이메일 중복 체크
+         - SELECT COUNT(*) > 0 FROM user WHERE email = #{email} -->
+    <select id="existsByEmail" resultType="boolean">
+
+    </select>
+
+    <!-- TODO 지원: 비밀번호 변경
+         - UPDATE user SET password = #{password} WHERE email = #{email} -->
+    <update id="updatePassword">
+
+    </update>
+
 </mapper>
- 

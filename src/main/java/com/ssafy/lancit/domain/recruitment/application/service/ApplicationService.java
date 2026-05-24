@@ -1,4 +1,4 @@
-package com.ssafy.lancit.domain.application.service;
+package com.ssafy.lancit.domain.recruitment.application.service;
 
 import org.springframework.stereotype.Service;
 

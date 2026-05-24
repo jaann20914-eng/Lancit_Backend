@@ -1,4 +1,4 @@
-package com.ssafy.lancit.recruitment.post.controller;
+package com.ssafy.lancit.domain.recruitment.post.controller;
 
 import java.util.List;
 
@@ -12,9 +12,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ssafy.lancit.common.response.ApiResponse;
+import com.ssafy.lancit.domain.recruitment.post.dto.RecruitmentDTO;
+import com.ssafy.lancit.domain.recruitment.post.service.RecruitmentService;
 import com.ssafy.lancit.global.enums.JobCategory;
-import com.ssafy.lancit.recruitment.post.dto.RecruitmentDTO;
-import com.ssafy.lancit.recruitment.post.service.RecruitmentService;
 
 import lombok.RequiredArgsConstructor;
 

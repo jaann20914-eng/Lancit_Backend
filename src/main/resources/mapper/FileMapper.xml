@@ -1,8 +1,59 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.lancit.domain.file.mapper.FileMapper">
- 
-    <!-- TODO 지원: SQL 작성 -->
- 
+<mapper namespace="com.ssafy.lancit.domain.file.mapper.FileMapper">
+
+    <!-- FileService.findById() -->
+    <select id="findById" resultType="com.ssafy.lancit.domain.file.dto.FileDTO">
+        SELECT *
+        FROM file
+        WHERE file_id = #{fileId}
+    </select>
+
+    <!-- FileService.findByParent() -->
+    <select id="findByParent" resultType="com.ssafy.lancit.domain.file.dto.FileDTO">
+        SELECT *
+        FROM file
+        WHERE parent_type = #{parentType}
+          AND parent_id   = #{parentId}
+    </select>
+
+    <!-- FileService.upload() -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="fileId">
+        INSERT INTO file (
+            user_email,
+            company_email,
+            sys_name,
+            ori_name,
+            parent_type,
+            parent_id,
+            upload_path,
+            created_at,
+            file_size
+        ) VALUES (
+            #{userEmail},
+            #{companyEmail},
+            #{sysName},
+            #{oriName},
+            #{parentType},
+            #{parentId},
+            #{uploadPath},
+            NOW(),
+            #{fileSize}
+        )
+    </insert>
+
+    <!-- FileService.delete() -->
+    <delete id="delete">
+        DELETE FROM file
+        WHERE file_id = #{fileId}
+    </delete>
+
+    <!-- FileService.deleteByParent() -->
+    <delete id="deleteByParent">
+        DELETE FROM file
+        WHERE parent_type = #{parentType}
+          AND parent_id   = #{parentId}
+    </delete>
+
 </mapper>

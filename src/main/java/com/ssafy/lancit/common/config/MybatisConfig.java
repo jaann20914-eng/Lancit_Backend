@@ -1,6 +1,5 @@
 package com.ssafy.lancit.common.config;
 
-
 import org.apache.ibatis.type.EnumTypeHandler;
 import org.apache.ibatis.type.TypeHandlerRegistry;
 import org.mybatis.spring.boot.autoconfigure.ConfigurationCustomizer;
@@ -16,27 +15,30 @@ import com.ssafy.lancit.global.enums.OwnerType;
 import com.ssafy.lancit.global.enums.ProposalStatus;
 import com.ssafy.lancit.global.enums.RecruitmentStatus;
 import com.ssafy.lancit.global.enums.TaskStatus;
- 
+import com.ssafy.lancit.global.enums.Weekday;
+
 @Configuration
 public class MybatisConfig {
- 
+
     /**
      * MyBatis Enum TypeHandler 등록
      * DB에 Enum 이름 문자열로 저장/조회
+     * 새 Enum 추가 시 여기에 반드시 등록해야 DB 매핑 정상 동작
      */
     @Bean
     public ConfigurationCustomizer mybatisConfigurationCustomizer() {
         return configuration -> {
             TypeHandlerRegistry registry = configuration.getTypeHandlerRegistry();
-            registry.register(JobCategory.class, EnumTypeHandler.class);
-            registry.register(OwnerType.class, EnumTypeHandler.class);
-            registry.register(TaskStatus.class, EnumTypeHandler.class);
-            registry.register(ContractStatus.class, EnumTypeHandler.class);
-            registry.register(RecruitmentStatus.class, EnumTypeHandler.class);
-            registry.register(ApplicationStatus.class, EnumTypeHandler.class);
-            registry.register(ProposalStatus.class, EnumTypeHandler.class);
-            registry.register(FileParentType.class, EnumTypeHandler.class);
-            registry.register(MessageType.class, EnumTypeHandler.class);
+            registry.register(JobCategory.class,        EnumTypeHandler.class);
+            registry.register(OwnerType.class,          EnumTypeHandler.class);
+            registry.register(TaskStatus.class,         EnumTypeHandler.class);
+            registry.register(ContractStatus.class,     EnumTypeHandler.class);
+            registry.register(RecruitmentStatus.class,  EnumTypeHandler.class);
+            registry.register(ApplicationStatus.class,  EnumTypeHandler.class);
+            registry.register(ProposalStatus.class,     EnumTypeHandler.class);
+            registry.register(FileParentType.class,     EnumTypeHandler.class);
+            registry.register(MessageType.class,        EnumTypeHandler.class);
+            registry.register(Weekday.class,            EnumTypeHandler.class); // 추가
         };
     }
 }

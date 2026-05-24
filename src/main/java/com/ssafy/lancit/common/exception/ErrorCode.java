@@ -26,6 +26,14 @@ public enum ErrorCode {
     // 파일
     FILE_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "파일 업로드에 실패했습니다."),
     FILE_NOT_FOUND(HttpStatus.NOT_FOUND, "파일을 찾을 수 없습니다.");
+	
+	// TODO 영은: 기능 구현 중 필요한 에러코드 생기면 여기에 추가
+    // TODO 지원: 기능 구현 중 필요한 에러코드 생기면 여기에 추가
+    //   예) CATEGORY_NOT_FOUND(HttpStatus.NOT_FOUND, "카테고리를 찾을 수 없습니다.")
+    //       TASK_NOT_FOUND(HttpStatus.NOT_FOUND, "일정을 찾을 수 없습니다.")
+    //       PROPOSAL_NOT_FOUND(HttpStatus.NOT_FOUND, "제안서를 찾을 수 없습니다.")
+    //       CONTRACT_NOT_FOUND(HttpStatus.NOT_FOUND, "계약서를 찾을 수 없습니다.")
+
  
     private final HttpStatus status;
     private final String message;

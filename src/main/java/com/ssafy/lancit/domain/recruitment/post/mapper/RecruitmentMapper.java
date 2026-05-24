@@ -1,12 +1,12 @@
-package com.ssafy.lancit.recruitment.post.mapper;
+package com.ssafy.lancit.domain.recruitment.post.mapper;
 
 import java.util.List;
 
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import com.ssafy.lancit.domain.recruitment.post.dto.RecruitmentDTO;
 import com.ssafy.lancit.global.enums.JobCategory;
-import com.ssafy.lancit.recruitment.post.dto.RecruitmentDTO;
 
 @Mapper
 public interface RecruitmentMapper {

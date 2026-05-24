@@ -1,11 +1,11 @@
-package com.ssafy.lancit.domain.application.mapper;
+package com.ssafy.lancit.domain.recruitment.application.mapper;
 
 import java.util.List;
 
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
-import com.ssafy.lancit.domain.application.dto.ApplicationDTO;
+import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationDTO;
 
 @Mapper
 public interface ApplicationMapper {

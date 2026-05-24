@@ -1,10 +1,10 @@
-package com.ssafy.lancit.domain.application.mapper;
+package com.ssafy.lancit.domain.recruitment.application.mapper;
 
 import java.util.List;
 
 import org.apache.ibatis.annotations.Mapper;
 
-import com.ssafy.lancit.domain.application.dto.PortfolioPermissionDTO;
+import com.ssafy.lancit.domain.recruitment.application.dto.PortfolioPermissionDTO;
 
 @Mapper
 public interface PortfolioPermissionMapper {
