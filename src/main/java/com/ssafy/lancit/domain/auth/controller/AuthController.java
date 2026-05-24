@@ -1,5 +1,7 @@
 package com.ssafy.lancit.domain.auth.controller;
 
+import java.util.Map;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -87,6 +89,21 @@ public class AuthController {
     @PostMapping("/password-reset")
     public ResponseEntity<ApiResponse<Void>> resetPassword(@RequestBody SignupDTO dto) {
         // TODO 지원 [1] ~ [2] 구현
+        return ResponseEntity.ok(ApiResponse.ok(null));
+    }
+    
+    /** 이메일 인증코드 발송 */
+    @PostMapping("/email/send")
+    public ResponseEntity<ApiResponse<Void>> sendCode(@RequestBody Map<String, String> body) {
+        // TODO 지원 [1]: mailService.sendVerificationCode(body.get("email")) 호출
+        return ResponseEntity.ok(ApiResponse.ok(null));
+    }
+
+    /** 이메일 인증코드 검증 */
+    @PostMapping("/email/verify")
+    public ResponseEntity<ApiResponse<Boolean>> verifyCode(@RequestBody Map<String, String> body) {
+        // TODO 지원 [1]: mailService.verify(body.get("email"), body.get("code")) 호출
+        // TODO 지원 [2]: 결과 boolean ApiResponse.ok() 에 담아 반환
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
 }

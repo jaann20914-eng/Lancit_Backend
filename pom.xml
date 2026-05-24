@@ -93,7 +93,14 @@
             <artifactId>lombok</artifactId>
             <optional>true</optional>
         </dependency>
-
+		
+		<!-- JavaMail (이메일 발송) -->
+		<dependency>
+		    <groupId>org.springframework.boot</groupId>
+		    <artifactId>spring-boot-starter-mail</artifactId>
+		</dependency>
+		
+		
         <!-- GCS -->
         <dependency>
             <groupId>com.google.cloud</groupId>
