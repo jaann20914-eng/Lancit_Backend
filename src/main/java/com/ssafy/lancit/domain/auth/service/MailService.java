@@ -1,46 +1,40 @@
 package com.ssafy.lancit.domain.auth.service;
 
-import java.util.Map;
-import java.util.Random;
-import java.util.concurrent.ConcurrentHashMap;
-
+import com.ssafy.lancit.common.exception.CustomException;
+import com.ssafy.lancit.common.exception.ErrorCode;
+import jakarta.mail.internet.MimeMessage;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
-import com.ssafy.lancit.common.exception.CustomException;
-import com.ssafy.lancit.common.exception.ErrorCode;
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
-import jakarta.mail.internet.MimeMessage;
-import lombok.RequiredArgsConstructor;
 
-@Service
+// 이메일 인증코드 발송 / 검증 - Redis TTL 10분으로 코드 임시 저장
+// @Service 주석 해제 시 SendGrid 설정 필요 (application.properties)
+// @Service
 @RequiredArgsConstructor
 public class MailService {
 
     private final JavaMailSender mailSender;
+    private final RedisTemplate<String, String> redisTemplate; 
 
-    // TODO 지원 [1]: application.properties 에 spring.mail.from=발신자이메일 추가
     @Value("${spring.mail.from}")
     private String fromEmail;
 
-    private final Map<String, String> codeStore     = new ConcurrentHashMap<>();
-    private final Map<String, Long>   timestampStore = new ConcurrentHashMap<>();
-    private static final long CODE_TTL = 10 * 60 * 1000L; // 10분
+    private static final long CODE_TTL_MINUTES = 10L;
+    private static final String CODE_PREFIX = "email:verify:"; // Redis 키: email:verify:{email}
 
-    /**
-     * 인증코드 발송
-     * AUTH-02 회원가입 이메일 인증 / AUTH-05 비밀번호 찾기 이메일 인증 공용
-     *
-     * TODO 지원 [2]: SendGrid API Key application.properties 에 입력
-     *               spring.mail.password=SG.발급받은키
-     * TODO 지원 [3]: SendGrid 콘솔에서 발신자 이메일 Verified 확인
-     *               fromEmail 과 SendGrid Verified Sender 가 일치해야 발송됨
-     */
+    // 인증코드 발송 - 6자리 랜덤 코드 생성 → 이메일 발송 → Redis 에 10분 TTL 저장
     public void sendVerificationCode(String toEmail) {
+        // TODO 지원 [1]: application.properties 에 spring.mail.from=발신자이메일 추가
+        // TODO 지원 [2]: spring.mail.password=SG.발급받은SendGridKey 입력
+        // TODO 지원 [3]: SendGrid 콘솔에서 fromEmail Verified Sender 확인
         String code = String.valueOf(new Random().nextInt(888_888) + 111_111);
-
         MimeMessage message = mailSender.createMimeMessage();
         try {
             MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
@@ -53,31 +47,25 @@ public class MailService {
             );
             mailSender.send(message);
 
-            codeStore.put(toEmail, code);
-            timestampStore.put(toEmail, System.currentTimeMillis());
+            // Redis 에 10분 TTL 로 저장 → 만료 시 자동 삭제
+            redisTemplate.opsForValue().set(CODE_PREFIX + toEmail, code, CODE_TTL_MINUTES, TimeUnit.MINUTES);
 
         } catch (Exception e) {
             throw new CustomException(ErrorCode.MAIL_SEND_FAILED);
         }
     }
 
-    /**
-     * 인증코드 검증
-     * - 만료(10분) 체크
-     * - 일치 시 1회 사용 후 codeStore 에서 제거
-     */
+    // 인증코드 검증 - Redis 에서 꺼내서 비교 → 일치 시 즉시 삭제 (1회용)
     public boolean verify(String email, String inputCode) {
-        String saved = codeStore.get(email);
-        Long ts      = timestampStore.get(email);
+        String key = CODE_PREFIX + email;
 
-        if (saved == null || ts == null) return false;
+        // Redis TTL 만료 시 null 반환 → 자동 만료 처리
+        String saved = redisTemplate.opsForValue().get(key);
+        if (saved == null) return false;
 
-        boolean ok = (System.currentTimeMillis() - ts) <= CODE_TTL
-                  && saved.equals(inputCode);
-
+        boolean ok = saved.equals(inputCode);
         if (ok) {
-            codeStore.remove(email);
-            timestampStore.remove(email);
+            redisTemplate.delete(key); // 1회 사용 후 즉시 삭제
         }
         return ok;
     }

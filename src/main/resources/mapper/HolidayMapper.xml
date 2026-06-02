@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ssafy.lancit.domain.holiday.mapper.HolidayMapper">
+
+    <select id="findByYear" parameterType="int" resultType="HolidayDTO">
+        SELECT * FROM holiday
+        WHERE year = #{year}
+        ORDER BY date ASC
+    </select>
+
+    <select id="existsByDate" parameterType="java.time.LocalDate" resultType="boolean">
+        SELECT COUNT(*) > 0
+        FROM holiday
+        WHERE date = #{date}
+    </select>
+
+    <select id="existsByYear" parameterType="int" resultType="boolean">
+        SELECT COUNT(*) > 0
+        FROM holiday
+        WHERE year = #{year}
+    </select>
+
+    <delete id="deleteByYear" parameterType="int">
+        DELETE FROM holiday
+        WHERE year = #{year}
+    </delete>
+
+</mapper>

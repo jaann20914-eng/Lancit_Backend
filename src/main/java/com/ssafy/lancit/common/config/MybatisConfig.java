@@ -11,6 +11,7 @@ import com.ssafy.lancit.global.enums.ContractStatus;
 import com.ssafy.lancit.global.enums.FileParentType;
 import com.ssafy.lancit.global.enums.JobCategory;
 import com.ssafy.lancit.global.enums.MessageType;
+import com.ssafy.lancit.global.enums.NotificationType;
 import com.ssafy.lancit.global.enums.OwnerType;
 import com.ssafy.lancit.global.enums.ProposalStatus;
 import com.ssafy.lancit.global.enums.RecruitmentStatus;
@@ -21,9 +22,9 @@ import com.ssafy.lancit.global.enums.Weekday;
 public class MybatisConfig {
 
     /**
-     * MyBatis Enum TypeHandler 등록
-     * DB에 Enum 이름 문자열로 저장/조회
-     * 새 Enum 추가 시 여기에 반드시 등록해야 DB 매핑 정상 동작
+     값이 정해진 상수 목록
+     Java Enum ↔ DB 문자열 자동 변환 (미등록 시 Enum 매핑 오류 발생)
+     새 Enum 추가 시 여기에 반드시 등록해야 DB 매핑 정상 동작
      */
     @Bean
     public ConfigurationCustomizer mybatisConfigurationCustomizer() {
@@ -38,7 +39,8 @@ public class MybatisConfig {
             registry.register(ProposalStatus.class,     EnumTypeHandler.class);
             registry.register(FileParentType.class,     EnumTypeHandler.class);
             registry.register(MessageType.class,        EnumTypeHandler.class);
-            registry.register(Weekday.class,            EnumTypeHandler.class); // 추가
+            registry.register(Weekday.class,            EnumTypeHandler.class);
+            registry.register(NotificationType.class, EnumTypeHandler.class);
         };
     }
 }

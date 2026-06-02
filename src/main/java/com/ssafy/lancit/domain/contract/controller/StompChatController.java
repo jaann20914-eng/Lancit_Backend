@@ -1,76 +1,59 @@
 package com.ssafy.lancit.domain.contract.controller;
 
+import com.ssafy.lancit.domain.contract.dto.ChatRoomDTO;
+import com.ssafy.lancit.domain.contract.dto.MessageDTO;
+import com.ssafy.lancit.domain.contract.mapper.ChatRoomMapper;
+import com.ssafy.lancit.domain.contract.service.ChatService;
+import com.ssafy.lancit.domain.notification.dto.NotificationDTO;
+import com.ssafy.lancit.global.enums.NotificationType;
+import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 
-import com.ssafy.lancit.domain.contract.dto.MessageDTO;
-import com.ssafy.lancit.domain.contract.service.ChatService;
+import java.security.Principal;
 
-import lombok.RequiredArgsConstructor;
-
+// STOMP 채팅 컨트롤러 - /pub/chat.* 로 들어오는 메시지 처리
+// REST API 아님 → ApiResponse 사용 안 함, 응답은 STOMP /sub/chat/{chatRoomId} 로 브로드캐스트
 @Controller
 @RequiredArgsConstructor
 public class StompChatController {
 
     private final SimpMessagingTemplate messagingTemplate;
     private final ChatService chatService;
+    private final ChatRoomMapper chatRoomMapper; // 상대방 이메일 조회용
 
-    /**
-     * CONT-03 메시지 전송
-     * 클라이언트: SEND /pub/chat.send
-     * 구독자 수신: /sub/chat/{chatRoomId}
-     *
-     * TODO 지원 [1]: dto.getEmail() 이 null 이면 STOMP 세션에서 발신자 이메일 꺼내기
-     *               - 파라미터에 java.security.Principal principal 추가
-     *               - principal.getName() → 핸드쉐이크 때 SecurityContext 에 저장된 이메일
-     *               - dto.setEmail(principal.getName())
-     * TODO 지원 [2]: MessageDTO savedDto = chatService.save(dto) 호출
-     * TODO 지원 [3]: messagingTemplate.convertAndSend(
-     *                   "/sub/chat/" + dto.getChatRoomId(), savedDto) 로 브로드캐스트
-     * TODO 지원 [4]: 채팅방 밖에 있는 상대방에게 알림 발송
-     *               - NotificationDTO 만들어서
-     *                 messagingTemplate.convertAndSend(
-     *                     "/sub/notification/" + 상대방email,
-     *                     NotificationDTO(type=CHAT, message=...)) 호출
-     *               - 상대방 이메일은 ChatRoomDTO 에서 조회
-     */
+    // CONT-03 메시지 전송 - DB 저장 후 채팅방 구독자 전체에게 브로드캐스트
+    // ★ Principal 로 발신자 이메일 꺼내기 (JWT 필터에서 SecurityContext 에 저장된 값)
+    // ★ 채팅방 밖 상대방에게 /sub/notification/{email} 으로 알림 푸시
     @MessageMapping("/chat.send")
-    public void sendMessage(@Payload MessageDTO dto) {
-
-        // TODO 지원 [1] ~ [4] 구현
+    public void sendMessage(@Payload MessageDTO dto, Principal principal) {
+        // TODO 지원 [1]: dto.setEmail(principal.getName())
+        // TODO 지원 [2]: MessageDTO savedDto = chatService.save(dto)
+        // TODO 지원 [3]: messagingTemplate.convertAndSend("/sub/chat/" + dto.getChatRoomId(), savedDto)
+        // TODO 지원 [4]: 상대방 알림 발송
+        //               ChatRoomDTO room = chatRoomMapper.findByChatRoomId(dto.getChatRoomId())
+        //               String otherEmail = dto.getEmail().equals(room.getFreelancerEmail())
+        //                   ? room.getCompanyEmail() : room.getFreelancerEmail()
+        //               messagingTemplate.convertAndSend("/sub/notification/" + otherEmail,
+        //                   NotificationDTO(type=CHAT, message="새 메시지가 도착했습니다."))
     }
 
-    /**
-     * CONT-04 메시지 수정
-     * 클라이언트: SEND /pub/chat.update
-     * 구독자 수신: /sub/chat/{chatRoomId}
-     *
-     * TODO 지원 [1]: chatService.update(dto) 호출 → isUpdated = true 로 DB 업데이트
-     * TODO 지원 [2]: messagingTemplate.convertAndSend(
-     *                   "/sub/chat/" + dto.getChatRoomId(), updatedDto) 로 브로드캐스트
-     */
+    // CONT-04 메시지 수정 - isUpdated=true 로 DB 업데이트 후 브로드캐스트
     @MessageMapping("/chat.update")
-    public void updateMessage(@Payload MessageDTO dto) {
-
-        // TODO 지원 [1] ~ [2] 구현
+    public void updateMessage(@Payload MessageDTO dto, Principal principal) {
+        // TODO 지원 [1]: MessageDTO updatedDto = chatService.update(dto, principal.getName());
+        //               (ChatService 내부에서 principal.getName() 으로 본인 검증)
+        // TODO 지원 [2]: messagingTemplate.convertAndSend("/sub/chat/" + dto.getChatRoomId(), updatedDto)
     }
 
-    /**
-     * CONT-05 메시지 삭제 (soft delete)
-     * 클라이언트: SEND /pub/chat.delete
-     * 구독자 수신: /sub/chat/{chatRoomId}
-     * - DB 에서 실제 삭제 안 함 → isDeleted = true 로만 변경
-     * - 프론트에서 isDeleted = true 인 메시지는 "삭제된 메시지입니다" 표시
-     *
-     * TODO 지원 [1]: chatService.softDelete(dto) 호출 → isDeleted = true 로 DB 업데이트
-     * TODO 지원 [2]: messagingTemplate.convertAndSend(
-     *                   "/sub/chat/" + dto.getChatRoomId(), deletedDto) 로 브로드캐스트
-     */
+    // CONT-05 메시지 soft delete - isDeleted=true 로 DB 업데이트 후 브로드캐스트
+    // 프론트에서 isDeleted=true 수신 시 "삭제된 메시지입니다" 표시
     @MessageMapping("/chat.delete")
-    public void deleteMessage(@Payload MessageDTO dto) {
-
-        // TODO 지원 [1] ~ [2] 구현
+    public void deleteMessage(@Payload MessageDTO dto, Principal principal) {
+        // TODO 지원 [1]: MessageDTO deletedDto = chatService.softDelete(dto, principal.getName());
+        //               (ChatService 내부에서 principal.getName() 으로 본인 검증)
+        // TODO 지원 [2]: messagingTemplate.convertAndSend("/sub/chat/" + dto.getChatRoomId(), deletedDto)
     }
 }

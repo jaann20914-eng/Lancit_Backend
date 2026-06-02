@@ -1,111 +1,96 @@
 package com.ssafy.lancit.domain.file.service;
 
-import java.util.List;
-
+import com.ssafy.lancit.common.exception.CustomException;
+import com.ssafy.lancit.common.exception.ErrorCode;
+import com.ssafy.lancit.common.util.GcsSignedUrlUtil;
+import com.ssafy.lancit.domain.file.dto.FileDTO;
+import com.ssafy.lancit.domain.file.event.FileDeleteEvent;
+import com.ssafy.lancit.domain.file.mapper.FileMapper;
+import com.ssafy.lancit.global.enums.FileParentType;
+import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.ssafy.lancit.common.exception.CustomException;
-import com.ssafy.lancit.common.exception.ErrorCode;
-import com.ssafy.lancit.common.util.SecurityUtil;
-import com.ssafy.lancit.domain.file.dto.FileDTO;
-import com.ssafy.lancit.domain.file.event.FileDeleteEvent;
-import com.ssafy.lancit.domain.file.mapper.FileMapper;
-import com.ssafy.lancit.global.enums.FileParentType;
+import java.util.List;
 
-import lombok.RequiredArgsConstructor;
-
+// 파일 업로드 / 조회 / 삭제
+// ★ Redis: @Cacheable(signedUrl, 6일) / @CacheEvict(삭제 시 자동 제거)
+// ★ GCS: 업로드/삭제 처리, 삭제는 FileDeleteEvent → 트랜잭션 커밋 후 실행
 @Service
 @RequiredArgsConstructor
 public class FileService {
 
     private final FileMapper fileMapper;
     private final GcsService gcsService;
+    private final GcsSignedUrlUtil gcsSignedUrlUtil;
     private final ApplicationEventPublisher eventPublisher;
 
-    /**
-     * 파일 업로드 (GCS 먼저 → DB 저장)
-     * GCS 성공 후 DB 실패 시 GCS 파일 수동 롤백 필요
-     *
-     * TODO 지원 [1]: SecurityUtil.getCurrentEmail() 로 이메일 꺼내기
-     * TODO 지원 [2]: SecurityUtil.getCurrentRole() 로 role 꺼내기
-     *               - "USER"    → dto.setUserEmail(email)
-     *               - "COMPANY" → dto.setCompanyEmail(email)
-     * TODO 지원 [3]: sysName = gcsService.upload(file) 호출
-     * TODO 지원 [4]: publicUrl = gcsService.getPublicUrl(sysName) 호출
-     * TODO 지원 [5]: FileDTO 세팅
-     *               - sysName, oriName(file.getOriginalFilename())
-     *               - parentType, parentId
-     *               - uploadPath = sysName (GCS 삭제 시 재사용)
-     *               - publicUrl
-     *               - fileSize = (int) file.getSize()
-     * TODO 지원 [6]: fileMapper.insert(dto) 호출
-     *               - insert 후 dto.getFileId() 로 생성된 PK 확인 (useGeneratedKeys 설정 필요)
-     * TODO 지원 [7]: GCS 성공 후 DB 실패 시 수동 롤백
-     *               try { fileMapper.insert(dto) }
-     *               catch (Exception e) {
-     *                   gcsService storage.delete(sysName) 직접 호출
-     *                   throw e;
-     *               }
-     * TODO 지원 [8]: 완성된 dto 반환
-     */
+    // 파일 업로드 - GCS 먼저 업로드 후 DB 저장
+    // GCS 성공 + DB 실패 시 GCS 수동 롤백 처리
     @Transactional
-    public FileDTO upload(MultipartFile file, FileParentType parentType, Integer parentId) {
-        // TODO 지원 [1] ~ [8] 구현
+    public FileDTO upload(MultipartFile file, FileParentType parentType,
+                          Integer parentId, String email, String role) {
+        // TODO 지원 [1]: String sysName = gcsService.upload(file)
+        // TODO 지원 [2]: FileDTO dto = new FileDTO()
+        //               "USER".equals(role) ? dto.setUserEmail(email) : dto.setCompanyEmail(email)
+        //               dto.setSysName(sysName)
+        //               dto.setOriName(file.getOriginalFilename())
+        //               dto.setParentType(parentType)
+        //               dto.setParentId(parentId)
+        //               dto.setUploadPath(sysName)
+        //               dto.setFileSize((int) file.getSize())
+        // TODO 지원 [3]: GCS 성공 후 DB 실패 시 수동 롤백
+        //               try { fileMapper.insert(dto) }
+        //               catch (Exception e) { gcsService.deleteByPath(sysName); throw e; }
+        // TODO 지원 [4]: return dto
         return null;
     }
 
-    /**
-     * 파일 단건 조회 (FileController 소유자 검증용)
-     *
-     * TODO 지원 [1]: fileMapper.findById(fileId) 호출
-     * TODO 지원 [2]: null 이면 throw new CustomException(ErrorCode.FILE_NOT_FOUND)
-     * TODO 지원 [3]: 조회된 FileDTO 반환
-     */
+    // 파일 단건 조회
     public FileDTO findById(int fileId) {
-        // TODO 지원 [1] ~ [3] 구현
-        return null;
+        FileDTO dto = fileMapper.findById(fileId);
+        if (dto == null) throw new CustomException(ErrorCode.FILE_NOT_FOUND);
+        return dto;
     }
 
-    /**
-     * 파일 단건 삭제 (DB 삭제 + GCS 이벤트)
-     * FileDeleteEvent → 트랜잭션 커밋 후 GcsService.handleFileDelete() 실행
-     *
-     * TODO 지원 [1]: fileMapper.findById(fileId) 호출
-     *               - null 이면 throw new CustomException(ErrorCode.FILE_NOT_FOUND)
-     * TODO 지원 [2]: eventPublisher.publishEvent(new FileDeleteEvent(dto.getUploadPath()))
-     *               - 커밋 후 GCS 삭제 트리거
-     * TODO 지원 [3]: fileMapper.delete(fileId) 호출 (DB 삭제)
-     */
+    // Signed URL 조회
+    // ★ Redis "signedUrl:{fileId}" 캐싱 TTL 6일
+    // 최초 조회 시 GCS 발급 후 Redis 저장, 이후 Redis 에서 즉시 반환
+    @Cacheable(value = "signedUrl", key = "#fileId")
+    public String getSignedUrl(int fileId) {
+        FileDTO dto = findById(fileId);
+        return gcsSignedUrlUtil.generateForImage(dto.getUploadPath());
+    }
+
+    // 파일 단건 삭제
+    // ★ @CacheEvict → Redis Signed URL 캐시 자동 제거
+    // ★ FileDeleteEvent → 트랜잭션 커밋 후 GCS 실제 파일 삭제
     @Transactional
+    @CacheEvict(value = "signedUrl", key = "#fileId")
     public void delete(int fileId) {
-        // TODO 지원 [1] ~ [3] 구현
+        // TODO 지원 [1]: FileDTO dto = fileMapper.findById(fileId)
+        //               null 이면 return (이미 삭제된 경우)
+        // TODO 지원 [2]: eventPublisher.publishEvent(new FileDeleteEvent(dto.getUploadPath()))
+        // TODO 지원 [3]: fileMapper.delete(fileId)
     }
 
-    /**
-     * parentId 기준 파일 목록 조회
-     * 포트폴리오 상세 조회 시 결과물 파일 리스트 가져올 때 사용
-     *
-     * TODO 지원 [1]: fileMapper.findByParent(parentType, parentId) 호출 후 반환
-     */
+    // parentId 기준 파일 목록 조회
     public List<FileDTO> findByParent(FileParentType parentType, int parentId) {
-        // TODO 지원 [1] 구현
+        // TODO 지원 [1]: return fileMapper.findByParent(parentType, parentId)
         return null;
     }
 
-    /**
-     * parentId 기준 파일 전체 삭제 (DB + GCS 이벤트)
-     * 포트폴리오 삭제 시 PortfolioService 에서 호출
-     *
-     * TODO 지원 [1]: findByParent(parentType, parentId) 로 파일 목록 조회
-     * TODO 지원 [2]: 각 파일마다 eventPublisher.publishEvent(new FileDeleteEvent(dto.getUploadPath()))
-     *               - 커밋 후 GCS 파일 전체 삭제 트리거
-     * TODO 지원 [3]: fileMapper.deleteByParent(parentType, parentId) 호출 (DB 일괄 삭제)
-     */
+    // parentId 기준 파일 전체 삭제
+    // ★ delete(fileId) 개별 호출 → 각 파일마다 @CacheEvict + FileDeleteEvent 처리
+    //   fileMapper.deleteByParent() 직접 호출하면 캐시/GCS 처리 안 됨
     @Transactional
     public void deleteByParent(FileParentType parentType, int parentId) {
-        // TODO 지원 [1] ~ [3] 구현
+        // TODO 지원 [1]: List<FileDTO> files = findByParent(parentType, parentId)
+        // TODO 지원 [2]: files.forEach(file -> delete(file.getFileId()))
+        //               → 각 파일마다 @CacheEvict + FileDeleteEvent 발행
     }
 }

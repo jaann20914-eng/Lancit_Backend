@@ -1,11 +1,11 @@
-package com.ssafy.lancit.domain.bookmark.dto;
+package com.ssafy.lancit.domain.bookmark.company.dto;
 
 import lombok.*;
 
 import java.time.LocalDateTime;
  
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
-public class BookmarkDTO {
+public class CompanyBookmarkDTO {
     private int bookmarkId;
     private String companyEmail;
     private String freelancerEmail;

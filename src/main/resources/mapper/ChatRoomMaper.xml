@@ -3,16 +3,7 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.ssafy.lancit.domain.contract.mapper.ChatRoomMapper">
 
-    <!-- TODO 지원: 채팅방 단건 조회
-         - WHERE contract_id = #{contractId} -->
-    <select id="findByContract" resultType="com.ssafy.lancit.domain.contract.dto.ChatRoomDTO">
+    <!-- TODO 지원： sql작성-->
 
-    </select>
-
-    <!-- TODO 지원: 채팅방 삽입
-         - useGeneratedKeys="true" keyProperty="chatRoomId" 유지할 것 -->
-    <insert id="insert" useGeneratedKeys="true" keyProperty="chatRoomId">
-
-    </insert>
 
 </mapper>

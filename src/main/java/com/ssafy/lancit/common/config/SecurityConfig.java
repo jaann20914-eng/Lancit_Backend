@@ -31,10 +31,12 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(AbstractHttpConfigurer::disable)
-            .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .csrf(AbstractHttpConfigurer::disable) // csrf 비활성화
+            .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // 세션 없이 토큰만 사용
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/**").permitAll() // TODO 지원: 개발 완료 후 아래 주석으로 교체
+                .requestMatchers("/**").permitAll() 
+                
+                
                 // TODO 지원: 개발 완료 후 아래로 교체
                 //   .requestMatchers("/api/auth/**").permitAll()  // 로그인, 회원가입, 비밀번호 찾기
                 //   .requestMatchers("/ws/**").permitAll()        // STOMP 핸드쉐이크
@@ -44,7 +46,7 @@ public class SecurityConfig {
                 .anyRequest().permitAll()
             )
             .addFilterBefore(
-                new JwtAuthenticationFilter(jwtTokenProvider),
+                new JwtAuthenticationFilter(jwtTokenProvider), //요청에서 Authorization: Bearer {token} 헤더 확인, 유효하면 security context에 이메일 +역할을 저장
                 UsernamePasswordAuthenticationFilter.class
             );
         return http.build();

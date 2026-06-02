@@ -1,75 +1,81 @@
 package com.ssafy.lancit.domain.calendar.task.controller;
 
-import java.util.List;
-
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
 import com.ssafy.lancit.common.response.ApiResponse;
+import com.ssafy.lancit.common.util.SecurityUtil;
 import com.ssafy.lancit.domain.calendar.task.dto.TaskDTO;
 import com.ssafy.lancit.domain.calendar.task.service.TaskService;
-
+import com.ssafy.lancit.global.enums.OwnerType;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
+// 캘린더 일정 CRUD - 프리랜서(USER) / 회사(COMPANY) 공용
+// 납기일 알림(CAL-11)은 TaskScheduler 가 매일 오전 9시 자동 실행
+// → STOMP /sub/notification/{email} 으로 푸시 + Redis 중복 방지
 @RestController
 @RequestMapping("/api/calendar/tasks")
 @RequiredArgsConstructor
 public class TaskController {
- 
+
     private final TaskService taskService;
- 
-    /** CAL-04 / CLI-CAL-04 일정 목록 조회 (월간) */
+
+    // CAL-04 / CLI-CAL-04 월간 일정 조회 (categoryId 있으면 CAL-05 카테고리 필터)
     @GetMapping
     public ResponseEntity<ApiResponse<List<TaskDTO>>> getTasks(
             @RequestParam int year,
             @RequestParam int month,
             @RequestParam(required = false) Integer categoryId) {
-        // TODO 영은: taskService.getMonthly(email, ownerType, year, month, categoryId)
-        //   categoryId 있으면 CAL-05 카테고리 필터 조회
+        // TODO 영은 [1]: String email = SecurityUtil.getCurrentEmail()
+        // TODO 영은 [2]: OwnerType ownerType = "USER".equals(SecurityUtil.getCurrentRole()) ? OwnerType.USER : OwnerType.COMPANY
+        // TODO 영은 [3]: return ResponseEntity.ok(ApiResponse.ok(taskService.getMonthly(email, ownerType, year, month, categoryId)))
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
- 
-    /** CAL-08 / CLI-CAL-08 일정 상세 조회 */
+
+    // CAL-08 / CLI-CAL-08 일정 상세 조회
     @GetMapping("/{taskId}")
     public ResponseEntity<ApiResponse<TaskDTO>> getTask(@PathVariable int taskId) {
-        // TODO 영은: taskService.getOne(taskId)
+        // TODO 영은 [1]: return ResponseEntity.ok(ApiResponse.ok(taskService.getOne(taskId)))
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
- 
-    /** CAL-06 / CLI-CAL-06 일정 등록 */
+
+    // CAL-06 / CLI-CAL-06 일정 등록
     @PostMapping
     public ResponseEntity<ApiResponse<Void>> createTask(@RequestBody TaskDTO dto) {
-        // TODO 영은: taskService.create(dto, email, ownerType)
+        // TODO 영은 [1]: String email = SecurityUtil.getCurrentEmail()
+        // TODO 영은 [2]: OwnerType ownerType = "USER".equals(SecurityUtil.getCurrentRole()) ? OwnerType.USER : OwnerType.COMPANY
+        // TODO 영은 [3]: taskService.create(dto, email, ownerType)
+        // TODO 영은 [4]: return ResponseEntity.ok(ApiResponse.ok(null))
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
- 
-    /** CAL-07 / CLI-CAL-07 텍스트 파싱 자동 등록 */
+
+    // CAL-07 / CLI-CAL-07 텍스트 파싱 자동 등록
+    // 텍스트에서 제목/날짜/금액/의뢰회사 추출 → 사용자 확인 후 저장
+    // autoRegistered=true, autoRegisteredSource=원본텍스트 세팅
     @PostMapping("/parse")
     public ResponseEntity<ApiResponse<Void>> parseAndCreateTask(@RequestBody TaskDTO dto) {
-        // TODO 영은: taskService.createFromParsed(dto) → autoRegistered=true 세팅
+        // TODO 영은 [1]: String email = SecurityUtil.getCurrentEmail()
+        // TODO 영은 [2]: OwnerType ownerType = "USER".equals(SecurityUtil.getCurrentRole()) ? OwnerType.USER : OwnerType.COMPANY
+        // TODO 영은 [3]: taskService.createFromParsed(dto, email, ownerType)
+        // TODO 영은 [4]: return ResponseEntity.ok(ApiResponse.ok(null))
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
- 
-    /** CAL-09 / CLI-CAL-09 일정 수정 (@OwnerCheck) */
+
+    // CAL-09 / CLI-CAL-09 일정 수정 (@OwnerCheck 서비스에서 처리)
     @PutMapping("/{taskId}")
     public ResponseEntity<ApiResponse<Void>> updateTask(@PathVariable int taskId,
                                                         @RequestBody TaskDTO dto) {
-        // TODO 영은: taskService.update(taskId, dto)
+        // TODO 영은 [1]: taskService.update(taskId, dto)
+        // TODO 영은 [2]: return ResponseEntity.ok(ApiResponse.ok(null))
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
- 
-    /** CAL-10 / CLI-CAL-10 일정 삭제 (@OwnerCheck) */
+
+    // CAL-10 / CLI-CAL-10 일정 삭제 (@OwnerCheck 서비스에서 처리)
     @DeleteMapping("/{taskId}")
     public ResponseEntity<ApiResponse<Void>> deleteTask(@PathVariable int taskId) {
-        // TODO 영은: taskService.delete(taskId)
+        // TODO 영은 [1]: taskService.delete(taskId)
+        // TODO 영은 [2]: return ResponseEntity.ok(ApiResponse.ok(null))
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
 }

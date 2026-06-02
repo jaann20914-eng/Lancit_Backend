@@ -1,21 +1,26 @@
 package com.ssafy.lancit.domain.user.service;
 
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import com.ssafy.lancit.common.annotation.ContractGuard;
 import com.ssafy.lancit.common.exception.CustomException;
 import com.ssafy.lancit.common.exception.ErrorCode;
 import com.ssafy.lancit.common.util.SecurityUtil;
 import com.ssafy.lancit.domain.calendar.category.mapper.CategoryMapper;
 import com.ssafy.lancit.domain.calendar.task.mapper.TaskMapper;
+import com.ssafy.lancit.domain.file.dto.FileDTO;
+import com.ssafy.lancit.domain.file.mapper.FileMapper;
+import com.ssafy.lancit.domain.file.service.FileService;
 import com.ssafy.lancit.domain.user.dto.UserDTO;
 import com.ssafy.lancit.domain.user.mapper.UserMapper;
 import com.ssafy.lancit.global.enums.OwnerType;
-
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
+// 프리랜서 마이페이지 조회 / 수정 / 탈퇴
+// 프로필 사진은 FileController 에서 별도 처리 (프론트가 /api/files/{id}/url 별도 호출)
 @Service
 @RequiredArgsConstructor
 public class UserService {
@@ -23,51 +28,46 @@ public class UserService {
     private final UserMapper userMapper;
     private final CategoryMapper categoryMapper;
     private final TaskMapper taskMapper;
+    private final FileMapper fileMapper;
+    private final FileService fileService;   // 탈퇴 시 GCS + Redis 먼저 정리해야함
     private final PasswordEncoder passwordEncoder;
 
-    /**
-     * USER-03 마이페이지 조회
-     *
-     * TODO 지원 [1]: userMapper.findByEmail(email) 호출
-     * TODO 지원 [2]: null 이면 throw new CustomException(ErrorCode.NOT_FOUND)
-     * TODO 지원 [3]: 조회된 UserDTO 반환
-     */
+    // USER-03 마이페이지 조회 - profileFileId 포함 반환 (Signed URL 은 프론트가 별도 호출)
     public UserDTO getMe(String email) {
-        // TODO 지원 [1] ~ [3] 구현
+        // TODO 지원 [1]: UserDTO dto = userMapper.findByEmail(email)
+        // TODO 지원 [2]: null 이면 throw new CustomException(ErrorCode.NOT_FOUND)
+        // TODO 지원 [3]: return dto
         return null;
     }
 
-    /**
-     * USER-04 마이페이지 수정
-     * - 비밀번호 변경 시 BCrypt 암호화 처리
-     *
-     * TODO 지원 [1]: dto.getPassword() 가 null 이 아니면 (비밀번호 변경 요청)
-     *               - dto.setPassword(passwordEncoder.encode(dto.getPassword()))
-     * TODO 지원 [2]: userMapper.update(dto) 호출
-     *               - XML 에서 null 인 필드는 UPDATE 제외 (<if test> 사용)
-     */
+    // USER-04 마이페이지 수정 - null 필드는 UPDATE 제외 (XML <if test> 처리)
     @Transactional
     public void update(UserDTO dto) {
-        // TODO 지원 [1] ~ [2] 구현
+        // TODO 지원 [1]: dto.getPassword() != null 이면 BCrypt 암호화
+        //               dto.setPassword(passwordEncoder.encode(dto.getPassword()))
+        // TODO 지원 [2]: userMapper.update(dto)
     }
 
-    /**
-     * USER-02 회원 탈퇴
-     * - @ContractGuard → ContractGuardAspect 에서 진행 중 계약 있으면 차단
-     * - Category, Task 는 FK 없어서 앱 레벨에서 직접 삭제
-     * - User 삭제 시 DB CASCADE 자동 삭제 목록
-     *   File, Portfolio → PortfolioPermission,
-     *   RecruitmentApplication → PortfolioPermission,
-     *   Bookmark, ChatRoom → Message, Proposal
-     *
-     * TODO 지원 [1]: taskMapper.deleteByOwner(email, OwnerType.USER) 호출
-     * TODO 지원 [2]: categoryMapper.deleteByOwner(email, OwnerType.USER) 호출
-     * TODO 지원 [3]: userMapper.delete(email) 호출 → CASCADE 자동 처리
-     */
+    
+    // USER-02 회원 탈퇴
+    // - @ContractGuard → 진행 중 계약 있으면 차단
+    // 삭제 순서:
+    //   1. GCS + Redis 먼저 정리 (파일 목록 조회 → FileDeleteEvent 발행)
+    //   2. Task, Category 앱 레벨 삭제
+    //   3. userMapper.delete() → DB CASCADE 로 나머지 자동 삭제
+    //      (file, portfolio, application, bookmark, chatroom, message, proposal)
     @ContractGuard
     @Transactional
     public void delete() {
         String email = SecurityUtil.getCurrentEmail();
-        // TODO 지원 [1] ~ [3] 구현
+
+        // TODO 지원 [1]: GCS + Redis 정리 (CASCADE 전에 먼저 처리)
+        //               List<FileDTO> files = fileMapper.findByUserEmail(email)
+        //               files.forEach(file -> fileService.delete(file.getFileId()))
+        //               → FileDeleteEvent 발행 → 커밋 후 GCS 삭제 + Redis @CacheEvict
+
+        // TODO 지원 [2]: taskMapper.deleteByOwner(email, OwnerType.USER)
+        // TODO 지원 [3]: categoryMapper.deleteByOwner(email, OwnerType.USER)
+        // TODO 지원 [4]: userMapper.delete(email) → DB CASCADE 자동 처리
     }
 }

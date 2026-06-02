@@ -39,4 +39,9 @@
 
     </select>
 
+	<!-- TODO 지원: UPDATE contract SET pdf_file_id = #{pdfFileId}
+     WHERE contract_id = #{contractId} -->
+	<update id="updatePdfFileId">
+	
+	</update>
 </mapper>

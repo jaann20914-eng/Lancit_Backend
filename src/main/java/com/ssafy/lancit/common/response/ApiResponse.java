@@ -2,6 +2,12 @@ package com.ssafy.lancit.common.response;
 
 import lombok.Getter;
 
+
+
+// REST API 응답들의 형식 통일하기 위한 감싸는 클래스
+// STOMP 응답은 그냥 객체 그대로 나감
+
+
 @Getter
 public class ApiResponse<T> {
     private final boolean success;

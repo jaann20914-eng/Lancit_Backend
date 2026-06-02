@@ -14,96 +14,76 @@ import com.ssafy.lancit.common.response.ApiResponse;
 import com.ssafy.lancit.domain.auth.dto.LoginDTO;
 import com.ssafy.lancit.domain.auth.dto.SignupDTO;
 import com.ssafy.lancit.domain.auth.service.AuthService;
+import com.ssafy.lancit.domain.auth.service.MailService;
 
 import lombok.RequiredArgsConstructor;
 
+// 인증 관련 엔드포인트 (회원가입 / 로그인 / 로그아웃 / 비밀번호 찾기 / 이메일 인증)
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
     private final AuthService authService;
+    private final MailService mailService;
 
-    /**
-     * AUTH-02(a)(b) 회원가입
-     * - dto.getRole() == "USER"    → user 테이블 INSERT
-     * - dto.getRole() == "COMPANY" → company 테이블 INSERT
-     * - profileFileId = null 로 가입 (사진은 로그인 후 /api/files/upload 에서 별도 업로드)
-     *
-     * TODO 지원 [1]: authService.signup(dto) 호출
-     * TODO 지원 [2]: 성공 시 201 Created 반환
-     *               return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(null))
-     */
+    
+     //AUTH-02(a)(b) 회원가입 : dto.getRole()에 따라 user 테이블 INSERT or company 테이블 INSERT
+     //profileFileId = null 로 가입 (사진은 로그인 후 /api/files/upload 에서 별도 업로드)
     @PostMapping("/signup")
     public ResponseEntity<ApiResponse<Void>> signup(@RequestBody SignupDTO dto) {
-        // TODO 지원 [1] ~ [2] 구현
+        // TODO 지원 [1]: authService.signup(dto) 호출
+        // TODO 지원 [2]: 성공 시 201 Created 반환
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(null));
-    }
-
-    /**
-     * AUTH-04 로그인
-     * - role 로 USER / COMPANY 테이블 분기 조회
-     * - 비밀번호 BCrypt 검증
-     * - 성공 시 JWT accessToken 발급
-     *
-     * TODO 지원 [1]: authService.login(dto) 호출
-     *               - 반환된 LoginDTO 에 accessToken 포함되어 있음
-     * TODO 지원 [2]: ApiResponse.ok(loginDTO) 반환
-     *               - 프론트는 accessToken 받아서 저장 후 즉시 WebSocket 연결 시작
-     */
+    }    
+//     AUTH-04 로그인 : role 로 USER / COMPANY 테이블 분기 조회 -> 암호화 검증 -> 성공시 토큰 발급
+//                      -> chatRoomIds 찾아서 해시맵으로 묶어서 같이 보내주기
+//                      -> 프론트가 로그인 직후 WebSocket 연결 하면
+//                      1. /sub/notification/{email} 구독 (알림용)
+//                      2. /sub/chat/{chatRoomId} 구독 (진행중인 계약 채팅방 전부)
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<LoginDTO>> login(@RequestBody LoginDTO dto) {
-        // TODO 지원 [1] ~ [2] 구현
+    	// TODO 지원 [1]: authService.login(dto) 호출
+        //               - email + password + role 검증
+        //               - JWT accessToken 발급
+        //               - 진행중인 계약의 chatRoomId 목록 조회
+        // TODO 지원 [2]: Map.of("accessToken", token, "email", email, "role", role, "chatRoomIds", chatRoomIds) 반환
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
-
-    /**
-     * USER-01 / CLI-USER-01 로그아웃
-     * - 현재 프로젝트는 JWT Stateless 방식이라 서버에 토큰 저장 안 함
-     * - 클라이언트에서 토큰 삭제하는 것만으로도 로그아웃 처리 가능
-     * - 단, 토큰 만료 전 강제 무효화가 필요하다면 블랙리스트 방식 도입 필요
-     *
-     * TODO 지원 [1]: 팀과 로그아웃 방식 결정
-     *               - 방식 A (단순): 서버는 아무것도 안 하고 200 반환
-     *                 → 클라이언트가 토큰 삭제하면 끝
-     *               - 방식 B (블랙리스트): authService.logout(token) 에서
-     *                 토큰을 만료 시간까지 블랙리스트에 저장 (Redis 필요)
-     * TODO 지원 [2]: 결정된 방식으로 구현 후 ApiResponse.ok(null) 반환
-     */
+    // USER-01 + CLI-USER-01 로그아웃 :  토큰 삭제
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<Void>> logout(@RequestHeader("Authorization") String token) {
-        // TODO 지원 [1] ~ [2] 구현
+        // TODO 지원 : 토큰삭제
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
 
-    /**
-     * AUTH-05 비밀번호 찾기
-     * - 이메일로 유저/회사 조회 후 비밀번호 변경
-     * - 실제 서비스라면 이메일 인증 후 변경해야 하지만
-     *   현재 프로젝트는 이메일 인증 없이 직접 변경으로 처리
-     *
-     * TODO 지원 [1]: authService.resetPassword(dto.getEmail(), dto.getPassword(), dto.getRole()) 호출
-     *               - 내부에서 새 비밀번호 BCrypt 암호화 후 UPDATE
-     * TODO 지원 [2]: ApiResponse.ok(null) 반환
-     */
+    
+    
+    
+    // AUTH-05 비밀번호 찾기 : 이메일 인증 완료 후 비밀번호 변경 , 새 비밀번호 BCrypt 암호화는 서비스에서 처리
     @PostMapping("/password-reset")
     public ResponseEntity<ApiResponse<Void>> resetPassword(@RequestBody SignupDTO dto) {
-        // TODO 지원 [1] ~ [2] 구현
+        // TODO 지원 [1]: authService.resetPassword(dto.getEmail(), dto.getPassword(), dto.getRole()) 호출
+        //               - role 로 user / company 테이블 분기
+        //               - 새 비밀번호 BCrypt 암호화 후 UPDATE
+        // TODO 지원 [2]: ApiResponse.ok(null) 반환
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
+
     
-    /** 이메일 인증코드 발송 */
+    
+    
+    //이메일 인증코드 발송 : Redis 에 "email:verify:{email}" = "123456" TTL 10분 저장 (MailService 에서 처리)
     @PostMapping("/email/send")
     public ResponseEntity<ApiResponse<Void>> sendCode(@RequestBody Map<String, String> body) {
         // TODO 지원 [1]: mailService.sendVerificationCode(body.get("email")) 호출
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
-
-    /** 이메일 인증코드 검증 */
+    //이메일 인증코드 검증 : Redis 에서 저장된 코드 꺼내서 비교 (MailService 에서 처리) ,일치 시 Redis 에서 즉시 삭제 (1회용)
     @PostMapping("/email/verify")
     public ResponseEntity<ApiResponse<Boolean>> verifyCode(@RequestBody Map<String, String> body) {
-        // TODO 지원 [1]: mailService.verify(body.get("email"), body.get("code")) 호출
-        // TODO 지원 [2]: 결과 boolean ApiResponse.ok() 에 담아 반환
+        // TODO 지원 [1]: boolean result = mailService.verify(body.get("email"), body.get("code")) 호출
+        // TODO 지원 [2]: ApiResponse.ok(result) 반환
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
 }

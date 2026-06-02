@@ -1,13 +1,12 @@
 package com.ssafy.lancit.domain.calendar.category.mapper;
 
-import java.util.List;
-
+import com.ssafy.lancit.domain.calendar.category.dto.CategoryDTO;
+import com.ssafy.lancit.global.enums.OwnerType;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
-import com.ssafy.lancit.domain.calendar.category.dto.CategoryDTO;
-import com.ssafy.lancit.global.enums.OwnerType;
- 
+import java.util.List;
+
 @Mapper
 public interface CategoryMapper {
     List<CategoryDTO> findAll(@Param("email") String email, @Param("ownerType") OwnerType ownerType);
@@ -15,5 +14,7 @@ public interface CategoryMapper {
     void update(@Param("categoryId") int categoryId, @Param("dto") CategoryDTO dto);
     void delete(int categoryId);
     void deleteByOwner(@Param("email") String email, @Param("ownerType") OwnerType ownerType);
+
+    // ★ OwnerCheckAspect 에서 사용
+    String findOwnerEmailById(int categoryId);
 }
- 

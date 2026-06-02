@@ -1,8 +1,11 @@
 package com.ssafy.lancit.domain.user.mapper;
 
+import java.util.List;
+
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import com.ssafy.lancit.common.page.dto.PageRequest;
 import com.ssafy.lancit.domain.user.dto.UserDTO;
 
 @Mapper
@@ -31,4 +34,12 @@ public interface UserMapper {
     //            WHERE email = #{email}
     //            비밀번호 찾기(AUTH-05) 시 사용
     void updatePassword(@Param("email") String email, @Param("password") String password);
+    
+ // TODO 지원
+    List<UserDTO> searchFreelancers(@Param("name") String name,
+            @Param("jobCategory") String jobCategory,
+            @Param("pageRequest") PageRequest pageRequest);
+ // TODO 지원
+	long countFreelancers(@Param("name") String name, @Param("jobCategory") String jobCategory);
+    
 }

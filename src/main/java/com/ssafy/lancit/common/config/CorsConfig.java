@@ -8,6 +8,10 @@ import org.springframework.web.filter.CorsFilter;
  
 import java.util.List;
  
+
+// 프론트에서 백엔드로 요청할 때 브라우저 도메인 다름
+
+
 @Configuration
 public class CorsConfig {
  
@@ -15,7 +19,7 @@ public class CorsConfig {
     public CorsFilter corsFilter() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
-        config.setAllowedOriginPatterns(List.of("http://localhost:3000"));
+        config.setAllowedOriginPatterns(List.of("http://localhost:5173"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH"));
         config.setExposedHeaders(List.of("Authorization"));
