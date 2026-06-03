@@ -2,8 +2,14 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.ssafy.lancit.domain.calendar.task.mapper.TaskMapper">
- 
-    <!-- TODO 영은: SQL 작성 -->
- 
+
+    <update id="updateCategoryByCategory">
+        UPDATE task
+        SET category_id = #{moveToCategoryId}
+        WHERE category_id = #{categoryId}
+          AND email = #{email}
+          AND owner_type = #{ownerType}
+    </update>
+
 </mapper>
  

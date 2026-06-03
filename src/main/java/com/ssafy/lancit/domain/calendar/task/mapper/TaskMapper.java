@@ -38,6 +38,12 @@ public interface TaskMapper {
     // 카테고리 삭제 전 Task 존재 여부 확인용 (CategoryService.delete() 에서 사용)
     int countByCategory(int categoryId);
 
+    // 카테고리 삭제 시 연관 일정의 categoryId 일괄 이동
+    int updateCategoryByCategory(@Param("categoryId") int categoryId,
+                                 @Param("moveToCategoryId") int moveToCategoryId,
+                                 @Param("email") String email,
+                                 @Param("ownerType") OwnerType ownerType);
+
     // TaskScheduler 에서 납기일 D-7/3/1/0 알림 대상 조회
     List<TaskDTO> findDeadlineTasks(int daysUntilDeadline);
 }
