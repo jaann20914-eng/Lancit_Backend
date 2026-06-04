@@ -3,13 +3,241 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.ssafy.lancit.domain.calendar.task.mapper.TaskMapper">
 
-    <update id="updateCategoryByCategory">
-        UPDATE task
-        SET category_id = #{moveToCategoryId}
-        WHERE category_id = #{categoryId}
-          AND email = #{email}
-          AND owner_type = #{ownerType}
+    <select id="findByOwner" resultType="TaskDTO">
+        SELECT
+            t.task_id,
+            t.email,
+            t.owner_type,
+            t.category_id,
+            t.title,
+            t.content,
+            t.status,
+            t.start_at,
+            t.end_at,
+            t.client_company,
+            t.budget,
+            t.paid_at,
+            t.auto_registered,
+            t.auto_registered_source
+        FROM task t
+        INNER JOIN category c
+            ON c.category_id = t.category_id
+        WHERE t.email = #{email}
+          AND t.owner_type = #{ownerType}
+          AND c.email = #{email}
+          AND c.owner_type = #{ownerType}
+        ORDER BY t.start_at ASC, t.task_id ASC
+    </select>
+
+    <select id="findByOwnerAndCategory" resultType="TaskDTO">
+        SELECT
+            t.task_id,
+            t.email,
+            t.owner_type,
+            t.category_id,
+            t.title,
+            t.content,
+            t.status,
+            t.start_at,
+            t.end_at,
+            t.client_company,
+            t.budget,
+            t.paid_at,
+            t.auto_registered,
+            t.auto_registered_source
+        FROM task t
+        INNER JOIN category c
+            ON c.category_id = t.category_id
+        WHERE t.email = #{email}
+          AND t.owner_type = #{ownerType}
+          AND t.category_id = #{categoryId}
+          AND c.email = #{email}
+          AND c.owner_type = #{ownerType}
+        ORDER BY t.start_at ASC, t.task_id ASC
+    </select>
+
+    <select id="findMonthly" resultType="TaskDTO">
+        SELECT
+            t.task_id,
+            t.email,
+            t.owner_type,
+            t.category_id,
+            t.title,
+            t.content,
+            t.status,
+            t.start_at,
+            t.end_at,
+            t.client_company,
+            t.budget,
+            t.paid_at,
+            t.auto_registered,
+            t.auto_registered_source
+        FROM task t
+        INNER JOIN category c
+            ON c.category_id = t.category_id
+        WHERE t.email = #{email}
+          AND t.owner_type = #{ownerType}
+          AND c.email = #{email}
+          AND c.owner_type = #{ownerType}
+          AND t.start_at &lt; DATE_ADD(
+              STR_TO_DATE(CONCAT(#{year}, '-', LPAD(#{month}, 2, '0'), '-01'), '%Y-%m-%d'),
+              INTERVAL 1 MONTH
+          )
+          AND t.end_at &gt;= STR_TO_DATE(CONCAT(#{year}, '-', LPAD(#{month}, 2, '0'), '-01'), '%Y-%m-%d')
+        <if test="categoryId != null">
+          AND t.category_id = #{categoryId}
+        </if>
+        ORDER BY t.start_at ASC, t.task_id ASC
+    </select>
+
+    <select id="findByIdAndOwner" resultType="TaskDTO">
+        SELECT
+            t.task_id,
+            t.email,
+            t.owner_type,
+            t.category_id,
+            t.title,
+            t.content,
+            t.status,
+            t.start_at,
+            t.end_at,
+            t.client_company,
+            t.budget,
+            t.paid_at,
+            t.auto_registered,
+            t.auto_registered_source
+        FROM task t
+        INNER JOIN category c
+            ON c.category_id = t.category_id
+        WHERE t.task_id = #{taskId}
+          AND t.email = #{email}
+          AND t.owner_type = #{ownerType}
+          AND c.email = #{email}
+          AND c.owner_type = #{ownerType}
+    </select>
+
+    <!-- OwnerCheckAspect 에서 일정 소유자 검증 시 사용 -->
+    <select id="findOwnerEmailById" parameterType="int" resultType="string">
+        SELECT t.email
+        FROM task t
+        INNER JOIN category c
+            ON c.category_id = t.category_id
+        WHERE t.task_id = #{taskId}
+          AND t.email = c.email
+          AND t.owner_type = c.owner_type
+    </select>
+
+    <insert id="insert" parameterType="TaskDTO" useGeneratedKeys="true" keyProperty="taskId">
+        INSERT INTO task (
+            email,
+            owner_type,
+            category_id,
+            title,
+            content,
+            status,
+            start_at,
+            end_at,
+            client_company,
+            budget,
+            paid_at,
+            auto_registered,
+            auto_registered_source
+        ) VALUES (
+            #{email},
+            #{ownerType},
+            #{categoryId},
+            #{title},
+            #{content},
+            #{status},
+            #{startAt},
+            #{endAt},
+            #{clientCompany},
+            #{budget},
+            #{paidAt},
+            #{autoRegistered},
+            #{autoRegisteredSource}
+        )
+    </insert>
+
+    <update id="update" parameterType="TaskDTO">
+        UPDATE task t
+        INNER JOIN category c
+            ON c.category_id = t.category_id
+        SET
+            t.category_id = #{categoryId},
+            t.title = #{title},
+            t.content = #{content},
+            <if test="status != null">
+            t.status = #{status},
+            </if>
+            t.start_at = #{startAt},
+            t.end_at = #{endAt},
+            t.client_company = #{clientCompany},
+            t.budget = #{budget},
+            t.paid_at = #{paidAt},
+            t.auto_registered = #{autoRegistered},
+            t.auto_registered_source = #{autoRegisteredSource}
+        WHERE t.task_id = #{taskId}
+          AND t.email = #{email}
+          AND t.owner_type = #{ownerType}
+          AND c.email = #{email}
+          AND c.owner_type = #{ownerType}
     </update>
 
+    <delete id="deleteByIdAndOwner">
+        DELETE t
+        FROM task t
+        INNER JOIN category c
+            ON c.category_id = t.category_id
+        WHERE t.task_id = #{taskId}
+          AND t.email = #{email}
+          AND t.owner_type = #{ownerType}
+          AND c.email = #{email}
+          AND c.owner_type = #{ownerType}
+    </delete>
+
+    <delete id="deleteByOwner">
+        DELETE FROM task
+        WHERE email = #{email}
+          AND owner_type = #{ownerType}
+    </delete>
+
+    <update id="updateCategoryIdByCategoryIdAndOwner">
+        UPDATE task t
+        INNER JOIN category source_category
+            ON source_category.category_id = t.category_id
+        INNER JOIN category target_category
+            ON target_category.category_id = #{moveToCategoryId}
+        SET t.category_id = #{moveToCategoryId}
+        WHERE t.category_id = #{categoryId}
+          AND t.email = #{email}
+          AND t.owner_type = #{ownerType}
+          AND source_category.email = #{email}
+          AND source_category.owner_type = #{ownerType}
+          AND target_category.email = #{email}
+          AND target_category.owner_type = #{ownerType}
+    </update>
+
+    <select id="findDeadlineTasks" parameterType="int" resultType="TaskDTO">
+        SELECT
+            task_id,
+            email,
+            owner_type,
+            category_id,
+            title,
+            content,
+            status,
+            start_at,
+            end_at,
+            client_company,
+            budget,
+            paid_at,
+            auto_registered,
+            auto_registered_source
+        FROM task
+        WHERE DATE(end_at) = DATE_ADD(CURDATE(), INTERVAL #{daysUntilDeadline} DAY)
+          AND status = 'IN_PROGRESS'
+        ORDER BY end_at ASC, task_id ASC
+    </select>
+
 </mapper>
- 

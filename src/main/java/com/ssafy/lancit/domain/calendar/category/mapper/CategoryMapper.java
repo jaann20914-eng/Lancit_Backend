@@ -9,16 +9,24 @@ import java.util.List;
 
 @Mapper
 public interface CategoryMapper {
-    List<CategoryDTO> findAll(@Param("email") String email, @Param("ownerType") OwnerType ownerType);
-    void insert(CategoryDTO dto);
-    void update(@Param("categoryId") int categoryId, @Param("dto") CategoryDTO dto);
-    void delete(int categoryId);
-    boolean existsByIdAndOwner(@Param("categoryId") int categoryId,
-                               @Param("email") String email,
-                               @Param("ownerType") OwnerType ownerType);
+    List<CategoryDTO> findByOwner(@Param("email") String email, @Param("ownerType") OwnerType ownerType);
+
+    CategoryDTO findByIdAndOwner(@Param("categoryId") int categoryId,
+                                 @Param("email") String email,
+                                 @Param("ownerType") OwnerType ownerType);
+
+    int insert(CategoryDTO category);
+
+    int update(CategoryDTO category);
+
     int deleteByIdAndOwner(@Param("categoryId") int categoryId,
                            @Param("email") String email,
                            @Param("ownerType") OwnerType ownerType);
+
+    int countTasksByCategoryIdAndOwner(@Param("categoryId") int categoryId,
+                                       @Param("email") String email,
+                                       @Param("ownerType") OwnerType ownerType);
+
     void deleteByOwner(@Param("email") String email, @Param("ownerType") OwnerType ownerType);
 
     // ★ OwnerCheckAspect 에서 사용
