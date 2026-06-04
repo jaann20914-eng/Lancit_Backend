@@ -19,7 +19,8 @@
     </select>
 
     <!-- FileService.upload() -->
-    <insert id="insert" useGeneratedKeys="true" keyProperty="fileId">
+    <!--useGeneratedKeys : auto_increment를 다시 반환, keyProperty: 가져온 키를 어느 필드에 넣을지 지정-->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="fileId"> 
         INSERT INTO file (
             user_email,
             company_email,

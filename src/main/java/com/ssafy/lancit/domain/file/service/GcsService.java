@@ -1,19 +1,22 @@
 package com.ssafy.lancit.domain.file.service;
 
-import com.google.cloud.storage.BlobId;
-import com.google.cloud.storage.BlobInfo;
-import com.google.cloud.storage.Storage;
-import com.ssafy.lancit.domain.file.event.FileDeleteEvent;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.io.IOException;
+import java.util.UUID;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.util.UUID;
+import com.google.cloud.storage.BlobId;
+import com.google.cloud.storage.BlobInfo;
+import com.google.cloud.storage.Storage;
+import com.ssafy.lancit.domain.file.event.FileDeleteEvent;
+import com.ssafy.lancit.global.enums.FileParentType;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
@@ -24,17 +27,26 @@ public class GcsService {
 
     @Value("${gcs.bucket-name}")
     private String bucketName;
+    
+    
+    
+    // gcs 폴더매핑해주는 메서드
+    private String getFolder(FileParentType parentType) {
+        return switch (parentType) {
+            case PROFILE           -> "profile/";
+            case PORTFOLIO_BANNER  -> "portfolio/banner/";
+            case PORTFOLIO_FILE    -> "portfolio/file/";
+            case CONTRACT          -> "contract/";
+            case CHAT              -> "chat/";
+        };
+    }
 
-    /**
-     * GCS 파일 업로드
-     * 반환값: sysName → DB uploadPath 컬럼에 저장
-     * Signed URL 은 GcsSignedUrlUtil 에서 별도 발급
-     *
-     * TODO 지원 [1]: application.properties gcs.bucket-name 실제 버킷명 입력
-     */
-    public String upload(MultipartFile file) throws IOException {
-        String sysName = UUID.randomUUID() + "_" + file.getOriginalFilename();
+    // GCS 파일 업로드
+    public String upload(MultipartFile file, FileParentType parentType) throws IOException {
+        String folder = getFolder(parentType);
+        String sysName = folder + UUID.randomUUID() + "_" + file.getOriginalFilename();
         BlobId blobId = BlobId.of(bucketName, sysName);
+        
         BlobInfo blobInfo = BlobInfo.newBuilder(blobId)
                 .setContentType(file.getContentType())
                 .build();
