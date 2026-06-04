@@ -13,3 +13,5 @@ public class LancitApplication {
         SpringApplication.run(LancitApplication.class, args);
     }
 }
+
+//깃허브확인용 
