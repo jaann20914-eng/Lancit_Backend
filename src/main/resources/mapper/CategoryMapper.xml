@@ -3,55 +3,20 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.ssafy.lancit.domain.calendar.category.mapper.CategoryMapper">
 
-    <select id="findByOwner" resultType="CategoryDTO">
-        SELECT
-            category_id,
-            email,
-            owner_type,
-            category_name,
-            color
+    <!-- OwnerCheckAspect 에서 카테고리 소유자 검증 시 사용 -->
+    <select id="findOwnerEmailById" parameterType="int" resultType="string">
+        SELECT email
         FROM category
-        WHERE email = #{email}
-          AND owner_type = #{ownerType}
-        ORDER BY category_id ASC
+        WHERE category_id = #{categoryId}
     </select>
 
-    <select id="findByIdAndOwner" resultType="CategoryDTO">
-        SELECT
-            category_id,
-            email,
-            owner_type,
-            category_name,
-            color
+    <select id="existsByIdAndOwner" resultType="boolean">
+        SELECT COUNT(*) > 0
         FROM category
         WHERE category_id = #{categoryId}
           AND email = #{email}
           AND owner_type = #{ownerType}
     </select>
-
-    <insert id="insert" parameterType="CategoryDTO" useGeneratedKeys="true" keyProperty="categoryId">
-        INSERT INTO category (
-            email,
-            owner_type,
-            category_name,
-            color
-        ) VALUES (
-            #{email},
-            #{ownerType},
-            #{categoryName},
-            #{color}
-        )
-    </insert>
-
-    <update id="update" parameterType="CategoryDTO">
-        UPDATE category
-        SET
-            category_name = #{categoryName},
-            color = #{color}
-        WHERE category_id = #{categoryId}
-          AND email = #{email}
-          AND owner_type = #{ownerType}
-    </update>
 
     <delete id="deleteByIdAndOwner">
         DELETE FROM category
@@ -59,30 +24,5 @@
           AND email = #{email}
           AND owner_type = #{ownerType}
     </delete>
-
-    <select id="countTasksByCategoryIdAndOwner" resultType="int">
-        SELECT COUNT(*)
-        FROM task t
-        INNER JOIN category c
-            ON c.category_id = t.category_id
-        WHERE t.category_id = #{categoryId}
-          AND t.email = #{email}
-          AND t.owner_type = #{ownerType}
-          AND c.email = #{email}
-          AND c.owner_type = #{ownerType}
-    </select>
-
-    <delete id="deleteByOwner">
-        DELETE FROM category
-        WHERE email = #{email}
-          AND owner_type = #{ownerType}
-    </delete>
-
-    <!-- OwnerCheckAspect 에서 카테고리 소유자 검증 시 사용 -->
-    <select id="findOwnerEmailById" parameterType="int" resultType="string">
-        SELECT email
-        FROM category
-        WHERE category_id = #{categoryId}
-    </select>
 
 </mapper>
