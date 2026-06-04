@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit;
 
 // 이메일 인증코드 발송 / 검증 - Redis TTL 10분으로 코드 임시 저장
 // @Service 주석 해제 시 SendGrid 설정 필요 (application.properties)
-// @Service
+ @Service
 @RequiredArgsConstructor
 public class MailService {
 
