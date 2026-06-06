@@ -96,7 +96,16 @@ public class FileService {
         return gcsSignedUrlUtil.generateForImage(dto.getUploadPath());
     }
 
-
+    
+    // 다운로드 링크 
+    // FileService 에 추가
+    public String getDownloadUrl(int fileId) {
+        FileDTO dto = findById(fileId);
+        // Redis 캐싱 안 함 (짧은 TTL 이라 의미없음)
+        return gcsSignedUrlUtil.getDownloadUrl(dto.getUploadPath(), dto.getOriName());
+    }
+    
+    
     
     // 파일 단건 삭제
     @OwnerCheck(resourceType = "FILE") // 1.오너 체크먼저 AOP로 진행 : (현재 로그인한 이메일 + 파일 소유자 조회 + 같으면 통과 + 다르면 예외)

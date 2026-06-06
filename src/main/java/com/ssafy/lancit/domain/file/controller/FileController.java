@@ -68,4 +68,15 @@ public class FileController {
     	fileService.delete(fileId);
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
+   
+    
+    
+    // 파일 다운로드 - Signed URL 반환 (프론트가 직접 GCS 에서 다운로드)
+    @GetMapping("/{fileId}/download")
+    public ResponseEntity<ApiResponse<String>> download(@PathVariable int fileId) {
+    	String url = fileService.getDownloadUrl(fileId);
+    	return ResponseEntity.ok(ApiResponse.ok(url));
+    }
+    
+    
 }
