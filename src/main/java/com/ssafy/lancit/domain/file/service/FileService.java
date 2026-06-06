@@ -3,6 +3,8 @@ package com.ssafy.lancit.domain.file.service;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.ApplicationEventPublisher;
@@ -33,6 +35,10 @@ public class FileService {
     private final GcsSignedUrlUtil gcsSignedUrlUtil;
     private final ApplicationEventPublisher eventPublisher;
 
+    
+    @Autowired
+    private CacheManager cacheManager;
+    
     // 파일 업로드 - GCS 먼저 업로드 후 DB 저장
     // GCS 성공 + DB 실패 시 GCS 수동 롤백 처리
     @Transactional
@@ -59,16 +65,19 @@ public class FileService {
 				
 				
 			} catch (Exception e) {
-				e.printStackTrace(); // TODO 지원 : 개발 완료 후삭제
-				if (sysName != null) {
-					result.forEach(uploaded -> gcsService.deleteByPath(uploaded.getSysName()));
-				} ; // GCS 수동 롤백
-				throw new CustomException(ErrorCode.FILE_UPLOAD_FAILED);
+			    e.printStackTrace(); // TODO 지원 : 개발 완료 후 삭제
+			    if (sysName != null) {
+			        result.forEach(uploaded -> gcsService.deleteByPath(uploaded.getSysName()));
+			        gcsService.deleteByPath(sysName); // 현재 실패한 파일 롤백
+			    }
+			    throw new CustomException(ErrorCode.FILE_UPLOAD_FAILED);
 			}
     	}
         return result;
     }
 
+    
+    
     // 파일 단건 조회
     public FileDTO findById(int fileId) {
         FileDTO dto = fileMapper.findById(fileId);
@@ -76,8 +85,10 @@ public class FileService {
         return dto;
     }
 
+    
+    
     // Signed URL 조회
-    // ★ Redis "signedUrl:{fileId}" 캐싱 TTL 6일
+    // Redis "signedUrl:{fileId}" 캐싱 TTL 6일
     // 최초 조회 시 GCS 발급 후 Redis 저장, 이후 Redis 에서 즉시 반환
     @Cacheable(value = "signedUrl", key = "#fileId")
     public String getSignedUrl(int fileId) {
@@ -85,51 +96,44 @@ public class FileService {
         return gcsSignedUrlUtil.generateForImage(dto.getUploadPath());
     }
 
-    
-    // ★ @CacheEvict → Redis Signed URL 캐시 자동 제거
-    // ★ FileDeleteEvent → 트랜잭션 커밋 후 GCS 실제 파일 삭제
-//    @Transactional
-//    @CacheEvict(value = "signedUrl", key = "#fileId")
-//    public void delete(int fileId) {
-//        // TODO 지원 [1]: FileDTO dto = fileMapper.findById(fileId)
-//        //               null 이면 return (이미 삭제된 경우)
-//        // TODO 지원 [2]: eventPublisher.publishEvent(new FileDeleteEvent(dto.getUploadPath()))
-//        // TODO 지원 [3]: fileMapper.delete(fileId)
-//    }
+
     
     // 파일 단건 삭제
     @OwnerCheck(resourceType = "FILE") // 1.오너 체크먼저 AOP로 진행 : (현재 로그인한 이메일 + 파일 소유자 조회 + 같으면 통과 + 다르면 예외)
     @Transactional // file_db--portfolio_db 등 트랜잭션 처리
-    @CacheEvict(value = "signedUrl", key = "#fileId")  //Redis signedUrl 캐시 제거
     public void delete(int fileId) {
         
     	FileDTO dto = fileMapper.findById(fileId);
         if(dto == null) return;
         
         eventPublisher.publishEvent(  new FileDeleteEvent(dto.getUploadPath()) ); // 커밋 성공하면 이 파일 삭제 예약
-        fileMapper.delete(fileId);  
-        // 이벤트는 매퍼가 성공적으로 처리 되고 커밋되면 실행됨
+        fileMapper.delete(fileId);
+        cacheManager.getCache("signedUrl").evict(dto.getFileId());//Redis signedUrl 캐시 제거
+        // 트랜잭션이 정상적으로 COMMIT 된 후 실행됨
         // 단, gcs까지는 삭제를 보장하지 않고 트랜잭션 처리가 안됨. 삭제 실패한 파일 목록들 저장해서 배치로 재시도
     }
     
-    
-    
-    
+
 
     // parentId 기준 파일 목록 조회
     public List<FileDTO> findByParent(FileParentType parentType, int parentId) {
-        // TODO 지원 [1]: return fileMapper.findByParent(parentType, parentId)
-        return null;
+        return fileMapper.findByParent(parentType, parentId);
     }
 
-    // parentId 기준 파일 전체 삭제
-    // ★ delete(fileId) 개별 호출 → 각 파일마다 @CacheEvict + FileDeleteEvent 처리
-    //   fileMapper.deleteByParent() 직접 호출하면 캐시/GCS 처리 안 됨
+    
+    
+    // parentId 기준 파일 목록 전부 삭제
+    // 캐시/GCS 처리 완료
     @Transactional
     public void deleteByParent(FileParentType parentType, int parentId) {
-        // TODO 지원 [1]: List<FileDTO> files = findByParent(parentType, parentId)
-        // TODO 지원 [2]: files.forEach(file -> delete(file.getFileId()))
-        //               → 각 파일마다 @CacheEvict + FileDeleteEvent 발행
+        List<FileDTO> files = findByParent(parentType, parentId);
+        if (files == null || files.isEmpty()) return;
+        
+        for (FileDTO dto : files) {
+            eventPublisher.publishEvent(new FileDeleteEvent(dto.getUploadPath()));
+            fileMapper.delete(dto.getFileId());
+            cacheManager.getCache("signedUrl").evict(dto.getFileId());//Redis signedUrl 캐시 제거
+        }
     }
     
     

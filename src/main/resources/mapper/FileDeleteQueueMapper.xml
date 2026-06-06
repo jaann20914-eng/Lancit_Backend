@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ssafy.lancit.domain.file.mapper.FileDeleteQueueMapper">
+	
+	<!--삭제 실패한것 테이블에 저장해놓기-->
+	<insert id="insert">
+		insert into file_delete_queue (upload_path)
+		values (#{uploadPath})
+	</insert>
+
+	<!-- 재시도 대상 전체 조회-->
+	<select id="findAll" resultType="FileDeleteQueue">
+		select * from file_delete_queue;
+	</select>
+
+	<!--성공 시 큐에서 제거-->
+	<delete id="delete">
+		delete from file_delete_queue where file_id =#{id}
+	</delete>
+	
+	<!--실패 시 재시도 횟수 증가-->
+	<update id="incrementRetryCount" >
+		update file_delete_queue
+		set retry_count=retry_count+1
+		where file_id =#{id}
+	</update>
+
+</mapper>

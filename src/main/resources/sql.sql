@@ -23,9 +23,9 @@ ENUM('PROFILE','PORTFOLIO_BANNER','PORTFOLIO_FILE','CONTRACT','CHAT') NOT NULL;
 SELECT * FROM user;
 INSERT INTO `user` (email, password, name, phone, job_category, pushable, profile_file_id)
 VALUES (
-    'test@lancit.com',
+    'test３@lancit.com',
     '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LjZAzsuPPmC', -- test1234
-    '테스트유저',
+    '테스트유저３',
     '010-1234-5678',
     'IT',
     0,
@@ -34,6 +34,10 @@ VALUES (
 
 
 SELECT * FROM company;
+INSERT INTO company (email, password, name, company_name, phone, job_category, pushable)
+VALUES ('company@lancit.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LjZAzsuPPmC', '담당자', '테스트회사', '010-9876-5432', 'IT', 0);
+-- 비밀번호 : test1234
+
 SELECT * FROM category;
 SELECT * FROM task;
 SELECT * FROM holiday;
@@ -427,12 +431,11 @@ CREATE TABLE `proposal` (
 --  17. 삭제 실패한 파일 목록 저장해 놓는 곳
 -- ============================================================
 CREATE TABLE file_delete_queue (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    file_id BIGINT AUTO_INCREMENT PRIMARY KEY,
     upload_path VARCHAR(500) NOT NULL,
     retry_count INT DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
-
 
 
 

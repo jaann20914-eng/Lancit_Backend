@@ -54,10 +54,8 @@ public class GcsService {
         return sysName;
     }
 
-    /**
-     * ★ GCS 파일 직접 삭제 (업로드 후 DB 실패 시 롤백용)
-     * FileService.upload() 의 catch 블록에서 호출
-     */
+    // 롤백용 (예외 잡음) + GCS 파일 리스너 안거치고 직접 삭제 : 업로드중 롤백전용 콜금지
+    // FileService.upload() 의 catch 블록에서 호출
     public void deleteByPath(String sysName) {
         try {
             storage.delete(BlobId.of(bucketName, sysName));
@@ -66,22 +64,13 @@ public class GcsService {
             log.error("[GCS] 롤백 삭제 실패: {} - {}", sysName, e.getMessage());
         }
     }
-
-    /**
-     * GCS 파일 삭제 (이벤트 리스너)
-     * DB 커밋 성공 후에만 실행 → DB 롤백 시 GCS 파일 유지됨
-     *
-     * TODO 지원 [1]: 삭제 실패 정책 팀과 결정
-     *               - 현재는 로그만 남기고 넘어감 (파일 고아 허용)
-     *               - 엄격하게 할 경우 재시도 3회 후 슬랙/메일 알림
-     */
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void handleFileDelete(FileDeleteEvent event) {
-        try {
-            storage.delete(BlobId.of(bucketName, event.getUploadPath()));
-            log.info("[GCS] 삭제 완료: {}", event.getUploadPath());
-        } catch (Exception e) {
-            log.error("[GCS] 삭제 실패: {} - {}", event.getUploadPath(), e.getMessage());
-        }
-    }
+	// 배치용 (예외 던짐) + GCS 파일 리스너 안거치고 직접 삭제
+    // FileDeleteRetryScheduler.retryDeleteFiles() 에서 사용
+	    public void deleteByPathOrThrow(String sysName) throws Exception {
+	        storage.delete(BlobId.of(bucketName, sysName));
+	        log.info("[GCS] 배치 삭제 완료: {}", sysName);
+	    }
+	    
+	// 삭제 이벤트 리스너용은 FileDeleteEventListener 에 있음
+	    
 }

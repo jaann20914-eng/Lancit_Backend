@@ -47,18 +47,22 @@ public class FileController {
         return ResponseEntity.ok(ApiResponse.ok(result));
     }
 
+    
+    
+    
     // Signed URL 조회
-    // ★ Redis 캐시 조회 → 없으면 GCS 발급 후 6일 TTL 저장
+    // Redis 캐시 조회 → 없으면 GCS 발급 후 6일 TTL 저장
     // 프론트에서 이미지/파일 렌더링 시 이 API 호출
     @GetMapping("/{fileId}/url")
     public ResponseEntity<ApiResponse<String>> getSignedUrl(@PathVariable int fileId) {
-        // TODO 지원 [1]: String url = fileService.getSignedUrl(fileId)
-        // TODO 지원 [2]: return ResponseEntity.ok(ApiResponse.ok(url))
-        return ResponseEntity.ok(ApiResponse.ok(null));
+        String url = fileService.getSignedUrl(fileId);
+        return ResponseEntity.ok(ApiResponse.ok(url));
     }
 
-    // 파일 삭제 - 본인 파일만 삭제 가능
     
+    
+    
+    // 파일 삭제 - 본인 파일만 삭제 가능
     @DeleteMapping("/{fileId}")
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable int fileId) {
     	fileService.delete(fileId);
