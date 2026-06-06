@@ -45,3 +45,4 @@ application-secret.yml
 
 ### Secret Keys ###
 src/main/resources/gcs-key.json
+src/main/resources/sendgrid-key.txt
