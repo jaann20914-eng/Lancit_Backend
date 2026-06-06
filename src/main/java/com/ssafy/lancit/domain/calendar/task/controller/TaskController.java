@@ -8,10 +8,14 @@ import com.ssafy.lancit.domain.calendar.task.dto.TaskDTO;
 import com.ssafy.lancit.domain.calendar.task.service.TaskParseService;
 import com.ssafy.lancit.domain.calendar.task.service.TaskService;
 import com.ssafy.lancit.global.enums.OwnerType;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 // 캘린더 일정 CRUD - 프리랜서(USER) / 회사(COMPANY) 공용
@@ -20,37 +24,42 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/calendar/tasks")
 @RequiredArgsConstructor
+@Tag(name = "Calendar Task", description = "캘린더 일정 API")
 public class TaskController {
 
     private final TaskService taskService;
     private final TaskParseService taskParseService;
 
-    // CAL-04 / CLI-CAL-04 월간 일정 조회 (categoryId 있으면 CAL-05 카테고리 필터)
+    // CAL-04 / CLI-CAL-04 일정 조회 (year/month 월간, startDate/endDate 기간, categoryId 필터)
     @GetMapping
+    @Operation(summary = "일정 목록 조회", description = "year/month를 주면 월간 조회, startDate/endDate를 주면 기간 조회, 모두 생략하면 전체 조회합니다.")
     public ResponseEntity<ApiResponse<List<TaskDTO>>> getTasks(
-            @RequestParam int year,
-            @RequestParam int month,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @RequestParam(required = false) Integer categoryId) {
-        // TODO 영은 [1]: String email = SecurityUtil.getCurrentEmail()
-        // TODO 영은 [2]: OwnerType ownerType = "USER".equals(SecurityUtil.getCurrentRole()) ? OwnerType.USER : OwnerType.COMPANY
-        // TODO 영은 [3]: return ResponseEntity.ok(ApiResponse.ok(taskService.getMonthly(email, ownerType, year, month, categoryId)))
-        return ResponseEntity.ok(ApiResponse.ok(null));
+        String email = SecurityUtil.getCurrentEmail();
+        OwnerType ownerType = getCurrentOwnerType();
+        return ResponseEntity.ok(ApiResponse.ok(
+                taskService.getTasks(email, ownerType, year, month, startDate, endDate, categoryId)
+        ));
     }
 
     // CAL-08 / CLI-CAL-08 일정 상세 조회
     @GetMapping("/{taskId}")
+    @Operation(summary = "일정 상세 조회")
     public ResponseEntity<ApiResponse<TaskDTO>> getTask(@PathVariable int taskId) {
-        // TODO 영은 [1]: return ResponseEntity.ok(ApiResponse.ok(taskService.getOne(taskId)))
-        return ResponseEntity.ok(ApiResponse.ok(null));
+        return ResponseEntity.ok(ApiResponse.ok(taskService.getOne(taskId)));
     }
 
     // CAL-06 / CLI-CAL-06 일정 등록
     @PostMapping
+    @Operation(summary = "일정 등록")
     public ResponseEntity<ApiResponse<Void>> createTask(@RequestBody TaskDTO dto) {
-        // TODO 영은 [1]: String email = SecurityUtil.getCurrentEmail()
-        // TODO 영은 [2]: OwnerType ownerType = "USER".equals(SecurityUtil.getCurrentRole()) ? OwnerType.USER : OwnerType.COMPANY
-        // TODO 영은 [3]: taskService.create(dto, email, ownerType)
-        // TODO 영은 [4]: return ResponseEntity.ok(ApiResponse.ok(null))
+        String email = SecurityUtil.getCurrentEmail();
+        OwnerType ownerType = getCurrentOwnerType();
+        taskService.create(dto, email, ownerType);
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
 
@@ -65,18 +74,22 @@ public class TaskController {
 
     // CAL-09 / CLI-CAL-09 일정 수정 (@OwnerCheck 서비스에서 처리)
     @PutMapping("/{taskId}")
+    @Operation(summary = "일정 수정")
     public ResponseEntity<ApiResponse<Void>> updateTask(@PathVariable int taskId,
                                                         @RequestBody TaskDTO dto) {
-        // TODO 영은 [1]: taskService.update(taskId, dto)
-        // TODO 영은 [2]: return ResponseEntity.ok(ApiResponse.ok(null))
+        taskService.update(taskId, dto);
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
 
     // CAL-10 / CLI-CAL-10 일정 삭제 (@OwnerCheck 서비스에서 처리)
     @DeleteMapping("/{taskId}")
+    @Operation(summary = "일정 삭제")
     public ResponseEntity<ApiResponse<Void>> deleteTask(@PathVariable int taskId) {
-        // TODO 영은 [1]: taskService.delete(taskId)
-        // TODO 영은 [2]: return ResponseEntity.ok(ApiResponse.ok(null))
+        taskService.delete(taskId);
         return ResponseEntity.ok(ApiResponse.ok(null));
+    }
+
+    private OwnerType getCurrentOwnerType() {
+        return "USER".equals(SecurityUtil.getCurrentRole()) ? OwnerType.USER : OwnerType.COMPANY;
     }
 }

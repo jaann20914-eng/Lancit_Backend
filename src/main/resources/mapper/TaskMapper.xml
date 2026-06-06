@@ -3,6 +3,163 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.ssafy.lancit.domain.calendar.task.mapper.TaskMapper">
 
+    <sql id="TaskColumns">
+        task_id,
+        email,
+        owner_type,
+        category_id,
+        title,
+        content,
+        status,
+        start_at,
+        end_at,
+        client_company,
+        budget,
+        paid_at,
+        auto_registered,
+        auto_registered_source
+    </sql>
+
+    <select id="findByCondition" resultType="com.ssafy.lancit.domain.calendar.task.dto.TaskDTO">
+        SELECT
+        <include refid="TaskColumns"/>
+        FROM task
+        WHERE email = #{email}
+          AND owner_type = #{ownerType}
+        <if test="categoryId != null">
+          AND category_id = #{categoryId}
+        </if>
+        <if test="rangeStart != null and rangeEndExclusive != null">
+          AND start_at &lt; #{rangeEndExclusive}
+          AND end_at &gt;= #{rangeStart}
+        </if>
+        ORDER BY start_at ASC, task_id ASC
+    </select>
+
+    <select id="findById" parameterType="int" resultType="com.ssafy.lancit.domain.calendar.task.dto.TaskDTO">
+        SELECT
+        <include refid="TaskColumns"/>
+        FROM task
+        WHERE task_id = #{taskId}
+    </select>
+
+    <select id="findByIdAndOwner" resultType="com.ssafy.lancit.domain.calendar.task.dto.TaskDTO">
+        SELECT
+        <include refid="TaskColumns"/>
+        FROM task
+        WHERE task_id = #{taskId}
+          AND email = #{email}
+          AND owner_type = #{ownerType}
+    </select>
+
+    <!-- OwnerCheckAspect 에서 일정 소유자 검증 시 사용 -->
+    <select id="findOwnerEmailById" parameterType="int" resultType="string">
+        SELECT email
+        FROM task
+        WHERE task_id = #{taskId}
+    </select>
+
+    <select id="existsByIdAndOwner" resultType="boolean">
+        SELECT COUNT(*) > 0
+        FROM task
+        WHERE task_id = #{taskId}
+          AND email = #{email}
+          AND owner_type = #{ownerType}
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="taskId">
+        INSERT INTO task (
+            email,
+            owner_type,
+            category_id,
+            title,
+            content,
+            status,
+            start_at,
+            end_at,
+            client_company,
+            budget,
+            paid_at,
+            auto_registered,
+            auto_registered_source
+        ) VALUES (
+            #{email},
+            #{ownerType},
+            #{categoryId},
+            #{title},
+            #{content},
+            #{status},
+            #{startAt},
+            #{endAt},
+            #{clientCompany},
+            #{budget},
+            #{paidAt},
+            #{autoRegistered},
+            #{autoRegisteredSource}
+        )
+    </insert>
+
+    <update id="update">
+        UPDATE task
+        <set>
+            <if test="dto.categoryId != null">
+                category_id = #{dto.categoryId},
+            </if>
+            <if test="dto.title != null">
+                title = #{dto.title},
+            </if>
+            <if test="dto.content != null">
+                content = #{dto.content},
+            </if>
+            <if test="dto.status != null">
+                status = #{dto.status},
+            </if>
+            <if test="dto.startAt != null">
+                start_at = #{dto.startAt},
+            </if>
+            <if test="dto.endAt != null">
+                end_at = #{dto.endAt},
+            </if>
+            <if test="dto.clientCompany != null">
+                client_company = #{dto.clientCompany},
+            </if>
+            <if test="dto.budget != null">
+                budget = #{dto.budget},
+            </if>
+            <if test="dto.paidAt != null">
+                paid_at = #{dto.paidAt},
+            </if>
+            <if test="dto.autoRegisteredSource != null">
+                auto_registered_source = #{dto.autoRegisteredSource},
+            </if>
+        </set>
+        WHERE task_id = #{taskId}
+    </update>
+
+    <delete id="delete">
+        DELETE FROM task
+        WHERE task_id = #{taskId}
+    </delete>
+
+    <delete id="deleteByIdAndOwner">
+        DELETE FROM task
+        WHERE task_id = #{taskId}
+          AND email = #{email}
+          AND owner_type = #{ownerType}
+    </delete>
+
+    <delete id="deleteByOwner">
+        DELETE FROM task
+        WHERE email = #{email}
+          AND owner_type = #{ownerType}
+    </delete>
+
+    <select id="countByCategory" parameterType="int" resultType="int">
+        SELECT COUNT(*)
+        FROM task
+        WHERE category_id = #{categoryId}
+    </select>
+
     <update id="updateCategoryByCategory">
         UPDATE task
         SET category_id = #{moveToCategoryId}
@@ -10,6 +167,15 @@
           AND email = #{email}
           AND owner_type = #{ownerType}
     </update>
+
+    <select id="findDeadlineTasks" parameterType="int" resultType="com.ssafy.lancit.domain.calendar.task.dto.TaskDTO">
+        SELECT
+        <include refid="TaskColumns"/>
+        FROM task
+        WHERE DATE(end_at) = DATE_ADD(CURDATE(), INTERVAL #{daysUntilDeadline} DAY)
+          AND status != 'CANCELLED'
+        ORDER BY end_at ASC, task_id ASC
+    </select>
 
 </mapper>
  
