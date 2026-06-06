@@ -3,6 +3,46 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.ssafy.lancit.domain.calendar.category.mapper.CategoryMapper">
 
+    <select id="findAll" resultType="com.ssafy.lancit.domain.calendar.category.dto.CategoryDTO">
+        SELECT
+            category_id,
+            email,
+            owner_type,
+            category_name,
+            color
+        FROM category
+        WHERE email = #{email}
+          AND owner_type = #{ownerType}
+        ORDER BY category_id ASC
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="categoryId">
+        INSERT INTO category (
+            email,
+            owner_type,
+            category_name,
+            color
+        ) VALUES (
+            #{email},
+            #{ownerType},
+            #{categoryName},
+            #{color}
+        )
+    </insert>
+
+    <update id="update">
+        UPDATE category
+        <set>
+            <if test="dto.categoryName != null">
+                category_name = #{dto.categoryName},
+            </if>
+            <if test="dto.color != null">
+                color = #{dto.color},
+            </if>
+        </set>
+        WHERE category_id = #{categoryId}
+    </update>
+
     <!-- OwnerCheckAspect 에서 카테고리 소유자 검증 시 사용 -->
     <select id="findOwnerEmailById" parameterType="int" resultType="string">
         SELECT email
@@ -22,6 +62,17 @@
         DELETE FROM category
         WHERE category_id = #{categoryId}
           AND email = #{email}
+          AND owner_type = #{ownerType}
+    </delete>
+
+    <delete id="delete">
+        DELETE FROM category
+        WHERE category_id = #{categoryId}
+    </delete>
+
+    <delete id="deleteByOwner">
+        DELETE FROM category
+        WHERE email = #{email}
           AND owner_type = #{ownerType}
     </delete>
 
