@@ -13,8 +13,14 @@ public interface CategoryMapper {
     void insert(CategoryDTO dto);
     void update(@Param("categoryId") int categoryId, @Param("dto") CategoryDTO dto);
     void delete(int categoryId);
+    boolean existsByIdAndOwner(@Param("categoryId") int categoryId,
+                               @Param("email") String email,
+                               @Param("ownerType") OwnerType ownerType);
+    int deleteByIdAndOwner(@Param("categoryId") int categoryId,
+                           @Param("email") String email,
+                           @Param("ownerType") OwnerType ownerType);
     void deleteByOwner(@Param("email") String email, @Param("ownerType") OwnerType ownerType);
 
     // ★ OwnerCheckAspect 에서 사용
-    String findOwnerEmailById(int categoryId);
+    String findOwnerEmailById(@Param("categoryId") int categoryId);
 }

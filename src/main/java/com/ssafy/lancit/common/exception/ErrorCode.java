@@ -33,8 +33,9 @@ public enum ErrorCode {
     // OwnerCheckAspect 에서 사용
     INVALID_RESOURCE_TYPE(HttpStatus.BAD_REQUEST, "유효하지 않은 리소스 타입입니다."),
 	
-	//일정
-	CATEGORY_HAS_TASKS(HttpStatus.CONFLICT, "카테고리에 일정이 존재합니다. 먼저 삭제하거나 이동해주세요.");
+    //일정
+    CATEGORY_HAS_TASKS(HttpStatus.CONFLICT, "카테고리에 일정이 존재합니다. 먼저 삭제하거나 이동해주세요."),
+    INVALID_CATEGORY_MOVE(HttpStatus.BAD_REQUEST, "삭제 대상 카테고리와 이동 대상 카테고리가 같을 수 없습니다.");
 	
 
     // TODO 영은: 기능 구현 중 필요한 에러코드 생기면 여기에 추가

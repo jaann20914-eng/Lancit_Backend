@@ -3,6 +3,7 @@ package com.ssafy.lancit.domain.calendar.category.service;
 import com.ssafy.lancit.common.annotation.OwnerCheck;
 import com.ssafy.lancit.common.exception.CustomException;
 import com.ssafy.lancit.common.exception.ErrorCode;
+import com.ssafy.lancit.common.util.SecurityUtil;
 import com.ssafy.lancit.domain.calendar.category.dto.CategoryDTO;
 import com.ssafy.lancit.domain.calendar.category.mapper.CategoryMapper;
 import com.ssafy.lancit.domain.calendar.task.mapper.TaskMapper;
@@ -42,15 +43,29 @@ public class CategoryService {
         // TODO 영은 [1]: categoryMapper.update(categoryId, dto)
     }
 
-    // CAL-03 카테고리 삭제 (@OwnerCheck 로 소유자 검증)
-    // RESTRICT FK → 연관 Task 있으면 DB 에러 발생
-    // 정석: Task 존재 여부 먼저 확인 → 있으면 예외 → 프론트가 Task 먼저 처리 후 재요청
+    // CAL-03 카테고리 삭제 (@OwnerCheck 로 삭제 대상 소유자 검증)
+    // RESTRICT FK → 연관 Task 의 categoryId 를 먼저 이동한 뒤 카테고리 삭제
     @OwnerCheck(resourceType = "CATEGORY")
     @Transactional
-    public void delete(int categoryId) {
-        // TODO 영은 [1]: int count = taskMapper.countByCategory(categoryId)
-        //               count > 0 이면 throw new CustomException(ErrorCode.CATEGORY_HAS_TASKS)
-        //               → 프론트에서 "이 카테고리에 일정이 있습니다. 먼저 삭제하거나 이동해주세요." 안내
-        // TODO 영은 [2]: categoryMapper.delete(categoryId)
+    public void deleteCategoryWithTaskMove(int categoryId, int moveToCategoryId) {
+        String email = SecurityUtil.getCurrentEmail();
+        OwnerType ownerType = "USER".equals(SecurityUtil.getCurrentRole()) ? OwnerType.USER : OwnerType.COMPANY;
+
+        if (!categoryMapper.existsByIdAndOwner(categoryId, email, ownerType)) {
+            throw new CustomException(ErrorCode.NOT_FOUND);
+        }
+        if (!categoryMapper.existsByIdAndOwner(moveToCategoryId, email, ownerType)) {
+            throw new CustomException(ErrorCode.NOT_FOUND);
+        }
+        if (categoryId == moveToCategoryId) {
+            throw new CustomException(ErrorCode.INVALID_CATEGORY_MOVE);
+        }
+
+        taskMapper.updateCategoryByCategory(categoryId, moveToCategoryId, email, ownerType);
+
+        int deletedCount = categoryMapper.deleteByIdAndOwner(categoryId, email, ownerType);
+        if (deletedCount == 0) {
+            throw new CustomException(ErrorCode.NOT_FOUND);
+        }
     }
 }

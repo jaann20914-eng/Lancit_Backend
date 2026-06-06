@@ -2,7 +2,10 @@ package com.ssafy.lancit.domain.calendar.task.controller;
 
 import com.ssafy.lancit.common.response.ApiResponse;
 import com.ssafy.lancit.common.util.SecurityUtil;
+import com.ssafy.lancit.domain.calendar.task.dto.TaskParseRequestDTO;
+import com.ssafy.lancit.domain.calendar.task.dto.TaskParseResponseDTO;
 import com.ssafy.lancit.domain.calendar.task.dto.TaskDTO;
+import com.ssafy.lancit.domain.calendar.task.service.TaskParseService;
 import com.ssafy.lancit.domain.calendar.task.service.TaskService;
 import com.ssafy.lancit.global.enums.OwnerType;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +23,7 @@ import java.util.List;
 public class TaskController {
 
     private final TaskService taskService;
+    private final TaskParseService taskParseService;
 
     // CAL-04 / CLI-CAL-04 월간 일정 조회 (categoryId 있으면 CAL-05 카테고리 필터)
     @GetMapping
@@ -50,16 +54,13 @@ public class TaskController {
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
 
-    // CAL-07 / CLI-CAL-07 텍스트 파싱 자동 등록
-    // 텍스트에서 제목/날짜/금액/의뢰회사 추출 → 사용자 확인 후 저장
-    // autoRegistered=true, autoRegisteredSource=원본텍스트 세팅
+    // CAL-07 / CLI-CAL-07 텍스트 파싱 미리보기
+    // DB 저장 없이 오른쪽 일정 입력 폼 자동 채우기용 DTO 만 반환
     @PostMapping("/parse")
-    public ResponseEntity<ApiResponse<Void>> parseAndCreateTask(@RequestBody TaskDTO dto) {
-        // TODO 영은 [1]: String email = SecurityUtil.getCurrentEmail()
-        // TODO 영은 [2]: OwnerType ownerType = "USER".equals(SecurityUtil.getCurrentRole()) ? OwnerType.USER : OwnerType.COMPANY
-        // TODO 영은 [3]: taskService.createFromParsed(dto, email, ownerType)
-        // TODO 영은 [4]: return ResponseEntity.ok(ApiResponse.ok(null))
-        return ResponseEntity.ok(ApiResponse.ok(null));
+    public ResponseEntity<ApiResponse<TaskParseResponseDTO>> parseTask(
+            @RequestBody TaskParseRequestDTO requestDTO) {
+        TaskParseResponseDTO responseDTO = taskParseService.parse(requestDTO);
+        return ResponseEntity.ok(ApiResponse.ok(responseDTO));
     }
 
     // CAL-09 / CLI-CAL-09 일정 수정 (@OwnerCheck 서비스에서 처리)

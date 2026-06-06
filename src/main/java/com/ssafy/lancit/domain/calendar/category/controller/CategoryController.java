@@ -49,11 +49,11 @@ public class CategoryController {
     }
 
     // CAL-03 / CLI-CAL-03 카테고리 삭제 (@OwnerCheck 로 소유자 검증)
-    // RESTRICT FK → 연관 Task 남아있으면 DB 에러 → 서비스에서 Task 먼저 삭제 처리
+    // RESTRICT FK → 연관 Task 의 categoryId 를 먼저 이동한 뒤 카테고리 삭제
     @DeleteMapping("/{categoryId}")
-    public ResponseEntity<ApiResponse<Void>> deleteCategory(@PathVariable int categoryId) {
-        // TODO 영은 [1]: categoryService.delete(categoryId)
-        // TODO 영은 [2]: return ResponseEntity.ok(ApiResponse.ok(null))
+    public ResponseEntity<ApiResponse<Void>> deleteCategory(@PathVariable int categoryId,
+                                                            @RequestParam int moveToCategoryId) {
+        categoryService.deleteCategoryWithTaskMove(categoryId, moveToCategoryId);
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
 }
