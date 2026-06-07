@@ -71,15 +71,13 @@ public class TaskService {
         taskMapper.insert(dto);
     }
 
-    // CAL-07 텍스트 파싱 자동 등록
-    // 텍스트에서 제목/날짜/금액/의뢰회사 추출 후 저장
+    // 텍스트 파싱 결과는 자동 저장하지 않는다.
+    // /api/calendar/tasks/parse 에서 TaskParseResponseDTO만 반환하고,
+    // 사용자가 확인/수정한 뒤 일반 일정 등록 API를 통해 저장한다.
     @Transactional
     public void createFromParsed(TaskDTO dto, String email, OwnerType ownerType) {
-        // TODO 영은 [1]: dto.setEmail(email)
-        // TODO 영은 [2]: dto.setOwnerType(ownerType)
-        // TODO 영은 [3]: dto.setAutoRegistered(true)
-        // TODO 영은 [4]: dto.setAutoRegisteredSource(원본텍스트)
-        // TODO 영은 [5]: taskMapper.insert(dto)
+        // 파싱 API = 미리보기 전용
+        // 일반 일정 등록 API = 최종 저장 전용
     }
 
     // CAL-09 일정 수정 (@OwnerCheck 로 소유자 검증)
