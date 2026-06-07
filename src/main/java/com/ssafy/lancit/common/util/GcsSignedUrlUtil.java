@@ -32,13 +32,12 @@ public class GcsSignedUrlUtil {
     @Qualifier("gcsBucketName")
     private final String bucketName;
 
-    /**
-     * 기본 Signed URL 생성 (단위: 분)
-     *
-     * @param objectPath GCS 오브젝트 경로 (upload_path 컬럼값)
-     * @param minutes    만료 시간 (분)
-     * @return Signed URL 문자열
-     */
+
+     // 기본 Signed URL 생성 (단위: 분)
+     // @param objectPath GCS 오브젝트 경로 (upload_path 컬럼값)
+     // @param minutes    만료 시간 (분)
+     // @return Signed URL 문자열
+     // 이미지 화면에 뿌리는 용
     public String generateSignedUrl(String objectPath, long minutes) {
         BlobInfo blobInfo = BlobInfo.newBuilder(bucketName, objectPath).build();
 
@@ -52,26 +51,34 @@ public class GcsSignedUrlUtil {
         log.debug("[GcsSignedUrl] 발급 완료 - path: {}, 만료: {}분", objectPath, minutes);
         return url;
     }
+    
+    //포트폴리오 등 파일다운로드용
+    public String getDownloadUrl(String objectPath, String oriName) {
+        BlobInfo blobInfo = BlobInfo.newBuilder(bucketName, objectPath)
+                .setContentDisposition("attachment; filename=\"" + oriName + "\"")
+                .build();
+        return storage.signUrl(
+                blobInfo,
+                60,
+                TimeUnit.MINUTES,
+                Storage.SignUrlOption.withV4Signature()
+        ).toString();
+    }
+    
 
-    /**
-     * 프로필 이미지 / 포트폴리오 배너용 (7일)
-     * Redis 에 6일 TTL 로 캐싱해서 재사용
-     */
+     // 프로필 이미지 / 포트폴리오 배너용 (7일)
+     // Redis 에 6일 TTL 로 캐싱해서 재사용
     public String generateForImage(String objectPath) {
         return generateSignedUrl(objectPath, TimeUnit.DAYS.toMinutes(7));
     }
-
-    /**
-     * 계약서 PDF / 결과물 파일 다운로드용 (15분)
-     * 다운로드 요청 시마다 새로 발급 (캐싱 X)
-     */
-    public String generateForDownload(String objectPath) {
+    
+    //계약서 PDF / 결과물 파일 다운로드용 (15분)
+    //다운로드 요청 시마다 새로 발급 (캐싱 X)
+    public String getDownloadContractUrl(String objectPath) {
         return generateSignedUrl(objectPath, 15);
     }
 
-    /**
-     * 서명 이미지용 (1시간)
-     */
+    //서명 이미지용 (1시간)
     public String generateForSign(String objectPath) {
         return generateSignedUrl(objectPath, 60);
     }

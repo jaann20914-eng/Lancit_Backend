@@ -16,12 +16,36 @@ use lancit;
 
 
 SELECT * FROM file;
+ALTER TABLE `file`
+MODIFY COLUMN parent_type 
+ENUM('PROFILE','PORTFOLIO_BANNER','PORTFOLIO_FILE','CONTRACT','CHAT') NOT NULL;
+
 SELECT * FROM user;
+INSERT INTO `user` (email, password, name, phone, job_category, pushable, profile_file_id)
+VALUES (
+    'test３@lancit.com',
+    '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LjZAzsuPPmC', -- test1234
+    '테스트유저３',
+    '010-1234-5678',
+    'IT',
+    0,
+    NULL
+);
+
+
 SELECT * FROM company;
+INSERT INTO company (email, password, name, company_name, phone, job_category, pushable)
+VALUES ('company@lancit.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LjZAzsuPPmC', '담당자', '테스트회사', '010-9876-5432', 'IT', 0);
+-- 비밀번호 : test1234
+
 SELECT * FROM category;
 SELECT * FROM task;
 SELECT * FROM holiday;
+
 SELECT * FROM portfolio;
+INSERT INTO portfolio (email, title, content, work_start_at, work_end_at, is_public, banner_file_id)
+VALUES ('test@lancit.com', '테스트 포트폴리오', '포트폴리오 내용', '2026-01-01 00:00:00', '2026-06-01 00:00:00', 0, NULL);
+
 SELECT * FROM recruitment;
 SELECT * FROM recruitment_application;
 SELECT * FROM portfolio_permission;
@@ -402,6 +426,20 @@ CREATE TABLE `proposal` (
         ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='제안서';
 
+
+-- ============================================================
+--  17. 삭제 실패한 파일 목록 저장해 놓는 곳
+-- ============================================================
+CREATE TABLE file_delete_queue (
+    file_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    upload_path VARCHAR(500) NOT NULL,
+    retry_count INT DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+
+
+
 -- ============================================================
 --  테이블 생성 순서 요약
 -- ============================================================
@@ -422,4 +460,5 @@ CREATE TABLE `proposal` (
 --  14.  chat_room        (→ contract, → user, → company)
 --  15.  message          (→ chat_room)
 --  16.  proposal         (→ company, → user)
+--  17.  file_delete_queue
 -- ============================================================

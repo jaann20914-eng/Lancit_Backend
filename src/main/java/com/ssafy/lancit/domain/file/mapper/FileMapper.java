@@ -10,10 +10,10 @@ import java.util.List;
 @Mapper
 public interface FileMapper {
 
-    // SELECT * FROM file WHERE file_id = #{fileId}
+    // 아이디로 filedto 찾기
     FileDTO findById(int fileId);
 
-    // SELECT * FROM file WHERE parent_type = #{parentType} AND parent_id = #{parentId}
+    // parentId 기준 파일 목록 조회
     List<FileDTO> findByParent(@Param("parentType") FileParentType parentType,
                                @Param("parentId") int parentId);
 
@@ -25,17 +25,12 @@ public interface FileMapper {
     // SELECT * FROM file WHERE company_email = #{companyEmail}
     List<FileDTO> findByCompanyEmail(String companyEmail);
 
-    // INSERT INTO file - useGeneratedKeys="true" keyProperty="fileId" 필수
+    // 파일 dto 삽입하기
     void insert(FileDTO dto);
 
-    // DELETE FROM file WHERE file_id = #{fileId}
+    //파일 dto 삭제하기 + 부모아이디로 삭제도 여기로 개별 호출함
     void delete(int fileId);
 
-    // DELETE FROM file WHERE parent_type = #{parentType} AND parent_id = #{parentId}
-    void deleteByParent(@Param("parentType") FileParentType parentType,
-                        @Param("parentId") int parentId);
-
-    // OwnerCheckAspect 에서 소유자 검증용
-    // SELECT COALESCE(user_email, company_email) FROM file WHERE file_id = #{fileId}
+    // OwnerCheckAspect 에서 소유자 검증
     String findOwnerEmailById(int fileId);
 }
