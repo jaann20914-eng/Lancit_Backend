@@ -10,7 +10,7 @@ import lombok.Setter;
 
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class CategoryDTO {
-    private int categoryId;
+    private Integer categoryId;
     private String email;           // 소유자 이메일
     private OwnerType ownerType;    // USER | COMPANY
     private String categoryName;

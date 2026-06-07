@@ -42,7 +42,7 @@ public class CategoryController {
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
 
-    // CAL-02 / CLI-CAL-02 카테고리 수정 (@OwnerCheck 로 소유자 검증)
+    // CAL-02 / CLI-CAL-02 카테고리 수정 (서비스 내부에서 소유자 검증)
     @PutMapping("/{categoryId}")
     @Operation(summary = "카테고리 수정")
     public ResponseEntity<ApiResponse<Void>> updateCategory(@PathVariable int categoryId,
@@ -51,7 +51,7 @@ public class CategoryController {
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
 
-    // CAL-03 / CLI-CAL-03 카테고리 삭제 (@OwnerCheck 로 소유자 검증)
+    // CAL-03 / CLI-CAL-03 카테고리 삭제 (서비스 내부에서 소유자 검증)
     // RESTRICT FK → 연관 Task 의 categoryId 를 먼저 이동한 뒤 카테고리 삭제
     @DeleteMapping("/{categoryId}")
     @Operation(summary = "카테고리 삭제", description = "연결된 일정이 있으면 moveToCategoryId 카테고리로 이동한 뒤 카테고리만 삭제합니다.")

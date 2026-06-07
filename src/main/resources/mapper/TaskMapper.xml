@@ -129,11 +129,16 @@
             <if test="dto.paidAt != null">
                 paid_at = #{dto.paidAt},
             </if>
+            <if test="dto.autoRegistered != null">
+                auto_registered = #{dto.autoRegistered},
+            </if>
             <if test="dto.autoRegisteredSource != null">
                 auto_registered_source = #{dto.autoRegisteredSource},
             </if>
         </set>
         WHERE task_id = #{taskId}
+          AND email = #{email}
+          AND owner_type = #{ownerType}
     </update>
 
     <delete id="delete">
