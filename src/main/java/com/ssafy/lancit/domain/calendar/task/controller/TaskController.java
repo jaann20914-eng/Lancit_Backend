@@ -72,7 +72,7 @@ public class TaskController {
         return ResponseEntity.ok(ApiResponse.ok(responseDTO));
     }
 
-    // CAL-09 / CLI-CAL-09 일정 수정 (@OwnerCheck 서비스에서 처리)
+    // CAL-09 / CLI-CAL-09 일정 수정 (서비스 내부에서 소유자 검증)
     @PutMapping("/{taskId}")
     @Operation(summary = "일정 수정")
     public ResponseEntity<ApiResponse<Void>> updateTask(@PathVariable int taskId,
@@ -81,7 +81,7 @@ public class TaskController {
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
 
-    // CAL-10 / CLI-CAL-10 일정 삭제 (@OwnerCheck 서비스에서 처리)
+    // CAL-10 / CLI-CAL-10 일정 삭제 (서비스 내부에서 소유자 검증)
     @DeleteMapping("/{taskId}")
     @Operation(summary = "일정 삭제")
     public ResponseEntity<ApiResponse<Void>> deleteTask(@PathVariable int taskId) {

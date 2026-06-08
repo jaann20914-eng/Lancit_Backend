@@ -25,6 +25,6 @@ public class TaskDTO {
     private String clientCompany;
     private Integer budget;
     private LocalDateTime paidAt;
-    private boolean autoRegistered;
+    private Boolean autoRegistered;
     private String autoRegisteredSource;
 }

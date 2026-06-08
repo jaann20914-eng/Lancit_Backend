@@ -1,6 +1,5 @@
 package com.ssafy.lancit.domain.calendar.category.service;
 
-import com.ssafy.lancit.common.annotation.OwnerCheck;
 import com.ssafy.lancit.common.exception.CustomException;
 import com.ssafy.lancit.common.exception.ErrorCode;
 import com.ssafy.lancit.common.util.SecurityUtil;
@@ -40,32 +39,29 @@ public class CategoryService {
         categoryMapper.insert(dto);
     }
 
-    // CAL-02 카테고리 수정 (@OwnerCheck 로 소유자 검증)
-    @OwnerCheck(resourceType = "CATEGORY")
+    // CAL-02 카테고리 수정 (서비스 내부에서 소유자 검증)
     @Transactional
     public void update(int categoryId, CategoryDTO dto) {
         String email = SecurityUtil.getCurrentEmail();
         OwnerType ownerType = getCurrentOwnerType();
 
-        if (!categoryMapper.existsByIdAndOwner(categoryId, email, ownerType)) {
+        validateCategoryOwner(categoryId, email, ownerType);
+        validateUpdate(dto);
+
+        int updatedCount = categoryMapper.update(categoryId, dto, email, ownerType);
+        if (updatedCount == 0) {
             throw new CustomException(ErrorCode.CATEGORY_NOT_FOUND);
         }
-
-        validateUpdate(dto);
-        categoryMapper.update(categoryId, dto);
     }
 
-    // CAL-03 카테고리 삭제 (@OwnerCheck 로 삭제 대상 소유자 검증)
+    // CAL-03 카테고리 삭제 (서비스 내부에서 삭제 대상 소유자 검증)
     // RESTRICT FK → 연관 Task 의 categoryId 를 먼저 이동한 뒤 카테고리 삭제
-    @OwnerCheck(resourceType = "CATEGORY")
     @Transactional
     public void deleteCategoryWithTaskMove(int categoryId, Integer moveToCategoryId) {
         String email = SecurityUtil.getCurrentEmail();
         OwnerType ownerType = getCurrentOwnerType();
 
-        if (!categoryMapper.existsByIdAndOwner(categoryId, email, ownerType)) {
-            throw new CustomException(ErrorCode.CATEGORY_NOT_FOUND);
-        }
+        validateCategoryOwner(categoryId, email, ownerType);
 
         int linkedTaskCount = taskMapper.countByCategory(categoryId);
         if (linkedTaskCount > 0 && moveToCategoryId == null) {
@@ -75,9 +71,7 @@ public class CategoryService {
             if (categoryId == moveToCategoryId) {
                 throw new CustomException(ErrorCode.INVALID_CATEGORY_MOVE);
             }
-            if (!categoryMapper.existsByIdAndOwner(moveToCategoryId, email, ownerType)) {
-                throw new CustomException(ErrorCode.CATEGORY_NOT_FOUND);
-            }
+            validateCategoryOwner(moveToCategoryId, email, ownerType);
         }
 
         if (linkedTaskCount > 0) {
@@ -88,6 +82,17 @@ public class CategoryService {
         if (deletedCount == 0) {
             throw new CustomException(ErrorCode.CATEGORY_NOT_FOUND);
         }
+    }
+
+    private CategoryDTO validateCategoryOwner(Integer categoryId, String email, OwnerType ownerType) {
+        if (categoryId == null || categoryId <= 0) {
+            throw new CustomException(ErrorCode.INVALID_INPUT);
+        }
+        CategoryDTO category = categoryMapper.findByIdAndOwner(categoryId, email, ownerType);
+        if (category == null) {
+            throw new CustomException(ErrorCode.CATEGORY_NOT_FOUND);
+        }
+        return category;
     }
 
     private OwnerType getCurrentOwnerType() {
