@@ -13,6 +13,7 @@ public class SignupDTO {
     private String companyName;        // 회사 전용
     private String phone;
     private JobCategory jobCategory;
+    private boolean pushable;    
     private String businessNumber;     // 회사 전용
     private String role;               // "USER" | "COMPANY"
 }

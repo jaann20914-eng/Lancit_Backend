@@ -15,6 +15,10 @@ public enum ErrorCode {
     FORBIDDEN(HttpStatus.FORBIDDEN, "접근 권한이 없습니다."),
     NOT_FOUND(HttpStatus.NOT_FOUND, "리소스를 찾을 수 없습니다."),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 오류가 발생했습니다."),
+    
+    //회원가입
+    INVALID_ROLE(HttpStatus.BAD_REQUEST, "지원하지 않는 회원 유형입니다."),
+    
 
     // 인증
     INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다."),
@@ -22,6 +26,10 @@ public enum ErrorCode {
     INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "유효하지 않은 토큰입니다."),
     EXPIRED_TOKEN(HttpStatus.UNAUTHORIZED, "만료된 토큰입니다."),
     MAIL_SEND_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "메일 발송에 실패했습니다."),
+    EMAIL_NOT_VERIFIED(HttpStatus.UNAUTHORIZED, "이메일 인증이 필요합니다."),
+    
+    //사업자 번호 인증
+    BUSINESS_API_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "사업자번호 검증 중 오류가 발생했습니다."),
 
     // 계약
     CONTRACT_IN_PROGRESS(HttpStatus.CONFLICT, "진행 중인 계약이 존재하여 탈퇴할 수 없습니다."),

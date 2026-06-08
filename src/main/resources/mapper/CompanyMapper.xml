@@ -4,6 +4,47 @@
 <mapper namespace="com.ssafy.lancit.domain.company.mapper.CompanyMapper">
 
     <!-- TODO 지원: sql작성-->
+    
+    <!--이메일로 회사 디티오 찾기-->
+    <select id="findByEmail" resultType="CompanyDTO">
+    	SELECT * FROM company WHERE email=#{email}
+    </select>
+    
+    <!--회사 이메일 중복 체크-->
+	<select id="existsByEmail" parameterType="boolean">
+		SELECT COUNT(*)>0
+		FROM company WHERE email =#{email}
+	</select>
+	
+	
+	<!--회원가입-->
+	<insert id="insert">
+		INSERT INTO company (email, password, name, company_name , phone, job_category, pushable , business_number, business_number_verified)
+		values (#{email}, #{password}, #{name}, #{companyName}, #{phone}, #{jobCategory}, #{pushable}, #{businessNumber}, #{businessNumberVerified})
+	</insert>
 
 
+	<!--비밀번호 업데이트-->
+	<update id="updatePassword">
+		UPDATE company
+		SET password = #{password}
+		WHERE email= #{email}
+	</update>
+	
+	<!-- 회사 수정 -->
+	<update id="update">
+	    UPDATE company
+	    SET
+	        name                     = #{name},
+	        company_name             = #{companyName},
+	        phone                    = #{phone},
+	        job_category             = #{jobCategory},
+	        pushable                 = #{pushable},
+	        business_number          = #{businessNumber},
+	        business_number_verified = #{businessNumberVerified},
+	        profile_file_id          = #{profileFileId}
+	    WHERE email = #{email}
+	</update>
+	
+	
 </mapper>

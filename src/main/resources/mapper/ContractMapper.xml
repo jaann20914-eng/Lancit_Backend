@@ -7,41 +7,31 @@
          - freelancer_email = #{email} OR company_email = #{email} 조건
          - status, keyword 는 null 일 수 있으므로 <if test> 로 동적 처리
          - ORDER BY contract_written_at DESC -->
-    <select id="findByUser" resultType="com.ssafy.lancit.domain.contract.dto.ContractDTO">
-
-    </select>
+    
 
     <!-- TODO 지원: 계약서 단건 조회
          - WHERE contract_id = #{contractId} -->
-    <select id="findById" resultType="com.ssafy.lancit.domain.contract.dto.ContractDTO">
-
-    </select>
+    
 
     <!-- TODO 지원: 계약서 삽입
          - useGeneratedKeys="true" keyProperty="contractId" 유지할 것
          - work_days 는 List<Weekday> → 서비스에서 변환된 콤마 구분 문자열로 저장 -->
-    <insert id="insert" useGeneratedKeys="true" keyProperty="contractId">
-
-    </insert>
+    
 
     <!-- TODO 지원: 계약서 수정
          - null 인 필드는 업데이트 제외 → <if test="xxx != null"> 사용
          - WHERE contract_id = #{contractId} -->
-    <update id="update">
+    
 
-    </update>
-
-    <!-- TODO 지원: 진행 중 계약 존재 여부 확인
-         - freelancer_email = #{email} OR company_email = #{email}
-         - AND status IN ('IN_PROGRESS', 'COMPLETED_PENDING')
-         - SELECT COUNT(*) > 0 -->
-    <select id="hasActiveContract" resultType="boolean">
-
-    </select>
+    <!-- 진행 중 계약 존재 여부 확인 (IN_PROGRESS / COMPLETED_PENDING) -->
+	<select id="existsActiveContractByEmail" resultType="boolean">
+	    SELECT COUNT(*) > 0
+	    FROM contract
+	    WHERE (freelancer_email = #{email} OR company_email = #{email})
+	    AND status IN ('IN_PROGRESS', 'COMPLETED_PENDING')
+	</select>
 
 	<!-- TODO 지원: UPDATE contract SET pdf_file_id = #{pdfFileId}
      WHERE contract_id = #{contractId} -->
-	<update id="updatePdfFileId">
 	
-	</update>
 </mapper>

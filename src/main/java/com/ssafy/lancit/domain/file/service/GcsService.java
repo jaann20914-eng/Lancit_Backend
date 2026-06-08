@@ -38,6 +38,7 @@ public class GcsService {
             case PORTFOLIO_FILE    -> "portfolio/file/";
             case CONTRACT          -> "contract/";
             case CHAT              -> "chat/";
+            case TEMP              -> "temp/";
         };
     }
 

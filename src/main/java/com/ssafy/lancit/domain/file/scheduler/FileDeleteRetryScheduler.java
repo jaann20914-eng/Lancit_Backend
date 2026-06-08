@@ -31,7 +31,6 @@ public class FileDeleteRetryScheduler {
 			    continue; // 스킵
 			}
 			
-			
 			try {
 				// 성공 → deleteByPathOrThrow(id)
 				gcsService.deleteByPathOrThrow(dto.getUploadPath());

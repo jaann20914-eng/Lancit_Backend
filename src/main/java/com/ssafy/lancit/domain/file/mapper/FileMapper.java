@@ -18,7 +18,6 @@ public interface FileMapper {
                                @Param("parentId") int parentId);
 
     // UserService.delete() 에서 탈퇴 시 파일 정리용
-    // SELECT * FROM file WHERE user_email = #{userEmail}
     List<FileDTO> findByUserEmail(String userEmail);
 
     // CompanyService.delete() 에서 탈퇴 시 파일 정리용
@@ -33,4 +32,14 @@ public interface FileMapper {
 
     // OwnerCheckAspect 에서 소유자 검증
     String findOwnerEmailById(int fileId);
+    
+    // 특정 유저의 TEMP 파일 전체 조회
+    List<FileDTO> findTempByEmail(@Param("email") String email);
+    
+    // TEMP → PROFILE 등 parentType 변경
+    void updateParentType(@Param("fileId") int fileId,
+                          @Param("parentType") FileParentType parentType);
+
+
+
 }
