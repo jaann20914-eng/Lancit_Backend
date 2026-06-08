@@ -3,42 +3,43 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.ssafy.lancit.domain.user.mapper.UserMapper">
 
-    <!-- TODO 지원: 유저 단건 조회
-         - WHERE email = #{email} -->
-    <select id="findByEmail" resultType="com.ssafy.lancit.domain.user.dto.UserDTO">
-
+    <!--이메일로 유저 dto 가져오기-->
+    <select id="findByEmail" resultType="UserDTO">
+		SELECT * from user where email= #{email}
     </select>
 
-    <!-- TODO 지원: 유저 삽입
-         - useGeneratedKeys 불필요 (PK = email)
-         - profile_file_id = null 로 INSERT -->
+    <!--회원 가입 -->
     <insert id="insert">
-
+		INSERT INTO user (email, password, name, phone, job_category , pushable)
+		values (#{email}, #{password}, #{name}, #{phone}, #{job_category}, #{pushable})
     </insert>
 
-    <!-- TODO 지원: 유저 수정
-         - null 인 필드는 업데이트 제외 → <if test="xxx != null"> 사용
-         - WHERE email = #{email} -->
+    <!-- 유저 수정 -->
     <update id="update">
+	    UPDATE user
+	    SET
+	        name = #{name},
+	        phone = #{phone},
+	        job_category = #{jobCategory},
+	        pushable= #{pushable},
+	        profile_file_id = #{profileFileId}
+	    WHERE email = #{email}
+	</update>
 
-    </update>
-
-    <!-- TODO 지원: 유저 삭제
-         - WHERE email = #{email} -->
-    <delete id="delete">
-
-    </delete>
-
-    <!-- TODO 지원: 이메일 중복 체크
-         - SELECT COUNT(*) > 0 FROM user WHERE email = #{email} -->
+    <!-- 회원 이메일 중복 체크 -->
     <select id="existsByEmail" resultType="boolean">
-
+		SELECT COUNT(*) > 0 FROM user WHERE email=#{email}
     </select>
 
-    <!-- TODO 지원: 비밀번호 변경
-         - UPDATE user SET password = #{password} WHERE email = #{email} -->
+    <!-- 비밀번호 업데이트 -->
     <update id="updatePassword">
-
+		UPDATE user
+		SET password = #{password}
+		WHERE email= #{email}
     </update>
-
+    
+    <!--회원 탈퇴-->
+	<delete id="delete">
+		DELETE FROM user WHERE email = #{email}
+	</delete>
 </mapper>

@@ -18,6 +18,7 @@ import com.ssafy.lancit.common.exception.ErrorCode;
 import com.ssafy.lancit.common.util.GcsSignedUrlUtil;
 import com.ssafy.lancit.domain.file.dto.FileDTO;
 import com.ssafy.lancit.domain.file.event.FileDeleteEvent;
+import com.ssafy.lancit.domain.file.mapper.FileDeleteQueueMapper;
 import com.ssafy.lancit.domain.file.mapper.FileMapper;
 import com.ssafy.lancit.global.enums.FileParentType;
 
@@ -34,7 +35,7 @@ public class FileService {
     private final GcsService gcsService;
     private final GcsSignedUrlUtil gcsSignedUrlUtil;
     private final ApplicationEventPublisher eventPublisher;
-
+    private final FileDeleteQueueMapper fileDeleteQueueMapper;
     
     @Autowired
     private CacheManager cacheManager;
@@ -44,6 +45,20 @@ public class FileService {
     @Transactional
     public List<FileDTO> upload(List<MultipartFile> files, FileParentType parentType,
                           Integer parentId, String email, String role) {
+    	
+    	// TEMP 업로드 시 기존 TEMP 파일 삭제 큐에 추가
+        // (여러 번 바꿨을 때 이전 TEMP 파일 정리)
+        if (FileParentType.TEMP.equals(parentType)) {
+            List<FileDTO> existingTemps = fileMapper.findTempByEmail(email);
+            for (FileDTO old : existingTemps) {
+                fileDeleteQueueMapper.insert(old.getUploadPath());
+                fileMapper.delete(old.getFileId());
+                cacheManager.getCache("signedUrl").evict(old.getFileId());
+            }
+        }
+    	
+    	
+    	
     	List<FileDTO> result = new ArrayList<>();
     	
     	for(MultipartFile file : files) {

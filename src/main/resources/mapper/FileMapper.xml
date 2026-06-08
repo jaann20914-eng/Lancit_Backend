@@ -53,5 +53,29 @@
 	    WHERE file_id = #{fileId}
 	</select>
 
+	<!-- 유저의 TEMP 파일 조회 (업로드 시 기존 TEMP 정리용) -->
+	<select id="findTempByEmail" resultType="com.ssafy.lancit.domain.file.dto.FileDTO">
+	    SELECT * FROM file
+	    WHERE parent_type = 'TEMP'
+	    AND (user_email = #{email} OR company_email = #{email})
+	</select>
 
+	<!-- parentType 변경 (TEMP → PROFILE) -->
+	<update id="updateParentType">
+	    UPDATE file
+	    SET parent_type = #{parentType}
+	    WHERE file_id = #{fileId}
+	</update>
+	
+	
+	<!-- 유저 소유 파일 전체 조회 (탈퇴 시 GCS 삭제용) -->
+	<select id="findByUserEmail" resultType="com.ssafy.lancit.domain.file.dto.FileDTO">
+	    SELECT * FROM file WHERE user_email = #{userEmail}
+	</select>
+	
+	<!-- 회사 소유 파일 전체 조회 (탈퇴 시 GCS 삭제용) -->
+	<select id="findByCompanyEmail" resultType="com.ssafy.lancit.domain.file.dto.FileDTO">
+	    SELECT * FROM file WHERE company_email = #{companyEmail}
+	</select>
+	
 </mapper>

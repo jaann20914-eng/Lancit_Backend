@@ -1,11 +1,21 @@
 package com.ssafy.lancit.domain.company.controller;
 
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.ssafy.lancit.common.exception.CustomException;
+import com.ssafy.lancit.common.exception.ErrorCode;
 import com.ssafy.lancit.common.response.ApiResponse;
+import com.ssafy.lancit.common.util.SecurityUtil;
 import com.ssafy.lancit.domain.company.dto.CompanyDTO;
 import com.ssafy.lancit.domain.company.service.CompanyService;
+
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 
 // 회사 마이페이지 (조회 / 수정 / 탈퇴)
 // 프로필 사진은 FileController 에서 별도 처리 (프론트가 /api/files/{id}/url 별도 호출)
@@ -16,26 +26,34 @@ public class CompanyController {
 
     private final CompanyService companyService;
 
-    // CLI-USER-03 마이페이지 조회 - profileFileId 포함 반환 (Signed URL 은 프론트가 별도 호출)
+    // 응답에 profileFileId 포함 → 프론트가 .then () 으로 파일아이디 가지고 signed URL 로 바로 받아오기
+    // TODO 지원: 이후 시큐리티에서 role에 따라서 접근가능한 패키지명 제어 필요
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<CompanyDTO>> getMe() {
-        // TODO 지원 [1]: String email = SecurityUtil.getCurrentEmail()
-        // TODO 지원 [2]: CompanyDTO dto = companyService.getMe(email)
-        // TODO 지원 [3]: return ResponseEntity.ok(ApiResponse.ok(dto))
-        return ResponseEntity.ok(ApiResponse.ok(null));
+    	String email = SecurityUtil.getCurrentEmail();
+    	CompanyDTO company = companyService.getMe(email);
+        return ResponseEntity.ok(ApiResponse.ok(company));
     }
 
     // CLI-USER-04 마이페이지 수정
-    // 프로필 사진 변경 흐름:
-    //   1. POST /api/files/upload → fileId 반환
-    //   2. dto.profileFileId 에 담아서 이 API 호출
-    //   3. 기존 사진 삭제는 DELETE /api/files/{fileId} 별도 호출
+    //1. 사진 선택
+    //POST /api/files/upload (parentType=TEMP, parentId=null)
+    //→ fileId 반환
+    // 2. 미리보기
+    //GET /api/files/{fileId}/url → 화면에 표시
+    // 3. 저장 버튼
+    // PUT /api/user/me { profileFileId: fileId, ... }
+    //→ UserService.update() 에서
+    //① 기존 profileFileId 있으면 file_delete_queue 에 추가 (GCS 삭제 예약)
+    //② file 테이블 parent_type TEMP → PROFILE 업데이트
+    //③ user 테이블 profile_file_id 업데이트
+    // 4. 취소 시
+    //→ TempFileCleanupScheduler 가 24시간 후 정리
     @PutMapping("/me")
     public ResponseEntity<ApiResponse<Void>> updateMe(@RequestBody CompanyDTO dto) {
-        // TODO 지원 [1]: String email = SecurityUtil.getCurrentEmail()
-        // TODO 지원 [2]: dto.setEmail(email)
-        // TODO 지원 [3]: companyService.update(dto)
-        // TODO 지원 [4]: return ResponseEntity.ok(ApiResponse.ok(null))
+        String email = SecurityUtil.getCurrentEmail();
+        dto.setEmail(email);
+        companyService.update(dto);
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
 
@@ -48,8 +66,7 @@ public class CompanyController {
     //      (file, recruitment → application, bookmark, chatroom, message, proposal)
     @DeleteMapping("/me")
     public ResponseEntity<ApiResponse<Void>> deleteMe() {
-        // TODO 지원 [1]: companyService.delete()
-        // TODO 지원 [2]: return ResponseEntity.ok(ApiResponse.ok(null))
+    	companyService.delete();
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
 }

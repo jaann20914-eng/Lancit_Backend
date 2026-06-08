@@ -22,5 +22,9 @@ public interface ContractMapper {
     String findOwnerEmailById(int contractId);
     void insert(ContractDTO dto);
     void update(ContractDTO dto);
+    
+    // ContractGuardAspect 에서 탈퇴 전 진행 중 계약 확인용
     boolean existsActiveContractByEmail(String email);
+    
+    
 }
