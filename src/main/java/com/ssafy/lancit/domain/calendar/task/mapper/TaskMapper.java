@@ -36,7 +36,10 @@ public interface TaskMapper {
     void insert(TaskDTO dto);
 
     // 일정 수정 - null 필드 UPDATE 제외 (XML <if test> 처리)
-    int update(@Param("taskId") int taskId, @Param("dto") TaskDTO dto);
+    int update(@Param("taskId") int taskId,
+               @Param("dto") TaskDTO dto,
+               @Param("email") String email,
+               @Param("ownerType") OwnerType ownerType);
 
     // 일정 삭제
     int delete(@Param("taskId") int taskId);

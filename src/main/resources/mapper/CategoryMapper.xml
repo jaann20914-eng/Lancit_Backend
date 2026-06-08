@@ -30,6 +30,19 @@
         )
     </insert>
 
+    <select id="findByIdAndOwner" resultType="com.ssafy.lancit.domain.calendar.category.dto.CategoryDTO">
+        SELECT
+            category_id,
+            email,
+            owner_type,
+            category_name,
+            color
+        FROM category
+        WHERE category_id = #{categoryId}
+          AND email = #{email}
+          AND owner_type = #{ownerType}
+    </select>
+
     <update id="update">
         UPDATE category
         <set>
@@ -41,6 +54,8 @@
             </if>
         </set>
         WHERE category_id = #{categoryId}
+          AND email = #{email}
+          AND owner_type = #{ownerType}
     </update>
 
     <!-- OwnerCheckAspect 에서 카테고리 소유자 검증 시 사용 -->

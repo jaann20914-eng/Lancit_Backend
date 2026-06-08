@@ -1,9 +1,9 @@
 package com.ssafy.lancit.domain.calendar.task.service;
 
-import com.ssafy.lancit.common.annotation.OwnerCheck;
 import com.ssafy.lancit.common.exception.CustomException;
 import com.ssafy.lancit.common.exception.ErrorCode;
 import com.ssafy.lancit.common.util.SecurityUtil;
+import com.ssafy.lancit.domain.calendar.category.dto.CategoryDTO;
 import com.ssafy.lancit.domain.calendar.category.mapper.CategoryMapper;
 import com.ssafy.lancit.domain.calendar.task.dto.TaskDTO;
 import com.ssafy.lancit.domain.calendar.task.mapper.TaskMapper;
@@ -47,18 +47,14 @@ public class TaskService {
     public TaskDTO getOne(int taskId) {
         String email = SecurityUtil.getCurrentEmail();
         OwnerType ownerType = getCurrentOwnerType();
-        TaskDTO task = taskMapper.findByIdAndOwner(taskId, email, ownerType);
-        if (task == null) {
-            throw new CustomException(ErrorCode.TASK_NOT_FOUND);
-        }
-        return task;
+        return validateTaskOwner(taskId, email, ownerType);
     }
 
     // CAL-06 일정 등록
     @Transactional
     public void create(TaskDTO dto, String email, OwnerType ownerType) {
         validateCreate(dto);
-        validateCategoryExists(dto.getCategoryId(), email, ownerType);
+        validateCategoryOwner(dto.getCategoryId(), email, ownerType);
 
         dto.setEmail(email);
         dto.setOwnerType(ownerType);
@@ -68,48 +64,45 @@ public class TaskService {
         if (dto.getBudget() == null) {
             dto.setBudget(0);
         }
+        if (dto.getAutoRegistered() == null) {
+            dto.setAutoRegistered(false);
+        }
         taskMapper.insert(dto);
     }
 
-    // CAL-07 텍스트 파싱 자동 등록
-    // 텍스트에서 제목/날짜/금액/의뢰회사 추출 후 저장
+    // 텍스트 파싱 결과는 자동 저장하지 않는다.
+    // /api/calendar/tasks/parse 에서 TaskParseResponseDTO만 반환하고,
+    // 사용자가 확인/수정한 뒤 일반 일정 등록 API를 통해 저장한다.
     @Transactional
     public void createFromParsed(TaskDTO dto, String email, OwnerType ownerType) {
-        // TODO 영은 [1]: dto.setEmail(email)
-        // TODO 영은 [2]: dto.setOwnerType(ownerType)
-        // TODO 영은 [3]: dto.setAutoRegistered(true)
-        // TODO 영은 [4]: dto.setAutoRegisteredSource(원본텍스트)
-        // TODO 영은 [5]: taskMapper.insert(dto)
+        // 파싱 API = 미리보기 전용
+        // 일반 일정 등록 API = 최종 저장 전용
     }
 
-    // CAL-09 일정 수정 (@OwnerCheck 로 소유자 검증)
-    @OwnerCheck(resourceType = "TASK")
+    // CAL-09 일정 수정 (서비스 내부에서 소유자 검증)
     @Transactional
     public void update(int taskId, TaskDTO dto) {
         String email = SecurityUtil.getCurrentEmail();
         OwnerType ownerType = getCurrentOwnerType();
-        TaskDTO existingTask = taskMapper.findByIdAndOwner(taskId, email, ownerType);
-        if (existingTask == null) {
-            throw new CustomException(ErrorCode.TASK_NOT_FOUND);
-        }
+        TaskDTO existingTask = validateTaskOwner(taskId, email, ownerType);
 
         validateUpdate(dto, existingTask);
         if (dto.getCategoryId() != null) {
-            validateCategoryExists(dto.getCategoryId(), email, ownerType);
+            validateCategoryOwner(dto.getCategoryId(), email, ownerType);
         }
-        taskMapper.update(taskId, dto);
+        int updatedCount = taskMapper.update(taskId, dto, email, ownerType);
+        if (updatedCount == 0) {
+            throw new CustomException(ErrorCode.TASK_NOT_FOUND);
+        }
     }
 
-    // CAL-10 일정 삭제 (@OwnerCheck 로 소유자 검증)
-    @OwnerCheck(resourceType = "TASK")
+    // CAL-10 일정 삭제 (서비스 내부에서 소유자 검증)
     @Transactional
     public void delete(int taskId) {
         String email = SecurityUtil.getCurrentEmail();
         OwnerType ownerType = getCurrentOwnerType();
 
-        if (!taskMapper.existsByIdAndOwner(taskId, email, ownerType)) {
-            throw new CustomException(ErrorCode.TASK_NOT_FOUND);
-        }
+        validateTaskOwner(taskId, email, ownerType);
 
         int deletedCount = taskMapper.deleteByIdAndOwner(taskId, email, ownerType);
         if (deletedCount == 0) {
@@ -183,6 +176,7 @@ public class TaskService {
                 || dto.getClientCompany() != null
                 || dto.getBudget() != null
                 || dto.getPaidAt() != null
+                || dto.getAutoRegistered() != null
                 || dto.getAutoRegisteredSource() != null;
     }
 
@@ -190,16 +184,29 @@ public class TaskService {
         if (categoryId == null) {
             return;
         }
-        validateCategoryExists(categoryId, email, ownerType);
+        validateCategoryOwner(categoryId, email, ownerType);
     }
 
-    private void validateCategoryExists(Integer categoryId, String email, OwnerType ownerType) {
+    private CategoryDTO validateCategoryOwner(Integer categoryId, String email, OwnerType ownerType) {
         if (categoryId == null || categoryId <= 0) {
             throw new CustomException(ErrorCode.INVALID_INPUT);
         }
-        if (!categoryMapper.existsByIdAndOwner(categoryId, email, ownerType)) {
+        CategoryDTO category = categoryMapper.findByIdAndOwner(categoryId, email, ownerType);
+        if (category == null) {
             throw new CustomException(ErrorCode.CATEGORY_NOT_FOUND);
         }
+        return category;
+    }
+
+    private TaskDTO validateTaskOwner(Integer taskId, String email, OwnerType ownerType) {
+        if (taskId == null || taskId <= 0) {
+            throw new CustomException(ErrorCode.INVALID_INPUT);
+        }
+        TaskDTO task = taskMapper.findByIdAndOwner(taskId, email, ownerType);
+        if (task == null) {
+            throw new CustomException(ErrorCode.TASK_NOT_FOUND);
+        }
+        return task;
     }
 
     private void validatePeriod(LocalDateTime startAt, LocalDateTime endAt) {

@@ -10,8 +10,14 @@ import java.util.List;
 @Mapper
 public interface CategoryMapper {
     List<CategoryDTO> findAll(@Param("email") String email, @Param("ownerType") OwnerType ownerType);
+    CategoryDTO findByIdAndOwner(@Param("categoryId") int categoryId,
+                                 @Param("email") String email,
+                                 @Param("ownerType") OwnerType ownerType);
     void insert(CategoryDTO dto);
-    void update(@Param("categoryId") int categoryId, @Param("dto") CategoryDTO dto);
+    int update(@Param("categoryId") int categoryId,
+               @Param("dto") CategoryDTO dto,
+               @Param("email") String email,
+               @Param("ownerType") OwnerType ownerType);
     int delete(@Param("categoryId") int categoryId);
     boolean existsByIdAndOwner(@Param("categoryId") int categoryId,
                                @Param("email") String email,
