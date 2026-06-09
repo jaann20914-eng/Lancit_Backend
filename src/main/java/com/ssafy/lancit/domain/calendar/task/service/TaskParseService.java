@@ -5,7 +5,10 @@ import com.ssafy.lancit.common.exception.ErrorCode;
 import com.ssafy.lancit.domain.calendar.task.dto.TaskParseRequestDTO;
 import com.ssafy.lancit.domain.calendar.task.dto.TaskParseResponseDTO;
 import com.ssafy.lancit.global.enums.TaskStatus;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.time.DateTimeException;
 import java.time.DayOfWeek;
@@ -22,6 +25,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Service
+@Slf4j
 public class TaskParseService {
 
     private static final ZoneId SEOUL_ZONE = ZoneId.of("Asia/Seoul");
@@ -61,12 +65,75 @@ public class TaskParseService {
             "외주", "예정"
     );
 
+    private final AiTaskParseClient aiTaskParseClient;
+
+    public TaskParseService() {
+        this(null);
+    }
+
+    @Autowired(required = false)
+    public TaskParseService(AiTaskParseClient aiTaskParseClient) {
+        this.aiTaskParseClient = aiTaskParseClient;
+    }
+
     public TaskParseResponseDTO parse(TaskParseRequestDTO requestDTO) {
         if (requestDTO == null || requestDTO.getSourceText() == null || requestDTO.getSourceText().trim().isEmpty()) {
             throw new CustomException(ErrorCode.INVALID_INPUT);
         }
 
         String sourceText = requestDTO.getSourceText().trim();
+        TaskParseResponseDTO aiResult = tryParseWithAi(sourceText);
+        if (aiResult != null) {
+            return aiResult;
+        }
+
+        return parseByRules(sourceText);
+    }
+
+    private TaskParseResponseDTO tryParseWithAi(String sourceText) {
+        if (aiTaskParseClient == null) {
+            return null;
+        }
+
+        try {
+            TaskParseResponseDTO aiResult = aiTaskParseClient.parse(sourceText);
+            validateAiResult(aiResult);
+            normalizeAiResult(aiResult, sourceText);
+            return aiResult;
+        } catch (RuntimeException e) {
+            log.warn("AI task parsing failed. Falling back to rule-based parser. reason={}", e.getClass().getSimpleName());
+            return null;
+        }
+    }
+
+    private void validateAiResult(TaskParseResponseDTO aiResult) {
+        if (aiResult == null) {
+            throw new IllegalStateException("AI task parse result is empty");
+        }
+        if (!StringUtils.hasText(aiResult.getTitle())) {
+            throw new IllegalStateException("AI task parse result has no title");
+        }
+        if (aiResult.getStatus() == null) {
+            throw new IllegalStateException("AI task parse result has no status");
+        }
+    }
+
+    private void normalizeAiResult(TaskParseResponseDTO aiResult, String sourceText) {
+        if (!StringUtils.hasText(aiResult.getSourceText())) {
+            aiResult.setSourceText(sourceText);
+        }
+        if (!StringUtils.hasText(aiResult.getContent())) {
+            aiResult.setContent(sourceText);
+        }
+        if (aiResult.getWarnings() == null) {
+            aiResult.setWarnings(List.of());
+        }
+        if (aiResult.getConfidence() != null) {
+            aiResult.setConfidence(Math.max(0.0, Math.min(1.0, aiResult.getConfidence())));
+        }
+    }
+
+    private TaskParseResponseDTO parseByRules(String sourceText) {
         List<String> warnings = new ArrayList<>();
 
         Integer budget = extractBudget(sourceText, warnings);
