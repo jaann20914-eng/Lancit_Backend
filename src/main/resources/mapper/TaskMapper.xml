@@ -10,6 +10,7 @@
         category_id,
         title,
         content,
+        memo,
         status,
         start_at,
         end_at,
@@ -74,6 +75,7 @@
             category_id,
             title,
             content,
+            memo,
             status,
             start_at,
             end_at,
@@ -88,6 +90,7 @@
             #{categoryId},
             #{title},
             #{content},
+            #{memo},
             #{status},
             #{startAt},
             #{endAt},
@@ -110,6 +113,9 @@
             </if>
             <if test="dto.content != null">
                 content = #{dto.content},
+            </if>
+            <if test="dto.memo != null">
+                memo = #{dto.memo},
             </if>
             <if test="dto.status != null">
                 status = #{dto.status},

@@ -140,7 +140,12 @@ public class GmsGeminiTaskParseClient implements AiTaskParseClient {
                 - 상대 날짜 표현(오늘, 내일, 다음 주 등)은 기준 날짜와 Asia/Seoul 기준으로 해석하세요.
                 - 날짜/시간 값은 ISO-8601 LocalDateTime 문자열(예: 2026-06-09T15:00:00)로 반환하세요.
                 - 알 수 없는 값은 추측하지 말고 null로 반환하세요.
-                - sourceText와 content는 사용자의 원문을 유지하세요.
+                - sourceText는 사용자의 원문을 그대로 반환하세요.
+                - content는 일정의 주요 내용/설명입니다. 원문 전체를 단순 복사하지 마세요.
+                - memo는 정형 필드에 들어가지 않는 부가 정보입니다. 장소, 온라인 링크, 준비물, 참고사항 등을 넣으세요.
+                - clientCompany는 의뢰 회사, 고객사, 발주처가 명확히 언급된 경우에만 채우세요.
+                - 장소 정보는 clientCompany가 아니라 memo에 포함하세요.
+                - "SSAFY 1층 회의실", "1층", "회의실", "강남역 카페", "온라인", "Zoom", "주소"는 clientCompany로 반환하지 말고 memo로 반환하세요.
                 - categoryId는 사용자별 카테고리 조회가 필요하므로 null로 반환하세요.
                 - status는 기본값으로 "IN_PROGRESS"를 사용하세요.
                 - confidence는 0.0 이상 1.0 이하 숫자로 반환하세요.
@@ -153,6 +158,7 @@ public class GmsGeminiTaskParseClient implements AiTaskParseClient {
                   "categoryId": number|null,
                   "title": string|null,
                   "content": string|null,
+                  "memo": string|null,
                   "startAt": string|null,
                   "endAt": string|null,
                   "status": "IN_PROGRESS"|"COMPLETED"|"CANCELLED"|null,

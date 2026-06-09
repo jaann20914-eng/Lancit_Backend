@@ -47,6 +47,7 @@ class TaskParseServiceTest {
                 .categoryId(null)
                 .title("AI 파싱 일정")
                 .content(sourceText)
+                .memo(null)
                 .startAt(aiStartAt)
                 .endAt(aiStartAt.plusHours(1))
                 .status(TaskStatus.IN_PROGRESS)
@@ -97,6 +98,20 @@ class TaskParseServiceTest {
         assertThat(result.getStartAt()).isEqualTo(LocalDate.now(SEOUL_ZONE).plusDays(1).atTime(15, 0));
         assertThat(result.getClientCompany()).isEqualTo("삼성전자");
         assertThat(result.getCategoryId()).isNull();
+    }
+
+    @Test
+    void parseMeetingRoomAsMemoNotClientCompany() {
+        String sourceText = "내일 오후 3시에 SSAFY 1층 회의실에서 팀 회의";
+
+        TaskParseResponseDTO result = parse(sourceText);
+
+        assertThat(result.getSourceText()).isEqualTo(sourceText);
+        assertThat(result.getStartAt()).isEqualTo(LocalDate.now(SEOUL_ZONE).plusDays(1).atTime(15, 0));
+        assertThat(result.getTitle()).isEqualTo("팀 회의");
+        assertThat(result.getClientCompany()).isNull();
+        assertThat(result.getMemo()).isEqualTo("SSAFY 1층 회의실");
+        assertThat(result.getContent()).isNotEqualTo(sourceText);
     }
 
     @Test
