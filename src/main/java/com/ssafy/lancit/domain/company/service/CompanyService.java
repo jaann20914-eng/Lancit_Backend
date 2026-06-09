@@ -20,8 +20,8 @@ import com.ssafy.lancit.domain.file.dto.FileDTO;
 import com.ssafy.lancit.domain.file.event.FileDeleteEvent;
 import com.ssafy.lancit.domain.file.mapper.FileMapper;
 import com.ssafy.lancit.domain.file.service.FileService;
-import com.ssafy.lancit.domain.user.dto.UserDTO;
 import com.ssafy.lancit.global.enums.FileParentType;
+import com.ssafy.lancit.global.enums.JobCategory;
 import com.ssafy.lancit.global.enums.OwnerType;
 
 import lombok.RequiredArgsConstructor;
@@ -66,7 +66,7 @@ public class CompanyService {
                 }
             }
             // TEMP → PROFILE 로 변경
-            fileMapper.updateParentType(dto.getProfileFileId(), FileParentType.PROFILE);
+            fileService.promote(dto.getProfileFileId(), FileParentType.PROFILE);
         }
 
         // [3] 회사 정보 업데이트
@@ -85,19 +85,28 @@ public class CompanyService {
     public void delete() {
         String email = SecurityUtil.getCurrentEmail();
 
-        // [1] GCS + Redis 정리 (CASCADE 전에 먼저 처리)
+        // [1]  프로필과 temp만 GCS + Redis 정리
         List<FileDTO> files = fileMapper.findByCompanyEmail(email);
         for (FileDTO file : files) {
-            eventPublisher.publishEvent(new FileDeleteEvent(file.getUploadPath()));
-            cacheManager.getCache("signedUrl").evict(file.getFileId());
+
+            if (file.getParentType() == FileParentType.PROFILE|| file.getParentType() == FileParentType.TEMP) {
+                eventPublisher.publishEvent(new FileDeleteEvent(file.getUploadPath()));
+                cacheManager.getCache("signedUrl").evict(file.getFileId());
+            
+                fileMapper.delete(file.getFileId()); // db 삭제
+            }
         }
 
         // [2] Task, Category 앱 레벨 삭제
         taskMapper.deleteByOwner(email, OwnerType.COMPANY);
         categoryMapper.deleteByOwner(email, OwnerType.COMPANY);
 
-        // [3] Company 삭제 → DB CASCADE 자동 처리
-        // File, Recruitment → Application, Bookmark, ChatRoom, Message, Proposal
-        companyMapper.delete(email);
+        // [3] Company 소프트 삭제
+        companyMapper.softDelete(email);
+    }
+    
+    public JobCategory getCompanyJobCategory(String email) {
+    	JobCategory result =companyMapper.getCompanyJobCategory(email);
+    	return result;
     }
 }

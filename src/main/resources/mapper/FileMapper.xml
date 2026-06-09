@@ -78,4 +78,13 @@
 	    SELECT * FROM file WHERE company_email = #{companyEmail}
 	</select>
 	
+	
+	<!--GCS 폴더경로 바꾸기-->
+	<update id="updatePath">
+	    UPDATE file
+	    SET
+	        sys_name = #{uploadPath},
+	        upload_path = #{uploadPath}
+	    WHERE file_id = #{fileId}
+	</update>
 </mapper>

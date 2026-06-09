@@ -11,7 +11,7 @@
     </select>
     
     <!--회사 이메일 중복 체크-->
-	<select id="existsByEmail" parameterType="boolean">
+	<select id="existsByEmail" resultType="boolean">
 		SELECT COUNT(*)>0
 		FROM company WHERE email =#{email}
 	</select>
@@ -46,5 +46,17 @@
 	    WHERE email = #{email}
 	</update>
 	
-	
+	<!--회사 회원 탈퇴-->
+	<update id="softDelete">
+	    UPDATE company
+	    SET
+	        is_deleted = 1,
+	        deleted_at = NOW()
+	    WHERE email = #{email}
+	</update>
+		
+	<!-- 회사 업종 조회 -->
+	<select id="getCompanyJobCategory" resultType="com.ssafy.lancit.global.enums.JobCategory">
+	    SELECT job_category FROM company WHERE email = #{email}
+	</select>
 </mapper>

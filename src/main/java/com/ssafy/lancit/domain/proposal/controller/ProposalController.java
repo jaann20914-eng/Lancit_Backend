@@ -10,8 +10,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-// 제안서 CRUD - 회사(발송), 프리랜서(수락/거절)
-// ★ 제안서 발송 시 STOMP /sub/notification/{freelancerEmail} 로 알림 푸시 (ProposalService 에서 처리)
+//제안서 = 회사가 프리랜서에게 특정 공고로 제안
+//제안 즉시 Contract(NEGOTIATING_A) + ChatRoom 생성
+//STOMP: 제안 시 /sub/notification/{freelancerEmail} 알림 푸시
 @RestController
 @RequestMapping("/api/proposals")
 @RequiredArgsConstructor
@@ -19,51 +20,25 @@ public class ProposalController {
 
     private final ProposalService proposalService;
 
-    // PROP-01 제안서 목록 조회 (페이지네이션)
-    // role 로 USER(받은 목록) / COMPANY(보낸 목록) 분기
-    @GetMapping
-    public ResponseEntity<ApiResponse<PageResponse<ProposalDTO>>> getProposals(
-            @ModelAttribute PageRequest pageRequest) {
-        // TODO 지원 [1]: String email = SecurityUtil.getCurrentEmail()
-        // TODO 지원 [2]: String role = SecurityUtil.getCurrentRole()
-        // TODO 지원 [3]: return ResponseEntity.ok(ApiResponse.ok(
-        //               proposalService.getList(email, role, pageRequest)))
-        return ResponseEntity.ok(ApiResponse.ok(null));
-    }
-
-    // PROP-02 제안서 상세 조회
-    @GetMapping("/{proposalId}")
-    public ResponseEntity<ApiResponse<ProposalDTO>> getProposal(@PathVariable int proposalId) {
-        // TODO 지원 [1]: return ResponseEntity.ok(ApiResponse.ok(proposalService.getOne(proposalId)))
-        return ResponseEntity.ok(ApiResponse.ok(null));
-    }
-
-    // CLI-SEAR-02 제안서 발송 (회사 전용)
-    // ★ STOMP: 발송 후 프리랜서에게 /sub/notification/{freelancerEmail} 알림 푸시
-    @PostMapping
-    public ResponseEntity<ApiResponse<Void>> sendProposal(@RequestBody ProposalDTO dto) {
-        // TODO 지원 [1]: String companyEmail = SecurityUtil.getCurrentEmail()
-        // TODO 지원 [2]: proposalService.send(dto, companyEmail)
-        // TODO 지원 [3]: return ResponseEntity.ok(ApiResponse.ok(null))
-        return ResponseEntity.ok(ApiResponse.ok(null));
-    }
-
-    // PROP-03 제안서 수락 (프리랜서 전용)
-    // ★ 수락 시 Contract + ChatRoom 동시 INSERT (트랜잭션)
-    @PutMapping("/{proposalId}/accept")
-    public ResponseEntity<ApiResponse<Void>> acceptProposal(@PathVariable int proposalId) {
-        // TODO 지원 [1]: String freelancerEmail = SecurityUtil.getCurrentEmail()
-        // TODO 지원 [2]: proposalService.accept(proposalId, freelancerEmail)
-        // TODO 지원 [3]: return ResponseEntity.ok(ApiResponse.ok(null))
-        return ResponseEntity.ok(ApiResponse.ok(null));
-    }
-
-    // PROP-04 제안서 거절 (프리랜서 전용)
-    @PutMapping("/{proposalId}/reject")
-    public ResponseEntity<ApiResponse<Void>> rejectProposal(@PathVariable int proposalId) {
-        // TODO 지원 [1]: String freelancerEmail = SecurityUtil.getCurrentEmail()
-        // TODO 지원 [2]: proposalService.reject(proposalId, freelancerEmail)
-        // TODO 지원 [3]: return ResponseEntity.ok(ApiResponse.ok(null))
-        return ResponseEntity.ok(ApiResponse.ok(null));
-    }
+    /**
+     * CLI-SEAR-02 제안 보내기 (회사 전용)
+     * - 공고문 선택 후 프리랜서에게 제안
+     * - 제안 즉시 Contract(NEGOTIATING_A) + ChatRoom 생성
+     * - 공고문 디테일 페이지에서도 동일한 엔드포인트 사용
+     *
+     * TODO 지원 [1]: SecurityUtil.getCurrentEmail() 로 companyEmail 꺼내기
+     * TODO 지원 [2]: proposalService.send(dto, companyEmail) 호출
+     *               → Contract(NEGOTIATING_A) INSERT
+     *               → ChatRoom INSERT
+     *               → STOMP /sub/notification/{freelancerEmail} 알림 발송
+     * TODO 지원 [3]: 생성된 chatRoomId 포함 ProposalDTO 반환
+     *               → 프론트가 chatRoomId 받아서 채팅방으로 이동
+     */
+//    @PostMapping
+//    public ResponseEntity<ApiResponse<ProposalDTO>> sendProposal(
+//            @RequestBody ProposalDTO dto) {
+//    	String companyEmail= SecurityUtil.getCurrentEmail();
+//    	ProposalDTO proposaldto = proposalService.send(dto, companyEmail);
+//        return ResponseEntity.ok(ApiResponse.ok(proposaldto));
+//    }
 }

@@ -16,6 +16,9 @@ public interface ChatRoomMapper {
     //            useGeneratedKeys="true" keyProperty="chatRoomId" 추가
     void insert(ChatRoomDTO dto);
     
-	 // email로 채팅방들 리스트 가져오기
-	 List<Integer> findChatRoomIdsByEmail(String email);
+	 // 프리랜서 email로 채팅방들 리스트 가져오기
+	 List<Integer> findChatRoomIdsByFreelancerEmail(String email);
+	 
+	// 회사 email로 채팅방들 리스트 가져오기
+	 List<Integer> findChatRoomIdsByCompanyEmail(String email);
 }

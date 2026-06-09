@@ -160,6 +160,22 @@ public class FileService {
         }
     }
     
+    @Transactional
+    public void promote(Integer fileId, FileParentType targetType) {
+
+        FileDTO file = fileMapper.findById(fileId);
+
+        if (file == null) {
+            throw new CustomException(ErrorCode.NOT_FOUND);
+        }
+
+        String newPath = gcsService.move(
+                file.getSysName(),
+                targetType);
+
+        fileMapper.updatePath(fileId, newPath);
+        fileMapper.updateParentType(fileId, targetType);
+    }
     
     
 }

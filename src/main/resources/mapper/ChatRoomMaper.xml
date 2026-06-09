@@ -4,6 +4,14 @@
 <mapper namespace="com.ssafy.lancit.domain.contract.mapper.ChatRoomMapper">
 
     <!-- TODO 지원： sql작성-->
-
+    <!--프리랜서 이메일로 참여 채팅방 찾기-->
+	<select id="findChatRoomIdsByFreelancerEmail" resultType="int">
+		SELECT * FROM chat_room WHERE freelancer_email= #{email}
+	</select>
+	
+	<!--회사 이메일로 참여 채팅방 찾기-->
+	<select id="findChatRoomIdsByCompanyEmail" resultType="int">
+		SELECT * FROM chat_room WHERE company_email= #{email}
+	</select>
 
 </mapper>

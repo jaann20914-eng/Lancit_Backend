@@ -14,13 +14,15 @@ FROM mysql.user;
 CREATE DATABASE lancit;
 use lancit;
 
-
+delete from file where file_id=49;
 SELECT * FROM file;
 ALTER TABLE `file`
 MODIFY COLUMN parent_type 
-ENUM('PROFILE','PORTFOLIO_BANNER','PORTFOLIO_FILE','CONTRACT','CHAT') NOT NULL;
+ENUM('PROFILE','PORTFOLIO_BANNER','PORTFOLIO_FILE','CONTRACT','CHAT', 'TEMP') NOT NULL;
 
 SELECT * FROM user;
+-- test 계정 비번은 test
+ALTER TABLE user ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP;
 INSERT INTO `user` (email, password, name, phone, job_category, pushable, profile_file_id)
 VALUES (
     'test３@lancit.com',
@@ -37,6 +39,7 @@ SELECT * FROM company;
 INSERT INTO company (email, password, name, company_name, phone, job_category, pushable)
 VALUES ('company@lancit.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LjZAzsuPPmC', '담당자', '테스트회사', '010-9876-5432', 'IT', 0);
 -- 비밀번호 : test1234
+-- 폴리테루 :polyteru
 
 SELECT * FROM category;
 SELECT * FROM task;
@@ -55,6 +58,7 @@ SELECT * FROM contract;
 SELECT * FROM chat_room;
 SELECT * FROM message;
 SELECT * FROM proposal;
+SELECT * FROM file_delete_queue;
 
 
 

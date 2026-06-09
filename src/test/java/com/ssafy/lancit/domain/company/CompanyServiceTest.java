@@ -1,15 +1,25 @@
 package com.ssafy.lancit.domain.company;
 
-import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.BDDMockito.*;
-import static org.mockito.Mockito.*;
- 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.log;
+
 import java.util.List;
- 
-import org.junit.jupiter.api.*;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.*;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
@@ -17,7 +27,7 @@ import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
- 
+
 import com.ssafy.lancit.common.exception.CustomException;
 import com.ssafy.lancit.common.exception.ErrorCode;
 import com.ssafy.lancit.common.util.SecurityUtil;
@@ -33,6 +43,8 @@ import com.ssafy.lancit.domain.file.service.FileService;
 import com.ssafy.lancit.global.enums.FileParentType;
 import com.ssafy.lancit.global.enums.JobCategory;
 import com.ssafy.lancit.global.enums.OwnerType;
+
+import lombok.extern.slf4j.Slf4j;
 
 
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -74,13 +86,20 @@ class CompanyServiceTest {
     // ═══════════════════════════════════════════════════════
     //  getMe()
     // ═══════════════════════════════════════════════════════
+
+    
+    
     @Nested
     @DisplayName("getMe() 마이페이지 조회")
     class GetMeTest {
- 
+    	
+    	
+    	
+    	
         @Test
         @DisplayName("정상 조회 - 비밀번호 빈 문자열로 반환")
         void getMe_success() {
+        	System.out.println("test");
             given(companyMapper.findByEmail("company@test.com")).willReturn(mockCompany);
  
             CompanyDTO result = companyService.getMe("company@test.com");
@@ -250,7 +269,7 @@ class CompanyServiceTest {
  
                 verify(taskMapper, times(1)).deleteByOwner("company@test.com", OwnerType.COMPANY);
                 verify(categoryMapper, times(1)).deleteByOwner("company@test.com", OwnerType.COMPANY);
-                verify(companyMapper, times(1)).delete("company@test.com");
+                verify(companyMapper, times(1)).softDelete("company@test.com");
             }
         }
  
@@ -270,7 +289,7 @@ class CompanyServiceTest {
  
                 verify(eventPublisher, times(2)).publishEvent(any(FileDeleteEvent.class));
                 verify(cache, times(2)).evict(anyInt());
-                verify(companyMapper, times(1)).delete("company@test.com");
+                verify(companyMapper, times(1)).softDelete("company@test.com");
             }
         }
  
@@ -289,7 +308,7 @@ class CompanyServiceTest {
                 verify(taskMapper).deleteByOwner("company@test.com", OwnerType.COMPANY);
                 verify(categoryMapper).deleteByOwner("company@test.com", OwnerType.COMPANY);
                 // Recruitment, Bookmark 등은 CASCADE 자동 처리
-                verify(companyMapper).delete("company@test.com");
+                verify(companyMapper).softDelete("company@test.com");
             }
         }
     }

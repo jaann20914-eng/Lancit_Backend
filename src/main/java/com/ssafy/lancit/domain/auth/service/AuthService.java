@@ -1,11 +1,11 @@
 package com.ssafy.lancit.domain.auth.service;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -112,14 +112,27 @@ public class AuthService {
     		UserDTO user = userMapper.findByEmail(email);
     		if (user == null) throw new CustomException(ErrorCode.INVALID_CREDENTIALS);
     		encodedPassword = user.getPassword();
+    		
+    		// 탈퇴한 회원인지 확인
+    		if (user.isDeleted()) {
+    		    throw new CustomException(ErrorCode.WITHDRAWN_USER);
+    		}
     	}else if("company".equals(role)) {
     		CompanyDTO company = companyMapper.findByEmail(email);
     		if (company == null) throw new CustomException(ErrorCode.INVALID_CREDENTIALS);
+    		
+    		//탈퇴한 회사인지 확인
+			if (company.isDeleted()) {
+			    throw new CustomException(ErrorCode.WITHDRAWN_COMPANY);
+			}
     		encodedPassword =company.getPassword();
+    	   		
     	}else {
     		throw new CustomException(ErrorCode.INVALID_ROLE);
     	}
-
+    	
+    	
+    	
     	//비밀번호 검증
     	if(!passwordEncoder.matches(dto.getPassword(), encodedPassword)) {// matches(평문비번, 암호화된 비번)
     		throw new CustomException(ErrorCode.INVALID_CREDENTIALS);
@@ -129,7 +142,13 @@ public class AuthService {
     	String token = jwtTokenProvider.createAccessToken(email, role);
         
     	//채팅방 목록 조회
-    	List<Integer> chatRoomIds= chatRoomMapper.findChatRoomIdsByEmail(email);
+    	List<Integer> chatRoomIds= new ArrayList<>();
+    	if("user".equals(role)) {
+    		chatRoomIds= chatRoomMapper.findChatRoomIdsByFreelancerEmail(email);
+    	}else if("company".equals(role)) {
+    		chatRoomIds= chatRoomMapper.findChatRoomIdsByCompanyEmail(email);
+    	}
+    	
     	
     	//반환
     	Map<String, Object> result=new HashMap<>();

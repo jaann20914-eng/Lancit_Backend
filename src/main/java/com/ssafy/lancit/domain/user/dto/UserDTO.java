@@ -19,4 +19,5 @@ public class UserDTO {
     private boolean pushable;           // 알림 수신 여부
     private Integer profileFileId;      // FK → file (null 허용)
     private boolean isBookmarked; // DB 컬럼 아님, 조회 시 조립
+    private boolean isDeleted;
 }

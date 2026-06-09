@@ -11,18 +11,22 @@
     <!--회원 가입 -->
     <insert id="insert">
 		INSERT INTO user (email, password, name, phone, job_category , pushable)
-		values (#{email}, #{password}, #{name}, #{phone}, #{job_category}, #{pushable})
+		values (#{email}, #{password}, #{name}, #{phone}, #{jobCategory}, #{pushable})
     </insert>
 
     <!-- 유저 수정 -->
     <update id="update">
 	    UPDATE user
-	    SET
+	    <set>
 	        name = #{name},
 	        phone = #{phone},
 	        job_category = #{jobCategory},
-	        pushable= #{pushable},
-	        profile_file_id = #{profileFileId}
+	        pushable = #{pushable}
+	
+	        <if test="profileFileId != null">
+	            ,profile_file_id = #{profileFileId}
+	        </if>
+	    </set>
 	    WHERE email = #{email}
 	</update>
 
@@ -39,7 +43,52 @@
     </update>
     
     <!--회원 탈퇴-->
-	<delete id="delete">
-		DELETE FROM user WHERE email = #{email}
-	</delete>
+	<update id="softDelete">
+	    UPDATE user
+	    SET
+	        is_deleted = 1,
+	        deleted_at = NOW()
+	    WHERE email = #{email}
+	</update>
+	
+	<!-- 프리랜서 목록 조회 -->
+	<select id="searchFreelancers" resultType="com.ssafy.lancit.domain.user.dto.UserDTO">
+	    SELECT u.*
+	    FROM user u
+	    <if test="bookmarked">
+	        INNER JOIN bookmark b
+	            ON b.freelancer_email = u.email
+	            AND b.company_email = #{companyEmail}
+	    </if>
+	    <where>
+	        <if test="keyword != null and keyword != ''">
+	            AND u.name LIKE CONCAT('%', #{keyword}, '%')
+	        </if>
+	        <if test="jobCategory != null">
+	            AND u.job_category = #{jobCategory}
+	        </if>
+	    </where>
+	    ORDER BY u.${sort} ${direction}
+	    LIMIT #{size} OFFSET #{offset}
+	</select>
+	
+	<!-- 프리랜서 전체 개수 -->
+	<select id="countFreelancers" resultType="long">
+	    SELECT COUNT(*)
+	    FROM user u
+	    <if test="bookmarked">
+	        INNER JOIN bookmark b
+	            ON b.freelancer_email = u.email
+	            AND b.company_email = #{companyEmail}
+	    </if>
+	    <where>
+	        <if test="keyword != null and keyword != ''">
+	            AND u.name LIKE CONCAT('%', #{keyword}, '%')
+	        </if>
+	        <if test="jobCategory != null">
+	            AND u.job_category = #{jobCategory}
+	        </if>
+	    </where>
+	</select>
+
 </mapper>
