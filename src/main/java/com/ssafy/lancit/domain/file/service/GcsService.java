@@ -72,6 +72,25 @@ public class GcsService {
 	        log.info("[GCS] 배치 삭제 완료: {}", sysName);
 	    }
 	    
+	    
+	 // temp -> 새로운 타입으로 이동하기
+	    public String move(String oldPath, FileParentType newType) {
+	        String fileName = oldPath.substring(oldPath.lastIndexOf("/") + 1);
+	        String newPath = getFolder(newType) + fileName;
+
+	        storage.copy(
+	            Storage.CopyRequest.of(
+	                bucketName,
+	                oldPath,
+	                BlobId.of(bucketName, newPath)
+	            )
+	        );
+
+	        storage.delete(bucketName, oldPath);
+	        return newPath;
+	    } 
+	    
+	    
 	// 삭제 이벤트 리스너용은 FileDeleteEventListener 에 있음
 	    
 }

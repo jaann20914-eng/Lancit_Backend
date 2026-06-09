@@ -65,7 +65,7 @@ public class UserService {
                 }
             }
             // 최종 선택된 TEMP → PROFILE 로 변경
-            fileMapper.updateParentType(dto.getProfileFileId(), FileParentType.PROFILE);
+            fileService.promote(dto.getProfileFileId(), FileParentType.PROFILE);
         }
         // [3] 유저 정보 업데이트
         userMapper.update(dto);
@@ -82,18 +82,23 @@ public class UserService {
     public void delete() {
         String email = SecurityUtil.getCurrentEmail();
 
-        // [1] GCS + Redis 정리
+        // [1] 프로필과 temp만 GCS + Redis 정리
         List<FileDTO> files = fileMapper.findByUserEmail(email);
         for (FileDTO file : files) {
-            eventPublisher.publishEvent(new FileDeleteEvent(file.getUploadPath()));
-            cacheManager.getCache("signedUrl").evict(file.getFileId());
+
+            if (file.getParentType() == FileParentType.PROFILE|| file.getParentType() == FileParentType.TEMP) {
+                eventPublisher.publishEvent(new FileDeleteEvent(file.getUploadPath()));
+                cacheManager.getCache("signedUrl").evict(file.getFileId());
+            
+                fileMapper.delete(file.getFileId()); // db 삭제;
+            }
         }
 
         // [2] Task, Category 앱 레벨 삭제
         taskMapper.deleteByOwner(email, OwnerType.USER);
         categoryMapper.deleteByOwner(email, OwnerType.USER);
 
-        // [3] User 삭제 → DB CASCADE 자동 처리
-        userMapper.delete(email);
+        // [3] User 소프트 삭제 처리
+        userMapper.softDelete(email);
     }
 }

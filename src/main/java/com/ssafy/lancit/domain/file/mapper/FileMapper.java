@@ -40,6 +40,7 @@ public interface FileMapper {
     void updateParentType(@Param("fileId") int fileId,
                           @Param("parentType") FileParentType parentType);
 
-
+    //GCS 폴더경로 바꾸기
+    void updatePath(@Param("fileId") Integer fileId,@Param("uploadPath") String uploadPath);
 
 }

@@ -297,7 +297,7 @@ class AuthServiceTest {
             given(userMapper.findByEmail("user@test.com")).willReturn(user);
             given(passwordEncoder.matches("password123", "encodedPw")).willReturn(true);
             given(jwtTokenProvider.createAccessToken("user@test.com", "user")).willReturn("jwt.token");
-            given(chatRoomMapper.findChatRoomIdsByEmail("user@test.com")).willReturn(List.of(1, 2, 3));
+            given(chatRoomMapper.findChatRoomIdsByFreelancerEmail("user@test.com")).willReturn(List.of(1, 2, 3));
 
             Map<String, Object> result = authService.login(loginDto);
 
@@ -316,7 +316,7 @@ class AuthServiceTest {
             given(companyMapper.findByEmail("company@test.com")).willReturn(company);
             given(passwordEncoder.matches("password123", "encodedPw")).willReturn(true);
             given(jwtTokenProvider.createAccessToken("company@test.com", "company")).willReturn("jwt.token");
-            given(chatRoomMapper.findChatRoomIdsByEmail("company@test.com")).willReturn(List.of());
+            given(chatRoomMapper.findChatRoomIdsByCompanyEmail("company@test.com")).willReturn(List.of());
 
             Map<String, Object> result = authService.login(loginDto);
 
@@ -331,7 +331,7 @@ class AuthServiceTest {
             given(userMapper.findByEmail("user@test.com")).willReturn(user);
             given(passwordEncoder.matches("password123", "encodedPw")).willReturn(true);
             given(jwtTokenProvider.createAccessToken(anyString(), anyString())).willReturn("token");
-            given(chatRoomMapper.findChatRoomIdsByEmail("user@test.com")).willReturn(List.of());
+            given(chatRoomMapper.findChatRoomIdsByFreelancerEmail("user@test.com")).willReturn(List.of());
 
             Map<String, Object> result = authService.login(loginDto);
 
@@ -346,7 +346,7 @@ class AuthServiceTest {
             given(userMapper.findByEmail("user@test.com")).willReturn(user);
             given(passwordEncoder.matches(anyString(), anyString())).willReturn(true);
             given(jwtTokenProvider.createAccessToken(anyString(), anyString())).willReturn("token");
-            given(chatRoomMapper.findChatRoomIdsByEmail(anyString())).willReturn(List.of());
+            given(chatRoomMapper.findChatRoomIdsByFreelancerEmail(anyString())).willReturn(List.of());
 
             Map<String, Object> result = authService.login(loginDto);
 

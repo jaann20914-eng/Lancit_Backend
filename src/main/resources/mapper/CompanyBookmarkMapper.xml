@@ -4,6 +4,45 @@
 <mapper namespace="com.ssafy.lancit.domain.bookmark.company.mapper.CompanyBookmarkMapper">
 
     <!-- TODO 지원： sql작성-->
+    
+    <!-- 찜 목록 조회 -->
+    <select id="findByCompany" resultType="CompanyBookmarkDTO">
+        SELECT *
+        FROM bookmark
+        WHERE company_email = #{companyEmail}
+        ORDER BY bookmarked_at DESC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
 
+    <!-- 찜 전체 개수 -->
+    <select id="countByCompany" resultType="long">
+        SELECT COUNT(*)
+        FROM bookmark
+        WHERE company_email = #{companyEmail}
+    </select>
 
+    <!-- 찜 추가 -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="bookmarkId">
+        INSERT INTO bookmark (company_email, freelancer_email, application_id, bookmarked_at)
+        VALUES (#{companyEmail}, #{freelancerEmail}, #{applicationId}, NOW())
+    </insert>
+
+    <!-- 찜 취소 -->
+    <delete id="delete">
+        DELETE FROM bookmark WHERE bookmark_id = #{bookmarkId}
+    </delete>
+
+    <!-- 중복 찜 확인 -->
+    <select id="exists" resultType="boolean">
+        SELECT COUNT(*) > 0
+        FROM bookmark
+        WHERE company_email = #{companyEmail}
+        AND freelancer_email = #{freelancerEmail}
+    </select>
+
+    <!-- 찜 단건 조회 (소유자 검증용) -->
+    <select id="findById" resultType="CompanyBookmarkDTO">
+        SELECT * FROM bookmark WHERE bookmark_id = #{bookmarkId}
+    </select>
+	
 </mapper>

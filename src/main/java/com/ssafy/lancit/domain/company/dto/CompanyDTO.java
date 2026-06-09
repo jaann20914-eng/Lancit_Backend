@@ -20,5 +20,7 @@ public class CompanyDTO {
     private String businessNumber;
     private boolean businessNumberVerified;
     private Integer profileFileId;
+    private boolean isDeleted;
+    
 }
  

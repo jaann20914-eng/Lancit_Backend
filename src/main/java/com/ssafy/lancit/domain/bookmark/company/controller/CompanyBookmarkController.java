@@ -1,15 +1,27 @@
 package com.ssafy.lancit.domain.bookmark.company.controller;
 
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.ssafy.lancit.common.page.dto.PageRequest;
 import com.ssafy.lancit.common.page.dto.PageResponse;
 import com.ssafy.lancit.common.response.ApiResponse;
 import com.ssafy.lancit.common.util.SecurityUtil;
 import com.ssafy.lancit.domain.bookmark.company.dto.CompanyBookmarkDTO;
 import com.ssafy.lancit.domain.bookmark.company.service.CompanyBookmarkService;
+import com.ssafy.lancit.domain.company.service.CompanyService;
 import com.ssafy.lancit.domain.user.dto.UserDTO;
+import com.ssafy.lancit.global.enums.JobCategory;
+
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 
 // 회사가 프리랜서 찜 (bookmark 테이블)
 // Redis, STOMP 직접 관련 없음
@@ -18,46 +30,48 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class CompanyBookmarkController {
 
-    private final CompanyBookmarkService bookmarkService;
-
-    // CLI-SEAR-01 찜한 프리랜서 목록 조회 (페이지네이션)
-    @GetMapping
-    public ResponseEntity<ApiResponse<PageResponse<CompanyBookmarkDTO>>> getBookmarks(
-            @ModelAttribute PageRequest pageRequest) {
-        // TODO 지원 [1]: String companyEmail = SecurityUtil.getCurrentEmail()
-        // TODO 지원 [2]: return ResponseEntity.ok(ApiResponse.ok(
-        //               bookmarkService.getList(companyEmail, pageRequest)))
-        return ResponseEntity.ok(ApiResponse.ok(null));
-    }
-
-    // CLI-SEAR-01 직접 찜 추가
-    @PostMapping
-    public ResponseEntity<ApiResponse<Void>> createBookmark(@RequestBody CompanyBookmarkDTO dto) {
-        // TODO 지원 [1]: String companyEmail = SecurityUtil.getCurrentEmail()
-        // TODO 지원 [2]: bookmarkService.create(dto, companyEmail)
-        // TODO 지원 [3]: return ResponseEntity.ok(ApiResponse.ok(null))
-        return ResponseEntity.ok(ApiResponse.ok(null));
-    }
-
-    // 찜 취소
-    @DeleteMapping("/{bookmarkId}")
-    public ResponseEntity<ApiResponse<Void>> deleteBookmark(@PathVariable int bookmarkId) {
-        // TODO 지원 [1]: String companyEmail = SecurityUtil.getCurrentEmail()
-        // TODO 지원 [2]: bookmarkService.delete(bookmarkId, companyEmail)
-        // TODO 지원 [3]: return ResponseEntity.ok(ApiResponse.ok(null))
-        return ResponseEntity.ok(ApiResponse.ok(null));
-    }
-
-    // CLI-SEAR-01 프리랜서 검색 (이름/업종 필터 + 페이지네이션)
-    // 검색 결과에 찜 여부 포함 → UserDTO 에 isBookmarked 필드 추가 or Map 으로 반환
+    private final CompanyBookmarkService companyBookmarkService;
+    private final CompanyService companyService;
+    /**
+     * CLI-SEAR-01 프리랜서 목록 조회 + 검색 + 필터 + 정렬 + 페이지네이션
+     * - keyword: 이름 검색
+     * - jobCategory: 업종 필터, 디폴트 값은 회사의 잡 카테고리
+     * - bookmarked: true 면 찜한 프리랜서만
+     * - sort: latest / name
+     * - 각 프리랜서마다 isBookmarked 포함 반환
+     */
     @GetMapping("/search")
-    public ResponseEntity<ApiResponse<PageResponse<UserDTO>>> searchFreelancers(
-            @RequestParam(required = false) String name,
-            @RequestParam(required = false) String jobCategory,
+    public ResponseEntity<ApiResponse<?>> searchFreelancers(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) JobCategory jobCategory,
+            @RequestParam(defaultValue = "false") boolean bookmarked,
             @ModelAttribute PageRequest pageRequest) {
-        // TODO 지원 [1]: String companyEmail = SecurityUtil.getCurrentEmail()
-        // TODO 지원 [2]: return ResponseEntity.ok(ApiResponse.ok(
-        //               bookmarkService.searchFreelancers(name, jobCategory, companyEmail, pageRequest)))
+
+        String companyEmail = SecurityUtil.getCurrentEmail();
+        if (jobCategory == null) {
+            jobCategory = companyService.getCompanyJobCategory(companyEmail);
+        }
+        PageResponse<UserDTO> result = companyBookmarkService.searchFreelancers(
+                companyEmail, keyword, jobCategory, bookmarked, pageRequest);
+        return ResponseEntity.ok(ApiResponse.ok(result));
+    }
+
+    // CLI-SEAR-01 프리랜서 찜하기
+
+    @PostMapping
+    public ResponseEntity<ApiResponse<Void>> createBookmark(
+            @RequestBody CompanyBookmarkDTO dto) {
+        String companyEmail = SecurityUtil.getCurrentEmail();
+        companyBookmarkService.create(dto, companyEmail);
+        return ResponseEntity.ok(ApiResponse.ok(null));
+    }
+
+    // CLI-SEAR-01 프리랜서 찜 취소
+    @DeleteMapping("/{bookmarkId}")
+    public ResponseEntity<ApiResponse<Void>> deleteBookmark(
+            @PathVariable int bookmarkId) {
+        String companyEmail = SecurityUtil.getCurrentEmail();
+        companyBookmarkService.delete(bookmarkId, companyEmail);
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
 }

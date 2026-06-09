@@ -1,12 +1,19 @@
 package com.ssafy.lancit.domain.user.controller;
 
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.ssafy.lancit.common.response.ApiResponse;
 import com.ssafy.lancit.common.util.SecurityUtil;
 import com.ssafy.lancit.domain.user.dto.UserDTO;
 import com.ssafy.lancit.domain.user.service.UserService;
+
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 
 // 프리랜서 마이페이지 (조회 / 수정 / 탈퇴)
 // 프로필 사진 이미지는 GET /api/files/{profileFileId}/url 로 별도 호출
@@ -41,6 +48,7 @@ public class UserController {
     //③ user 테이블 profile_file_id 업데이트
     // 4. 취소 시
     //→ TempFileCleanupScheduler 가 24시간 후 정리
+    @PutMapping("/me")
     public ResponseEntity<ApiResponse<Void>> updateMe(@RequestBody UserDTO dto) {
     	String email = SecurityUtil.getCurrentEmail();
         dto.setEmail(email);

@@ -4,6 +4,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import com.ssafy.lancit.domain.company.dto.CompanyDTO;
+import com.ssafy.lancit.global.enums.JobCategory;
 
 @Mapper
 public interface CompanyMapper {
@@ -20,11 +21,13 @@ public interface CompanyMapper {
     //회사 정보 수정
     void update(CompanyDTO dto);
 
-    // TODO 지원: CompanyMapper.xml → DELETE FROM company WHERE email = #{email}
-    void delete(String email);
-
-    
+    //회원 탈퇴
+    void softDelete(String email);
 
     // 비밀번호 업데이트
     void updatePassword(@Param("email") String email, @Param("password") String password);
+    
+    //회사 잡 카테고리 가져오기 
+    JobCategory getCompanyJobCategory(String email);
+    
 }

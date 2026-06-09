@@ -15,9 +15,7 @@ public class ProposalDTO {
     private int proposalId;
     private String companyEmail;
     private String freelancerEmail;
-    private String title;
-    private String content;
-    private ProposalStatus status;
-    private LocalDateTime sentAt;
+    private int recruitmentId;   // 어떤 공고로 제안하는지
+    private int contractId;      // 응답: 생성된 계약서 ID
+    private int chatRoomId;      // 응답: 생성된 채팅방 ID (프론트 이동용)
 }
- 

@@ -48,7 +48,7 @@ public class PageRequest {
     // TODO 지원: 나중에 정렬 가능하도록 허용할 칼럼들 이곳에 넣으면 됨
     private static final Set<String> ALLOWED_SORT_COLUMNS = Set.of(
         "created_at", "sent_at", "bookmarked_at",
-        "contract_written_at", "applied_at", "title"
+        "contract_written_at", "applied_at", "title","name"
     );
     
     

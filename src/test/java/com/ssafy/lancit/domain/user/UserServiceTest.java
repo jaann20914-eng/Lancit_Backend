@@ -236,7 +236,7 @@ class UserServiceTest {
  
                 verify(taskMapper, times(1)).deleteByOwner("user@test.com", OwnerType.USER);
                 verify(categoryMapper, times(1)).deleteByOwner("user@test.com", OwnerType.USER);
-                verify(userMapper, times(1)).delete("user@test.com");
+                verify(userMapper, times(1)).softDelete("user@test.com");
             }
         }
  
@@ -257,7 +257,7 @@ class UserServiceTest {
  
                 verify(eventPublisher, times(2)).publishEvent(any(FileDeleteEvent.class));
                 verify(cache, times(2)).evict(anyInt());
-                verify(userMapper, times(1)).delete("user@test.com");
+                verify(userMapper, times(1)).softDelete("user@test.com");
             }
         }
     }
