@@ -166,6 +166,7 @@ CREATE TABLE `task` (
     category_id             INT             NOT NULL,
     title                   VARCHAR(255)    NOT NULL,
     content                 TEXT            NULL,
+    memo                    TEXT            NULL                        COMMENT '장소, 링크, 준비물 등 부가 정보',
     status                  ENUM('IN_PROGRESS','COMPLETED','CANCELLED')
                                             NOT NULL    DEFAULT 'IN_PROGRESS',
     start_at                DATETIME        NOT NULL,

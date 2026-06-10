@@ -5,7 +5,10 @@ import com.ssafy.lancit.common.exception.ErrorCode;
 import com.ssafy.lancit.domain.calendar.task.dto.TaskParseRequestDTO;
 import com.ssafy.lancit.domain.calendar.task.dto.TaskParseResponseDTO;
 import com.ssafy.lancit.global.enums.TaskStatus;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.time.DateTimeException;
 import java.time.DayOfWeek;
@@ -22,6 +25,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Service
+@Slf4j
 public class TaskParseService {
 
     private static final ZoneId SEOUL_ZONE = ZoneId.of("Asia/Seoul");
@@ -42,24 +46,41 @@ public class TaskParseService {
     private static final Pattern KOREAN_FROM_TO_PATTERN =
             Pattern.compile("(?:(오전|오후)\\s*)?(\\d{1,2})\\s*시(?:\\s*(\\d{1,2})\\s*분)?\\s*부터\\s*(?:(오전|오후)\\s*)?(\\d{1,2})\\s*시(?:\\s*(\\d{1,2})\\s*분)?\\s*까지");
     private static final Pattern SINGLE_TIME_PATTERN =
-            Pattern.compile("(?:(오전|오후)\\s*)?(\\d{1,2})(?::(\\d{2})|\\s*시(?:\\s*(\\d{1,2})\\s*분)?)\\s*(?:에|에는|부터|까지)?");
+            Pattern.compile("(?:(오전|오후)\\s*)?(\\d{1,2})(?::(\\d{2})|\\s*시(?:\\s*(\\d{1,2})\\s*분)?)(?:\\s*(?:에|에는|부터|까지))?");
     private static final Pattern PAID_KEYWORD_PATTERN =
             Pattern.compile("입금|지급|정산");
     private static final Pattern CATEGORY_KEYWORD_PATTERN =
             Pattern.compile("회의|미팅|계약|정산|입금|지급");
     private static final Pattern COMPANY_SUFFIX_PATTERN =
             Pattern.compile("([가-힣A-Za-z0-9]+(?:회사|전자|테크|소프트|그룹|은행|보험|카드|커머스|랩스|시스템즈|산업|주식회사))");
+    private static final Pattern COMPANY_REQUEST_PATTERN =
+            Pattern.compile("([가-힣A-Za-z0-9]+)\\s*(?:의뢰|발주)|(?:고객사|클라이언트|발주처)\\s*([가-힣A-Za-z0-9]+)");
     private static final Pattern COMPANY_WITH_PARTICLE_PATTERN =
             Pattern.compile("([가-힣A-Za-z0-9]+)\\s*(?:랑|와|과)\\s*(?:미팅|회의|계약|상담)");
     private static final Pattern PROJECT_COMPANY_PATTERN =
             Pattern.compile("([가-힣A-Za-z0-9]+)\\s+프로젝트\\s*(?:회의|미팅|작업)?");
-    private static final Pattern LEADING_COMPANY_PATTERN =
-            Pattern.compile("([가-힣A-Za-z0-9]+)\\s+(?:계약\\s*)?(?:미팅|회의|상담|외주|작업)");
+    private static final Pattern PLACE_BEFORE_PARTICLE_PATTERN =
+            Pattern.compile("([^\\n,，;；/]{1,80}?)\\s*(?:에서|에서의)(?=\\s|$)");
+    private static final Pattern URL_PATTERN =
+            Pattern.compile("(?i)\\b(?:https?://|www\\.)\\S+");
+    private static final Pattern ONLINE_MEMO_PATTERN =
+            Pattern.compile("(?i)(온라인|zoom|줌|google\\s*meet|구글\\s*밋|teams|팀즈)");
     private static final Set<String> COMPANY_STOP_WORDS = Set.of(
             "오늘", "내일", "모레", "이번", "다음", "프로젝트", "계약", "정산",
             "입금", "지급", "예산", "금액", "비용", "회의", "미팅", "작업",
-            "외주", "예정"
+            "외주", "예정", "팀", "장소", "주소", "온라인", "회의실", "카페"
     );
+
+    private final AiTaskParseClient aiTaskParseClient;
+
+    public TaskParseService() {
+        this(null);
+    }
+
+    @Autowired(required = false)
+    public TaskParseService(AiTaskParseClient aiTaskParseClient) {
+        this.aiTaskParseClient = aiTaskParseClient;
+    }
 
     public TaskParseResponseDTO parse(TaskParseRequestDTO requestDTO) {
         if (requestDTO == null || requestDTO.getSourceText() == null || requestDTO.getSourceText().trim().isEmpty()) {
@@ -67,11 +88,76 @@ public class TaskParseService {
         }
 
         String sourceText = requestDTO.getSourceText().trim();
+        TaskParseResponseDTO aiResult = tryParseWithAi(sourceText);
+        if (aiResult != null) {
+            return aiResult;
+        }
+
+        return parseByRules(sourceText);
+    }
+
+    private TaskParseResponseDTO tryParseWithAi(String sourceText) {
+        if (aiTaskParseClient == null) {
+            return null;
+        }
+
+        try {
+            TaskParseResponseDTO aiResult = aiTaskParseClient.parse(sourceText);
+            validateAiResult(aiResult);
+            normalizeAiResult(aiResult, sourceText);
+            return aiResult;
+        } catch (RuntimeException e) {
+            log.warn("AI task parsing failed. Falling back to rule-based parser. reason={}", e.getClass().getSimpleName());
+            return null;
+        }
+    }
+
+    private void validateAiResult(TaskParseResponseDTO aiResult) {
+        if (aiResult == null) {
+            throw new IllegalStateException("AI task parse result is empty");
+        }
+        if (!StringUtils.hasText(aiResult.getTitle())) {
+            throw new IllegalStateException("AI task parse result has no title");
+        }
+        if (aiResult.getStatus() == null) {
+            throw new IllegalStateException("AI task parse result has no status");
+        }
+    }
+
+    private void normalizeAiResult(TaskParseResponseDTO aiResult, String sourceText) {
+        aiResult.setSourceText(sourceText);
+        aiResult.setContent(normalizeContent(aiResult.getContent(), sourceText));
+
+        MemoResult ruleMemo = extractMemo(sourceText);
+        if (!StringUtils.hasText(aiResult.getMemo())) {
+            aiResult.setMemo(ruleMemo.memo());
+        } else {
+            aiResult.setMemo(normalizeOptionalText(aiResult.getMemo()));
+        }
+
+        String clientCompany = normalizeOptionalText(aiResult.getClientCompany());
+        if (clientCompany != null && !isValidClientCompanyCandidate(clientCompany)) {
+            aiResult.setMemo(appendMemo(aiResult.getMemo(), clientCompany));
+            clientCompany = null;
+        }
+        aiResult.setClientCompany(clientCompany);
+
+        if (aiResult.getWarnings() == null) {
+            aiResult.setWarnings(List.of());
+        }
+        if (aiResult.getConfidence() != null) {
+            aiResult.setConfidence(Math.max(0.0, Math.min(1.0, aiResult.getConfidence())));
+        }
+    }
+
+    private TaskParseResponseDTO parseByRules(String sourceText) {
         List<String> warnings = new ArrayList<>();
 
         Integer budget = extractBudget(sourceText, warnings);
-        TitleResult titleResult = extractTitle(sourceText);
-        String clientCompany = extractClientCompany(titleResult.title(), sourceText);
+        MemoResult memoResult = extractMemo(sourceText);
+        TitleResult titleResult = extractTitle(sourceText, memoResult.parts());
+        String sourceWithoutMemo = removeMemoParts(sourceText, memoResult.parts());
+        String clientCompany = extractClientCompany(titleResult.title(), sourceWithoutMemo);
 
         LocalDate today = LocalDate.now(SEOUL_ZONE);
         List<DateCandidate> dateCandidates = extractDateCandidates(sourceText, today, warnings);
@@ -148,7 +234,8 @@ public class TaskParseService {
                 .sourceText(sourceText)
                 .categoryId(null)
                 .title(titleResult.title())
-                .content(sourceText)
+                .content(null)
+                .memo(memoResult.memo())
                 .startAt(startAt)
                 .endAt(endAt)
                 .status(TaskStatus.IN_PROGRESS)
@@ -158,6 +245,100 @@ public class TaskParseService {
                 .confidence(confidence)
                 .warnings(warnings)
                 .build();
+    }
+
+    private MemoResult extractMemo(String sourceText) {
+        List<String> memoParts = new ArrayList<>();
+
+        Matcher placeMatcher = PLACE_BEFORE_PARTICLE_PATTERN.matcher(sourceText);
+        while (placeMatcher.find()) {
+            addMemoPart(memoParts, cleanMemoCandidate(placeMatcher.group(1)));
+        }
+
+        Matcher urlMatcher = URL_PATTERN.matcher(sourceText);
+        while (urlMatcher.find()) {
+            addMemoPart(memoParts, normalizeOptionalText(urlMatcher.group()));
+        }
+
+        Matcher onlineMatcher = ONLINE_MEMO_PATTERN.matcher(sourceText);
+        while (onlineMatcher.find()) {
+            addMemoPart(memoParts, normalizeOptionalText(onlineMatcher.group()));
+        }
+
+        if (memoParts.isEmpty()) {
+            return new MemoResult(null, List.of());
+        }
+        return new MemoResult(String.join(" / ", memoParts), List.copyOf(memoParts));
+    }
+
+    private void addMemoPart(List<String> memoParts, String memoPart) {
+        if (!StringUtils.hasText(memoPart)) {
+            return;
+        }
+        String normalizedMemoPart = memoPart.trim();
+        if (!memoParts.contains(normalizedMemoPart)) {
+            memoParts.add(normalizedMemoPart);
+        }
+    }
+
+    private String cleanMemoCandidate(String candidate) {
+        String memo = removeStructuredExpressions(candidate);
+        memo = memo.replaceAll("^(?:장소|주소)\\s*[:：]?\\s*", "");
+        memo = memo.replaceAll("\\s*(?:에|에는|부터|까지|에서|으로|로)$", "");
+        memo = memo.replaceAll("\\s+", " ").trim();
+        return normalizeOptionalText(memo);
+    }
+
+    private String removeStructuredExpressions(String text) {
+        String result = BUDGET_PATTERN.matcher(text).replaceAll(" ");
+        result = ISO_DATE_PATTERN.matcher(result).replaceAll(" ");
+        result = MONTH_DAY_PATTERN.matcher(result).replaceAll(" ");
+        result = WEEKDAY_PATTERN.matcher(result).replaceAll(" ");
+        result = RELATIVE_DATE_PATTERN.matcher(result).replaceAll(" ");
+        result = KOREAN_FROM_TO_PATTERN.matcher(result).replaceAll(" ");
+        result = CLOCK_RANGE_PATTERN.matcher(result).replaceAll(" ");
+        result = SINGLE_TIME_PATTERN.matcher(result).replaceAll(" ");
+        return result.replaceAll("\\s+", " ").trim();
+    }
+
+    private String removeMemoParts(String text, List<String> memoParts) {
+        String result = text;
+        for (String memoPart : memoParts) {
+            result = Pattern.compile(Pattern.quote(memoPart) + "\\s*(?:에서의|에서|으로|로)?")
+                    .matcher(result)
+                    .replaceAll(" ");
+        }
+        return result.replaceAll("\\s+", " ").trim();
+    }
+
+    private String normalizeContent(String content, String sourceText) {
+        String normalizedContent = normalizeOptionalText(content);
+        if (normalizedContent == null || normalizedContent.equals(sourceText)) {
+            return null;
+        }
+        return normalizedContent;
+    }
+
+    private String normalizeOptionalText(String value) {
+        if (!StringUtils.hasText(value)) {
+            return null;
+        }
+        return value.replaceAll("\\s+", " ").trim();
+    }
+
+    private String appendMemo(String memo, String memoPart) {
+        String normalizedMemo = normalizeOptionalText(memo);
+        String normalizedMemoPart = normalizeOptionalText(memoPart);
+        if (normalizedMemoPart == null) {
+            return normalizedMemo;
+        }
+        if (normalizedMemo == null) {
+            return normalizedMemoPart;
+        }
+        if (normalizedMemo.equals(normalizedMemoPart) || normalizedMemo.contains(normalizedMemoPart)) {
+            return normalizedMemo;
+        }
+        return normalizedMemo + " / " + normalizedMemoPart;
     }
 
     private Integer extractBudget(String sourceText, List<String> warnings) {
@@ -182,7 +363,7 @@ public class TaskParseService {
         }
     }
 
-    private TitleResult extractTitle(String sourceText) {
+    private TitleResult extractTitle(String sourceText, List<String> memoParts) {
         String firstLine = sourceText.split("\\R", 2)[0].trim();
         String title = BUDGET_PATTERN.matcher(firstLine).replaceAll("");
         title = ISO_DATE_PATTERN.matcher(title).replaceAll(" ");
@@ -192,10 +373,11 @@ public class TaskParseService {
         title = KOREAN_FROM_TO_PATTERN.matcher(title).replaceAll(" ");
         title = CLOCK_RANGE_PATTERN.matcher(title).replaceAll(" ");
         title = SINGLE_TIME_PATTERN.matcher(title).replaceAll(" ");
+        title = removeMemoParts(title, memoParts);
         title = title.replaceAll("[,，;；/]+", " ");
         title = title.replaceAll("\\s+", " ").trim();
         title = title.replaceAll("^(?:에|에는|부터|까지)\\s*", "").trim();
-        title = title.replaceAll("\\s*(?:에|에는|부터|까지)$", "").trim();
+        title = title.replaceAll("\\s*(?:에|에는|부터|까지|에서|으로|로)$", "").trim();
 
         if (title.isEmpty()) {
             String fallback = firstLine.length() > 40 ? firstLine.substring(0, 40).trim() : firstLine;
@@ -461,31 +643,57 @@ public class TaskParseService {
 
     private String extractClientCompany(String title, String sourceText) {
         String normalizedTitle = title.replaceAll("\\s+", " ").trim();
-        String company = findCompany(COMPANY_SUFFIX_PATTERN, normalizedTitle);
+        String normalizedSourceText = sourceText.replaceAll("\\s+", " ").trim();
+        String company = findCompany(COMPANY_REQUEST_PATTERN, normalizedSourceText, 1, 2);
         if (company != null) {
             return company;
         }
-        company = findCompany(COMPANY_WITH_PARTICLE_PATTERN, sourceText);
+        company = findCompany(COMPANY_SUFFIX_PATTERN, normalizedTitle, 1);
         if (company != null) {
             return company;
         }
-        company = findCompany(PROJECT_COMPANY_PATTERN, normalizedTitle);
+        company = findCompany(COMPANY_WITH_PARTICLE_PATTERN, normalizedSourceText, 1);
         if (company != null) {
             return company;
         }
-        return findCompany(LEADING_COMPANY_PATTERN, normalizedTitle);
+        return findCompany(PROJECT_COMPANY_PATTERN, normalizedTitle, 1);
     }
 
-    private String findCompany(Pattern pattern, String text) {
+    private String findCompany(Pattern pattern, String text, int... groupNumbers) {
         Matcher matcher = pattern.matcher(text);
-        if (!matcher.find()) {
-            return null;
+        while (matcher.find()) {
+            for (int groupNumber : groupNumbers) {
+                String candidate = matcher.group(groupNumber);
+                if (isValidClientCompanyCandidate(candidate)) {
+                    return candidate.trim();
+                }
+            }
         }
-        String candidate = matcher.group(1).trim();
-        if (candidate.length() < 2 || COMPANY_STOP_WORDS.contains(candidate)) {
-            return null;
+        return null;
+    }
+
+    private boolean isValidClientCompanyCandidate(String candidate) {
+        String normalizedCandidate = normalizeOptionalText(candidate);
+        if (normalizedCandidate == null
+                || normalizedCandidate.length() < 2
+                || COMPANY_STOP_WORDS.contains(normalizedCandidate)) {
+            return false;
         }
-        return candidate;
+
+        String lowerCandidate = normalizedCandidate.toLowerCase();
+        return !normalizedCandidate.matches("\\d+\\s*층")
+                && !normalizedCandidate.contains("회의실")
+                && !normalizedCandidate.contains("카페")
+                && !normalizedCandidate.contains("주소")
+                && !normalizedCandidate.matches(".*\\S역(?:\\s|$).*")
+                && !lowerCandidate.contains("online")
+                && !lowerCandidate.contains("zoom")
+                && !lowerCandidate.contains("meet")
+                && !lowerCandidate.contains("teams")
+                && !normalizedCandidate.contains("온라인")
+                && !normalizedCandidate.contains("줌")
+                && !normalizedCandidate.contains("구글 밋")
+                && !normalizedCandidate.contains("팀즈");
     }
 
     private void addCategoryWarning(String sourceText, List<String> warnings) {
@@ -551,6 +759,9 @@ public class TaskParseService {
     }
 
     private record TitleResult(String title, boolean reliable) {
+    }
+
+    private record MemoResult(String memo, List<String> parts) {
     }
 
     private record DateCandidate(LocalDate date, int start, int end) {

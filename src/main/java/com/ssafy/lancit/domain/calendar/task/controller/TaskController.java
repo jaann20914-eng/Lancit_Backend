@@ -66,6 +66,7 @@ public class TaskController {
     // CAL-07 / CLI-CAL-07 텍스트 파싱 미리보기
     // DB 저장 없이 오른쪽 일정 입력 폼 자동 채우기용 DTO 만 반환
     @PostMapping("/parse")
+    @Operation(summary = "일정 텍스트 파싱")
     public ResponseEntity<ApiResponse<TaskParseResponseDTO>> parseTask(
             @RequestBody TaskParseRequestDTO requestDTO) {
         TaskParseResponseDTO responseDTO = taskParseService.parse(requestDTO);

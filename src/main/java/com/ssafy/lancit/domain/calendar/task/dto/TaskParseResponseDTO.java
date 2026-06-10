@@ -17,6 +17,7 @@ public class TaskParseResponseDTO {
     private Integer categoryId;
     private String title;
     private String content;
+    private String memo;
     private LocalDateTime startAt;
     private LocalDateTime endAt;
     private TaskStatus status;
