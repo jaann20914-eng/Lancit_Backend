@@ -115,6 +115,54 @@ class TaskParseServiceTest {
     }
 
     @Test
+    void parseKeepsCompanyNameAsClientCompany() {
+        TaskParseResponseDTO result = parse("7월 1일 삼성전자와 계약 미팅");
+
+        assertThat(result.getClientCompany()).isEqualTo("삼성전자");
+        assertThat(result.getCategoryId()).isNull();
+        assertThat(result.getMemo()).isNull();
+    }
+
+    @Test
+    void parsePaidOnlySentenceDoesNotForceScheduleDates() {
+        TaskParseResponseDTO result = parse("다음 주 금요일까지 300만원 입금 예정");
+
+        assertThat(result.getTitle()).isEqualTo("입금 예정");
+        assertThat(result.getBudget()).isEqualTo(3_000_000);
+        assertThat(result.getPaidAt()).isNotNull();
+        assertThat(result.getStartAt()).isNull();
+        assertThat(result.getEndAt()).isNull();
+        assertThat(result.getWarnings()).anyMatch(warning -> warning.contains("지급일"));
+    }
+
+    @Test
+    void parseNormalizesAiCategoryAndPlaceLikeClientCompany() {
+        LocalDateTime aiStartAt = LocalDateTime.of(2026, 6, 11, 15, 0);
+        TaskParseService service = new TaskParseService(sourceText -> TaskParseResponseDTO.builder()
+                .sourceText(sourceText)
+                .categoryId(10)
+                .title("팀 회의")
+                .content("팀 회의")
+                .memo(null)
+                .startAt(aiStartAt)
+                .endAt(null)
+                .status(TaskStatus.IN_PROGRESS)
+                .clientCompany("SSAFY 1층 회의실")
+                .budget(null)
+                .paidAt(null)
+                .confidence(0.9)
+                .warnings(List.of())
+                .build());
+
+        TaskParseResponseDTO result = parse(service, "내일 오후 3시에 SSAFY 1층 회의실에서 팀 회의");
+
+        assertThat(result.getCategoryId()).isNull();
+        assertThat(result.getClientCompany()).isNull();
+        assertThat(result.getMemo()).isEqualTo("SSAFY 1층 회의실");
+        assertThat(result.getContent()).isEqualTo("팀 회의");
+    }
+
+    @Test
     void parseMonthDayTimeRangeAndTitle() {
         TaskParseResponseDTO result = parse("6월 12일 14:00~16:00 랜싯 프로젝트 회의");
 

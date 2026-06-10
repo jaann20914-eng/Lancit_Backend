@@ -126,7 +126,8 @@ public class TaskParseService {
 
     private void normalizeAiResult(TaskParseResponseDTO aiResult, String sourceText) {
         aiResult.setSourceText(sourceText);
-        aiResult.setContent(normalizeContent(aiResult.getContent(), sourceText));
+        aiResult.setCategoryId(null);
+        aiResult.setContent(normalizeContent(aiResult.getContent()));
 
         MemoResult ruleMemo = extractMemo(sourceText);
         if (!StringUtils.hasText(aiResult.getMemo())) {
@@ -311,12 +312,8 @@ public class TaskParseService {
         return result.replaceAll("\\s+", " ").trim();
     }
 
-    private String normalizeContent(String content, String sourceText) {
-        String normalizedContent = normalizeOptionalText(content);
-        if (normalizedContent == null || normalizedContent.equals(sourceText)) {
-            return null;
-        }
-        return normalizedContent;
+    private String normalizeContent(String content) {
+        return normalizeOptionalText(content);
     }
 
     private String normalizeOptionalText(String value) {
