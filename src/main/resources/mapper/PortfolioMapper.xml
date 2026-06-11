@@ -152,39 +152,22 @@
 
     <update id="update">
         UPDATE portfolio
-        <set>
-            <if test="dto.category != null">
-                category = #{dto.category},
-            </if>
-            <if test="dto.title != null">
-                title = #{dto.title},
-            </if>
-            <if test="dto.summary != null">
-                summary = #{dto.summary},
-            </if>
-            <if test="dto.content != null">
-                content = #{dto.content},
-            </if>
-            <if test="dto.workStartAt != null">
-                work_start_at = #{dto.workStartAt},
-            </if>
-            <if test="dto.workEndAt != null">
-                work_end_at = #{dto.workEndAt},
-            </if>
-            <if test="dto.isPublic != null">
-                is_public = #{dto.isPublic},
-            </if>
-            <if test="dto.bannerFileId != null">
-                banner_file_id = #{dto.bannerFileId},
-            </if>
+        SET
+            category = #{dto.category},
+            title = #{dto.title},
+            summary = #{dto.summary},
+            content = #{dto.content},
+            work_start_at = #{dto.workStartAt},
+            work_end_at = #{dto.workEndAt},
+            is_public = #{dto.isPublic},
+            banner_file_id = #{dto.bannerFileId},
             updated_at = NOW()
-        </set>
         WHERE portfolio_id = #{portfolioId}
           AND email = #{email}
           AND is_deleted = 0
     </update>
 
-    <update id="softDelete" parameterType="int">
+    <update id="softDelete">
         UPDATE portfolio
         SET is_deleted = 1,
             deleted_at = NOW(),

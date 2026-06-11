@@ -99,7 +99,7 @@ public class PortfolioService {
         }
 
         dto.setEmail(email);
-        dto.setCategory(PortfolioCategory.normalize(dto.getCategory()));
+        defaultVisibilityIfMissing(dto);
         portfolioMapper.insert(dto);
 
         attachBanner(dto.getBannerFileId(), email, dto.getPortfolioId());
@@ -114,13 +114,11 @@ public class PortfolioService {
         requireFreelancer(role);
         PortfolioDTO existing = findExistingPortfolio(portfolioId);
         validateOwner(existing, email);
-        validateUpdate(dto, existing);
+        validateForSave(dto);
 
         List<Integer> fileIds = dto.getFileIds() == null ? null : normalizeFileIds(dto.getFileIds());
+        defaultVisibilityIfMissing(dto);
 
-        if (dto.getCategory() != null) {
-            dto.setCategory(PortfolioCategory.normalize(dto.getCategory()));
-        }
         if (dto.getBannerFileId() != null) {
             validateAttachableFile(dto.getBannerFileId(), email, FileParentType.PORTFOLIO_BANNER, portfolioId);
         }
@@ -135,11 +133,13 @@ public class PortfolioService {
             throw new CustomException(ErrorCode.PORTFOLIO_NOT_FOUND);
         }
 
-        if (dto.getBannerFileId() != null) {
-            if (existing.getBannerFileId() != null && !Objects.equals(existing.getBannerFileId(), dto.getBannerFileId())) {
+        if (!Objects.equals(existing.getBannerFileId(), dto.getBannerFileId())) {
+            if (existing.getBannerFileId() != null) {
                 fileService.detach(existing.getBannerFileId());
             }
-            attachBanner(dto.getBannerFileId(), email, portfolioId);
+            if (dto.getBannerFileId() != null) {
+                attachBanner(dto.getBannerFileId(), email, portfolioId);
+            }
         }
 
         if (fileIds != null) {
@@ -163,49 +163,18 @@ public class PortfolioService {
     }
 
     private void validateCreate(PortfolioDTO dto, String email) {
-        if (dto == null
-                || isBlank(email)
-                || isBlank(dto.getCategory())
-                || isBlank(dto.getTitle())
-                || isBlank(dto.getContent())
-                || dto.getWorkStartAt() == null
-                || dto.getWorkEndAt() == null
-                || dto.getIsPublic() == null) {
+        if (isBlank(email)) {
             throw new CustomException(ErrorCode.INVALID_INPUT);
         }
-        validateSummary(dto.getSummary(), true);
+        validateForSave(dto);
+    }
+
+    private void validateForSave(PortfolioDTO dto) {
+        if (dto == null) {
+            throw new CustomException(ErrorCode.INVALID_INPUT);
+        }
+        validateRequiredFields(dto);
         validatePeriod(dto.getWorkStartAt(), dto.getWorkEndAt());
-    }
-
-    private void validateUpdate(PortfolioDTO dto, PortfolioDTO existing) {
-        if (dto == null || !hasUpdateField(dto)) {
-            throw new CustomException(ErrorCode.INVALID_INPUT);
-        }
-        if (dto.getTitle() != null && isBlank(dto.getTitle())) {
-            throw new CustomException(ErrorCode.INVALID_INPUT);
-        }
-        if (dto.getSummary() != null) {
-            validateSummary(dto.getSummary(), false);
-        }
-        if (dto.getContent() != null && isBlank(dto.getContent())) {
-            throw new CustomException(ErrorCode.INVALID_INPUT);
-        }
-
-        LocalDateTime start = dto.getWorkStartAt() == null ? existing.getWorkStartAt() : dto.getWorkStartAt();
-        LocalDateTime end = dto.getWorkEndAt() == null ? existing.getWorkEndAt() : dto.getWorkEndAt();
-        validatePeriod(start, end);
-    }
-
-    private boolean hasUpdateField(PortfolioDTO dto) {
-        return dto.getCategory() != null
-                || dto.getTitle() != null
-                || dto.getSummary() != null
-                || dto.getContent() != null
-                || dto.getWorkStartAt() != null
-                || dto.getWorkEndAt() != null
-                || dto.getIsPublic() != null
-                || dto.getBannerFileId() != null
-                || dto.getFileIds() != null;
     }
 
     private void validatePeriod(LocalDateTime start, LocalDateTime end) {
@@ -225,15 +194,19 @@ public class PortfolioService {
         return portfolio;
     }
 
-    private void validateSummary(String summary, boolean required) {
-        if (summary == null) {
-            if (required) {
-                throw new CustomException(ErrorCode.INVALID_INPUT);
-            }
-            return;
-        }
-        if (summary.trim().isEmpty() || summary.length() > SUMMARY_MAX_LENGTH) {
+    private void validateRequiredFields(PortfolioDTO dto) {
+        if (dto.getCategory() == null
+                || isBlank(dto.getTitle())
+                || isBlank(dto.getSummary())
+                || dto.getSummary().length() > SUMMARY_MAX_LENGTH
+                || isBlank(dto.getContent())) {
             throw new CustomException(ErrorCode.INVALID_INPUT);
+        }
+    }
+
+    private void defaultVisibilityIfMissing(PortfolioDTO dto) {
+        if (dto.getIsPublic() == null) {
+            dto.setIsPublic(false);
         }
     }
 

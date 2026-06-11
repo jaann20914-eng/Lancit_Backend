@@ -31,6 +31,7 @@ import com.ssafy.lancit.domain.portfolio.dto.PortfolioSearchCondition;
 import com.ssafy.lancit.domain.portfolio.mapper.PortfolioMapper;
 import com.ssafy.lancit.domain.portfolio.service.PortfolioService;
 import com.ssafy.lancit.global.enums.FileParentType;
+import com.ssafy.lancit.global.enums.PortfolioCategory;
 
 @MockitoSettings(strictness = Strictness.LENIENT)
 @ExtendWith(MockitoExtension.class)
@@ -146,11 +147,10 @@ class PortfolioServiceTest {
         PortfolioDTO existing = basePortfolio(1, USER_EMAIL);
         existing.setBannerFileId(10);
 
-        PortfolioDTO request = PortfolioDTO.builder()
-                .title("수정된 프로젝트")
-                .bannerFileId(20)
-                .fileIds(List.of(21))
-                .build();
+        PortfolioDTO request = fullUpdateRequest();
+        request.setTitle("수정된 프로젝트");
+        request.setBannerFileId(20);
+        request.setFileIds(List.of(21));
 
         PortfolioDTO updated = basePortfolio(1, USER_EMAIL);
         updated.setTitle("수정된 프로젝트");
@@ -176,7 +176,8 @@ class PortfolioServiceTest {
     @DisplayName("다른 사람 프로젝트 수정 실패")
     void update_forbidden() {
         PortfolioDTO existing = basePortfolio(1, OTHER_EMAIL);
-        PortfolioDTO request = PortfolioDTO.builder().title("수정 시도").build();
+        PortfolioDTO request = fullUpdateRequest();
+        request.setTitle("수정 시도");
         given(portfolioMapper.findById(1)).willReturn(existing);
 
         assertThatThrownBy(() -> portfolioService.update(1, request, USER_EMAIL, "USER"))
@@ -252,15 +253,16 @@ class PortfolioServiceTest {
     }
 
     @Test
-    @DisplayName("수정 summary null 은 변경 없음")
-    void update_summaryNull_ignored() {
+    @DisplayName("전체 수정에서 bannerFileId null이면 기존 배너 제거")
+    void update_bannerNull_clearsExistingBanner() {
         PortfolioDTO existing = basePortfolio(1, USER_EMAIL);
-        PortfolioDTO request = PortfolioDTO.builder()
-                .title("제목만 수정")
-                .summary(null)
-                .build();
+        existing.setBannerFileId(10);
+
+        PortfolioDTO request = fullUpdateRequest();
+        request.setBannerFileId(null);
+
         PortfolioDTO updated = basePortfolio(1, USER_EMAIL);
-        updated.setTitle("제목만 수정");
+        updated.setBannerFileId(null);
 
         given(portfolioMapper.findById(1)).willReturn(existing, updated);
         given(portfolioMapper.update(1, USER_EMAIL, request)).willReturn(1);
@@ -268,32 +270,86 @@ class PortfolioServiceTest {
 
         PortfolioDTO result = portfolioService.update(1, request, USER_EMAIL, "USER");
 
-        assertThat(result.getTitle()).isEqualTo("제목만 수정");
+        assertThat(result.getBannerFileId()).isNull();
+        verify(fileService).detach(10);
+        verify(fileService, never()).attachToParent(any(), any(), anyInt(), any());
         verify(portfolioMapper).update(1, USER_EMAIL, request);
     }
 
     @Test
-    @DisplayName("수정 summary 공백/길이 검증 실패")
+    @DisplayName("수정 summary null/공백/길이 검증 실패")
     void update_invalidSummary_fail() {
         PortfolioDTO existing = basePortfolio(1, USER_EMAIL);
         given(portfolioMapper.findById(1)).willReturn(existing);
 
-        for (String summary : List.of("", "   ", "1234567890123456789012345678901")) {
-            PortfolioDTO request = PortfolioDTO.builder()
-                    .summary(summary)
-                    .build();
+        for (String summary : new String[] {null, "", "   ", "1234567890123456789012345678901"}) {
+            PortfolioDTO request = fullUpdateRequest();
+            request.setSummary(summary);
 
             assertThatThrownBy(() -> portfolioService.update(1, request, USER_EMAIL, "USER"))
                     .isInstanceOf(CustomException.class)
                     .hasMessageContaining(ErrorCode.INVALID_INPUT.getMessage());
         }
+
+        verify(portfolioMapper, never()).update(anyInt(), any(), any());
+    }
+
+    @Test
+    @DisplayName("수정 title null/공백 검증 실패")
+    void update_invalidTitle_fail() {
+        PortfolioDTO existing = basePortfolio(1, USER_EMAIL);
+        given(portfolioMapper.findById(1)).willReturn(existing);
+
+        for (String title : new String[] {null, "", "   "}) {
+            PortfolioDTO request = fullUpdateRequest();
+            request.setTitle(title);
+
+            assertThatThrownBy(() -> portfolioService.update(1, request, USER_EMAIL, "USER"))
+                    .isInstanceOf(CustomException.class)
+                    .hasMessageContaining(ErrorCode.INVALID_INPUT.getMessage());
+        }
+
+        verify(portfolioMapper, never()).update(anyInt(), any(), any());
+    }
+
+    @Test
+    @DisplayName("수정 category null 검증 실패")
+    void update_categoryNull_fail() {
+        PortfolioDTO existing = basePortfolio(1, USER_EMAIL);
+        PortfolioDTO request = fullUpdateRequest();
+        request.setCategory(null);
+        given(portfolioMapper.findById(1)).willReturn(existing);
+
+        assertThatThrownBy(() -> portfolioService.update(1, request, USER_EMAIL, "USER"))
+                .isInstanceOf(CustomException.class)
+                .hasMessageContaining(ErrorCode.INVALID_INPUT.getMessage());
+
+        verify(portfolioMapper, never()).update(anyInt(), any(), any());
+    }
+
+    @Test
+    @DisplayName("수정 content null/공백 검증 실패")
+    void update_invalidContent_fail() {
+        PortfolioDTO existing = basePortfolio(1, USER_EMAIL);
+        given(portfolioMapper.findById(1)).willReturn(existing);
+
+        for (String content : new String[] {null, "", "   "}) {
+            PortfolioDTO request = fullUpdateRequest();
+            request.setContent(content);
+
+            assertThatThrownBy(() -> portfolioService.update(1, request, USER_EMAIL, "USER"))
+                    .isInstanceOf(CustomException.class)
+                    .hasMessageContaining(ErrorCode.INVALID_INPUT.getMessage());
+        }
+
+        verify(portfolioMapper, never()).update(anyInt(), any(), any());
     }
 
     private PortfolioDTO basePortfolio(Integer portfolioId, String email) {
         return PortfolioDTO.builder()
                 .portfolioId(portfolioId == null ? 0 : portfolioId)
                 .email(email)
-                .category("WEB_APP")
+                .category(PortfolioCategory.WEB_APP)
                 .title("프로젝트")
                 .summary("한줄 소개")
                 .content("프로젝트 설명")
@@ -304,6 +360,12 @@ class PortfolioServiceTest {
                 .createdAt(LocalDateTime.of(2026, 2, 2, 0, 0))
                 .updatedAt(LocalDateTime.of(2026, 2, 3, 0, 0))
                 .build();
+    }
+
+    private PortfolioDTO fullUpdateRequest() {
+        PortfolioDTO request = basePortfolio(null, null);
+        request.setPortfolioId(null);
+        return request;
     }
 
     private FileDTO file(int fileId, String email, FileParentType parentType, Integer parentId) {
