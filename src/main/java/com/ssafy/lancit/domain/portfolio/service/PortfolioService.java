@@ -30,6 +30,7 @@ public class PortfolioService {
 
     private static final String ROLE_USER = "USER";
     private static final String ROLE_COMPANY = "COMPANY";
+    private static final int SUMMARY_MAX_LENGTH = 30;
 
     private final PortfolioMapper portfolioMapper;
     private final FileService fileService;
@@ -129,7 +130,7 @@ public class PortfolioService {
             }
         }
 
-        int updatedCount = portfolioMapper.update(portfolioId, dto);
+        int updatedCount = portfolioMapper.update(portfolioId, email, dto);
         if (updatedCount == 0) {
             throw new CustomException(ErrorCode.PORTFOLIO_NOT_FOUND);
         }
@@ -155,9 +156,9 @@ public class PortfolioService {
         PortfolioDTO existing = findExistingPortfolio(portfolioId);
         validateOwner(existing, email);
 
-        int deletedCount = portfolioMapper.softDelete(portfolioId);
+        int deletedCount = portfolioMapper.softDelete(portfolioId, email);
         if (deletedCount == 0) {
-            throw new CustomException(ErrorCode.DELETED_PORTFOLIO);
+            throw new CustomException(ErrorCode.PORTFOLIO_NOT_FOUND);
         }
     }
 
@@ -166,13 +167,13 @@ public class PortfolioService {
                 || isBlank(email)
                 || isBlank(dto.getCategory())
                 || isBlank(dto.getTitle())
-                || isBlank(dto.getSummary())
                 || isBlank(dto.getContent())
                 || dto.getWorkStartAt() == null
                 || dto.getWorkEndAt() == null
                 || dto.getIsPublic() == null) {
             throw new CustomException(ErrorCode.INVALID_INPUT);
         }
+        validateSummary(dto.getSummary(), true);
         validatePeriod(dto.getWorkStartAt(), dto.getWorkEndAt());
     }
 
@@ -183,8 +184,8 @@ public class PortfolioService {
         if (dto.getTitle() != null && isBlank(dto.getTitle())) {
             throw new CustomException(ErrorCode.INVALID_INPUT);
         }
-        if (dto.getSummary() != null && isBlank(dto.getSummary())) {
-            throw new CustomException(ErrorCode.INVALID_INPUT);
+        if (dto.getSummary() != null) {
+            validateSummary(dto.getSummary(), false);
         }
         if (dto.getContent() != null && isBlank(dto.getContent())) {
             throw new CustomException(ErrorCode.INVALID_INPUT);
@@ -217,14 +218,23 @@ public class PortfolioService {
         if (portfolioId <= 0) {
             throw new CustomException(ErrorCode.INVALID_INPUT);
         }
-        PortfolioDTO portfolio = portfolioMapper.findByIdIncludingDeleted(portfolioId);
+        PortfolioDTO portfolio = portfolioMapper.findById(portfolioId);
         if (portfolio == null) {
             throw new CustomException(ErrorCode.PORTFOLIO_NOT_FOUND);
         }
-        if (Boolean.TRUE.equals(portfolio.getIsDeleted())) {
-            throw new CustomException(ErrorCode.DELETED_PORTFOLIO);
-        }
         return portfolio;
+    }
+
+    private void validateSummary(String summary, boolean required) {
+        if (summary == null) {
+            if (required) {
+                throw new CustomException(ErrorCode.INVALID_INPUT);
+            }
+            return;
+        }
+        if (summary.trim().isEmpty() || summary.length() > SUMMARY_MAX_LENGTH) {
+            throw new CustomException(ErrorCode.INVALID_INPUT);
+        }
     }
 
     private void validateReadable(PortfolioDTO portfolio, String currentEmail, String currentRole) {

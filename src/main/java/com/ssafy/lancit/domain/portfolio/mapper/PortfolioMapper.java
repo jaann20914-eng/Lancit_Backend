@@ -35,9 +35,12 @@ public interface PortfolioMapper {
                             @Param("category") String category);
 
     PortfolioDTO findById(int portfolioId);
-    PortfolioDTO findByIdIncludingDeleted(int portfolioId);
     String findOwnerEmailById(int portfolioId);
     int insert(PortfolioDTO dto);
-    int update(@Param("portfolioId") int portfolioId, @Param("dto") PortfolioDTO dto);
-    int softDelete(int portfolioId);
+    int update(@Param("portfolioId") int portfolioId,
+               @Param("email") String email,
+               @Param("dto") PortfolioDTO dto);
+
+    int softDelete(@Param("portfolioId") int portfolioId,
+                   @Param("email") String email);
 }

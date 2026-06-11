@@ -46,8 +46,8 @@ SELECT * FROM task;
 SELECT * FROM holiday;
 
 SELECT * FROM portfolio;
-INSERT INTO portfolio (email, title, content, work_start_at, work_end_at, is_public, banner_file_id)
-VALUES ('test@lancit.com', '테스트 포트폴리오', '포트폴리오 내용', '2026-01-01 00:00:00', '2026-06-01 00:00:00', 0, NULL);
+INSERT INTO portfolio (email, category, title, summary, content, work_start_at, work_end_at, is_public, banner_file_id)
+VALUES ('test@lancit.com', 'WEB_APP', '테스트 포트폴리오', '테스트 요약', '포트폴리오 내용', '2026-01-01 00:00:00', '2026-06-01 00:00:00', 0, NULL);
 
 SELECT * FROM recruitment;
 SELECT * FROM recruitment_application;
@@ -202,12 +202,19 @@ CREATE TABLE `holiday` (
 CREATE TABLE `portfolio` (
     portfolio_id    INT             NOT NULL    AUTO_INCREMENT,
     email           VARCHAR(255)    NOT NULL,
+    category        ENUM('WEB_APP','DESIGN','BRANDING','MARKETING','PLANNING')
+                                    NOT NULL    DEFAULT 'WEB_APP',
     title           VARCHAR(255)    NOT NULL,
+    summary         VARCHAR(30)     NOT NULL    DEFAULT ''       COMMENT '한줄 소개',
     content         TEXT            NULL,
     work_start_at   DATETIME        NULL,
     work_end_at     DATETIME        NULL,
     is_public       TINYINT(1)      NOT NULL    DEFAULT 0,
     banner_file_id  INT             NULL,
+    created_at      DATETIME        NOT NULL    DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME        NOT NULL    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    is_deleted      TINYINT(1)      NOT NULL    DEFAULT 0       COMMENT 'soft delete',
+    deleted_at      DATETIME        NULL,
     PRIMARY KEY (portfolio_id),
     CONSTRAINT fk_portfolio_user
         FOREIGN KEY (email) REFERENCES `user` (email)

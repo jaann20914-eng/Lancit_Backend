@@ -113,13 +113,6 @@
           AND p.is_deleted = 0
     </select>
 
-    <select id="findByIdIncludingDeleted" parameterType="int" resultType="PortfolioDTO">
-        SELECT
-        <include refid="PortfolioColumns"/>
-        FROM portfolio p
-        WHERE p.portfolio_id = #{portfolioId}
-    </select>
-
     <select id="findOwnerEmailById" parameterType="int" resultType="String">
         SELECT email
         FROM portfolio
@@ -187,6 +180,7 @@
             updated_at = NOW()
         </set>
         WHERE portfolio_id = #{portfolioId}
+          AND email = #{email}
           AND is_deleted = 0
     </update>
 
@@ -196,8 +190,8 @@
             deleted_at = NOW(),
             updated_at = NOW()
         WHERE portfolio_id = #{portfolioId}
+          AND email = #{email}
           AND is_deleted = 0
     </update>
 
 </mapper>
-

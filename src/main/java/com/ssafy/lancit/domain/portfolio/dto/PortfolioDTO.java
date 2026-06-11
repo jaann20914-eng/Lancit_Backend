@@ -5,6 +5,8 @@ import lombok.*;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import jakarta.validation.constraints.Size;
+
 import com.ssafy.lancit.domain.file.dto.FileDTO;
 
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
@@ -13,6 +15,7 @@ public class PortfolioDTO {
     private String email;
     private String category;
     private String title;
+    @Size(max = 30, message = "한줄 소개는 30자 이하여야 합니다.")
     private String summary;
     private String content;
     private LocalDateTime workStartAt;

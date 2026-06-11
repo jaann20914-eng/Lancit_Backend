@@ -128,7 +128,7 @@ class PortfolioServiceTest {
         PortfolioDTO portfolio = basePortfolio(1, USER_EMAIL);
         portfolio.setIsPublic(false);
         portfolio.setBannerFileId(10);
-        given(portfolioMapper.findByIdIncludingDeleted(1)).willReturn(portfolio);
+        given(portfolioMapper.findById(1)).willReturn(portfolio);
         given(fileService.findById(10)).willReturn(file(10, USER_EMAIL, FileParentType.PORTFOLIO_BANNER, 1));
         given(fileService.findByParent(FileParentType.PORTFOLIO_FILE, 1))
                 .willReturn(List.of(file(11, USER_EMAIL, FileParentType.PORTFOLIO_FILE, 1)));
@@ -156,10 +156,10 @@ class PortfolioServiceTest {
         updated.setTitle("수정된 프로젝트");
         updated.setBannerFileId(20);
 
-        given(portfolioMapper.findByIdIncludingDeleted(1)).willReturn(existing, updated);
+        given(portfolioMapper.findById(1)).willReturn(existing, updated);
         given(fileService.findById(20)).willReturn(file(20, USER_EMAIL, FileParentType.TEMP, null));
         given(fileService.findById(21)).willReturn(file(21, USER_EMAIL, FileParentType.TEMP, null));
-        given(portfolioMapper.update(1, request)).willReturn(1);
+        given(portfolioMapper.update(1, USER_EMAIL, request)).willReturn(1);
         given(fileService.findByParent(FileParentType.PORTFOLIO_FILE, 1))
                 .willReturn(List.of(file(21, USER_EMAIL, FileParentType.PORTFOLIO_FILE, 1)));
 
@@ -177,38 +177,36 @@ class PortfolioServiceTest {
     void update_forbidden() {
         PortfolioDTO existing = basePortfolio(1, OTHER_EMAIL);
         PortfolioDTO request = PortfolioDTO.builder().title("수정 시도").build();
-        given(portfolioMapper.findByIdIncludingDeleted(1)).willReturn(existing);
+        given(portfolioMapper.findById(1)).willReturn(existing);
 
         assertThatThrownBy(() -> portfolioService.update(1, request, USER_EMAIL, "USER"))
                 .isInstanceOf(CustomException.class)
                 .hasMessageContaining(ErrorCode.FORBIDDEN.getMessage());
 
-        verify(portfolioMapper, never()).update(anyInt(), any());
+        verify(portfolioMapper, never()).update(anyInt(), any(), any());
     }
 
     @Test
     @DisplayName("프로젝트 삭제 성공")
     void delete_success() {
         PortfolioDTO existing = basePortfolio(1, USER_EMAIL);
-        given(portfolioMapper.findByIdIncludingDeleted(1)).willReturn(existing);
-        given(portfolioMapper.softDelete(1)).willReturn(1);
+        given(portfolioMapper.findById(1)).willReturn(existing);
+        given(portfolioMapper.softDelete(1, USER_EMAIL)).willReturn(1);
 
         portfolioService.delete(1, USER_EMAIL, "USER");
 
-        verify(portfolioMapper, times(1)).softDelete(1);
+        verify(portfolioMapper, times(1)).softDelete(1, USER_EMAIL);
         verify(fileService, never()).deleteByParent(any(), anyInt());
     }
 
     @Test
     @DisplayName("삭제된 프로젝트 접근 실패")
     void deletedPortfolio_access_fail() {
-        PortfolioDTO deleted = basePortfolio(1, USER_EMAIL);
-        deleted.setIsDeleted(true);
-        given(portfolioMapper.findByIdIncludingDeleted(1)).willReturn(deleted);
+        given(portfolioMapper.findById(1)).willReturn(null);
 
         assertThatThrownBy(() -> portfolioService.getOne(1, USER_EMAIL, "USER"))
                 .isInstanceOf(CustomException.class)
-                .hasMessageContaining(ErrorCode.DELETED_PORTFOLIO.getMessage());
+                .hasMessageContaining(ErrorCode.PORTFOLIO_NOT_FOUND.getMessage());
     }
 
     @Test
@@ -221,6 +219,74 @@ class PortfolioServiceTest {
         assertThatThrownBy(() -> portfolioService.create(request, USER_EMAIL, "USER"))
                 .isInstanceOf(CustomException.class)
                 .hasMessageContaining(ErrorCode.INVALID_PORTFOLIO_PERIOD.getMessage());
+    }
+
+    @Test
+    @DisplayName("등록 summary 필수/공백 검증 실패")
+    void create_invalidSummaryBlank_fail() {
+        for (String summary : List.of("", "   ")) {
+            PortfolioDTO request = basePortfolio(null, USER_EMAIL);
+            request.setSummary(summary);
+
+            assertThatThrownBy(() -> portfolioService.create(request, USER_EMAIL, "USER"))
+                    .isInstanceOf(CustomException.class)
+                    .hasMessageContaining(ErrorCode.INVALID_INPUT.getMessage());
+        }
+
+        PortfolioDTO nullSummaryRequest = basePortfolio(null, USER_EMAIL);
+        nullSummaryRequest.setSummary(null);
+        assertThatThrownBy(() -> portfolioService.create(nullSummaryRequest, USER_EMAIL, "USER"))
+                .isInstanceOf(CustomException.class)
+                .hasMessageContaining(ErrorCode.INVALID_INPUT.getMessage());
+    }
+
+    @Test
+    @DisplayName("등록 summary 31자 이상 검증 실패")
+    void create_summaryTooLong_fail() {
+        PortfolioDTO request = basePortfolio(null, USER_EMAIL);
+        request.setSummary("1234567890123456789012345678901");
+
+        assertThatThrownBy(() -> portfolioService.create(request, USER_EMAIL, "USER"))
+                .isInstanceOf(CustomException.class)
+                .hasMessageContaining(ErrorCode.INVALID_INPUT.getMessage());
+    }
+
+    @Test
+    @DisplayName("수정 summary null 은 변경 없음")
+    void update_summaryNull_ignored() {
+        PortfolioDTO existing = basePortfolio(1, USER_EMAIL);
+        PortfolioDTO request = PortfolioDTO.builder()
+                .title("제목만 수정")
+                .summary(null)
+                .build();
+        PortfolioDTO updated = basePortfolio(1, USER_EMAIL);
+        updated.setTitle("제목만 수정");
+
+        given(portfolioMapper.findById(1)).willReturn(existing, updated);
+        given(portfolioMapper.update(1, USER_EMAIL, request)).willReturn(1);
+        given(fileService.findByParent(FileParentType.PORTFOLIO_FILE, 1)).willReturn(List.of());
+
+        PortfolioDTO result = portfolioService.update(1, request, USER_EMAIL, "USER");
+
+        assertThat(result.getTitle()).isEqualTo("제목만 수정");
+        verify(portfolioMapper).update(1, USER_EMAIL, request);
+    }
+
+    @Test
+    @DisplayName("수정 summary 공백/길이 검증 실패")
+    void update_invalidSummary_fail() {
+        PortfolioDTO existing = basePortfolio(1, USER_EMAIL);
+        given(portfolioMapper.findById(1)).willReturn(existing);
+
+        for (String summary : List.of("", "   ", "1234567890123456789012345678901")) {
+            PortfolioDTO request = PortfolioDTO.builder()
+                    .summary(summary)
+                    .build();
+
+            assertThatThrownBy(() -> portfolioService.update(1, request, USER_EMAIL, "USER"))
+                    .isInstanceOf(CustomException.class)
+                    .hasMessageContaining(ErrorCode.INVALID_INPUT.getMessage());
+        }
     }
 
     private PortfolioDTO basePortfolio(Integer portfolioId, String email) {
