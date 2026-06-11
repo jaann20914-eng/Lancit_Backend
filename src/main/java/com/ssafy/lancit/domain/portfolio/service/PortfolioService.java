@@ -3,8 +3,6 @@ package com.ssafy.lancit.domain.portfolio.service;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Locale;
-import java.util.Set;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +17,7 @@ import com.ssafy.lancit.domain.file.service.FileService;
 import com.ssafy.lancit.domain.portfolio.dto.PortfolioDTO;
 import com.ssafy.lancit.domain.portfolio.mapper.PortfolioMapper;
 import com.ssafy.lancit.global.enums.FileParentType;
+import com.ssafy.lancit.global.enums.PortfolioCategory;
 
 import lombok.RequiredArgsConstructor;
 
@@ -30,9 +29,6 @@ public class PortfolioService {
 
     private static final String DEFAULT_CATEGORY = "WEB_APP";
     private static final int MAX_SUMMARY_LENGTH = 30;
-    private static final Set<String> ALLOWED_CATEGORIES = Set.of(
-            "WEB_APP", "DESIGN", "BRANDING", "MARKETING", "PLANNING"
-    );
 
     private final PortfolioMapper portfolioMapper;
     private final FileService fileService;
@@ -61,7 +57,7 @@ public class PortfolioService {
     public Map<String, Object> getOne(int portfolioId) {
         PortfolioDTO dto = portfolioMapper.findById(portfolioId);
         if (dto == null) {
-            throw new CustomException(ErrorCode.NOT_FOUND);
+            throw new CustomException(ErrorCode.PORTFOLIO_NOT_FOUND);
         }
 
         List<FileDTO> files = fileService.findByParent(FileParentType.PORTFOLIO_FILE, portfolioId);
@@ -117,6 +113,10 @@ public class PortfolioService {
         if (dto.getSummary().trim().length() > MAX_SUMMARY_LENGTH) {
             throw new CustomException(ErrorCode.INVALID_INPUT);
         }
+        if (dto.getWorkStartAt() != null && dto.getWorkEndAt() != null
+                && dto.getWorkStartAt().isAfter(dto.getWorkEndAt())) {
+            throw new CustomException(ErrorCode.INVALID_PORTFOLIO_PERIOD);
+        }
 
         dto.setTitle(dto.getTitle().trim());
         dto.setSummary(dto.getSummary().trim());
@@ -131,12 +131,7 @@ public class PortfolioService {
         if (!hasText(category)) {
             return DEFAULT_CATEGORY;
         }
-
-        String normalized = category.trim().toUpperCase(Locale.ROOT);
-        if (!ALLOWED_CATEGORIES.contains(normalized)) {
-            throw new CustomException(ErrorCode.INVALID_INPUT);
-        }
-        return normalized;
+        return PortfolioCategory.normalize(category);
     }
 
     private boolean hasText(String value) {

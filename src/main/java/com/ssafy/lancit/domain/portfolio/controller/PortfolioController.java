@@ -66,7 +66,7 @@ public class PortfolioController {
     public ResponseEntity<ApiResponse<Void>> createPortfolio(@RequestBody PortfolioDTO dto) {
         String email = SecurityUtil.getCurrentEmail();
         if (!"USER".equals(SecurityUtil.getCurrentRole())) {
-            throw new CustomException(ErrorCode.FORBIDDEN);
+            throw new CustomException(ErrorCode.FREELANCER_ONLY);
         }
         portfolioService.create(dto, email);
         return ResponseEntity.ok(ApiResponse.ok(null));
