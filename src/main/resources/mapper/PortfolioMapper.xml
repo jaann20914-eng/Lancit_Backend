@@ -3,117 +3,116 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.ssafy.lancit.domain.portfolio.mapper.PortfolioMapper">
 
-    <sql id="PortfolioColumns">
-        p.portfolio_id,
-        p.email,
-        p.category,
-        p.title,
-        p.summary,
-        p.content,
-        p.work_start_at,
-        p.work_end_at,
-        p.is_public,
-        p.banner_file_id,
-        p.created_at,
-        p.updated_at,
-        p.is_deleted,
-        p.deleted_at
-    </sql>
+    <resultMap id="PortfolioResultMap" type="com.ssafy.lancit.domain.portfolio.dto.PortfolioDTO">
+        <id property="portfolioId" column="portfolio_id"/>
+        <result property="email" column="email"/>
+        <result property="category" column="category"/>
+        <result property="title" column="title"/>
+        <result property="summary" column="summary"/>
+        <result property="content" column="content"/>
+        <result property="workStartAt" column="work_start_at"/>
+        <result property="workEndAt" column="work_end_at"/>
+        <result property="isPublic" column="is_public"/>
+        <result property="bannerFileId" column="banner_file_id"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <result property="isDeleted" column="is_deleted"/>
+        <result property="deletedAt" column="deleted_at"/>
+    </resultMap>
 
-    <sql id="ActivePortfolioFilter">
-        p.email = #{email}
-        AND p.is_deleted = 0
-        <if test="keyword != null and keyword != ''">
-            AND (
-                p.title LIKE CONCAT('%', #{keyword}, '%')
-                OR p.content LIKE CONCAT('%', #{keyword}, '%')
-                OR p.summary LIKE CONCAT('%', #{keyword}, '%')
-            )
-        </if>
-        <if test="visibility != null">
-            AND p.is_public = #{visibility}
-        </if>
-        <if test="category != null and category != ''">
-            AND p.category = #{category}
-        </if>
+    <sql id="PortfolioColumns">
+        portfolio_id,
+        email,
+        category,
+        title,
+        summary,
+        content,
+        work_start_at,
+        work_end_at,
+        is_public,
+        banner_file_id,
+        created_at,
+        updated_at,
+        is_deleted,
+        deleted_at
     </sql>
 
     <sql id="PortfolioOrderBy">
+        ORDER BY
         <choose>
-            <when test="sort == 'oldest'">
-                ORDER BY p.created_at ASC, p.portfolio_id ASC
+            <when test="pageRequest.sort == 'portfolioId' or pageRequest.sort == 'portfolio_id'">
+                portfolio_id
+            </when>
+            <when test="pageRequest.sort == 'title'">
+                title
+            </when>
+            <when test="pageRequest.sort == 'category'">
+                category
+            </when>
+            <when test="pageRequest.sort == 'createdAt' or pageRequest.sort == 'created_at'">
+                created_at
+            </when>
+            <when test="pageRequest.sort == 'updatedAt' or pageRequest.sort == 'updated_at'">
+                updated_at
             </when>
             <otherwise>
-                ORDER BY p.created_at DESC, p.portfolio_id DESC
+                created_at
             </otherwise>
         </choose>
+        ${pageRequest.safeDirection}, portfolio_id DESC
     </sql>
 
-    <select id="findByEmail" resultType="PortfolioDTO">
+    <sql id="Pagination">
+        <bind name="limit" value="pageRequest.size &lt;= 0 ? 10 : pageRequest.size"/>
+        <bind name="offset" value="pageRequest.offset &lt; 0 ? 0 : pageRequest.offset"/>
+        LIMIT #{limit} OFFSET #{offset}
+    </sql>
+
+    <select id="findByEmail" resultMap="PortfolioResultMap">
         SELECT
         <include refid="PortfolioColumns"/>
-        FROM portfolio p
-        WHERE
-        <include refid="ActivePortfolioFilter"/>
+        FROM portfolio
+        WHERE email = #{email}
+          AND is_deleted = 0
         <include refid="PortfolioOrderBy"/>
-        LIMIT #{size} OFFSET #{offset}
+        <include refid="Pagination"/>
     </select>
 
     <select id="countByEmail" resultType="long">
         SELECT COUNT(*)
-        FROM portfolio p
-        WHERE
-        <include refid="ActivePortfolioFilter"/>
+        FROM portfolio
+        WHERE email = #{email}
+          AND is_deleted = 0
     </select>
 
-    <select id="findPublicByEmail" resultType="PortfolioDTO">
+    <select id="findPublicByEmail" resultMap="PortfolioResultMap">
         SELECT
         <include refid="PortfolioColumns"/>
-        FROM portfolio p
-        WHERE p.email = #{email}
-          AND p.is_public = 1
-          AND p.is_deleted = 0
-        <if test="keyword != null and keyword != ''">
-          AND (
-              p.title LIKE CONCAT('%', #{keyword}, '%')
-              OR p.content LIKE CONCAT('%', #{keyword}, '%')
-              OR p.summary LIKE CONCAT('%', #{keyword}, '%')
-          )
-        </if>
-        <if test="category != null and category != ''">
-          AND p.category = #{category}
-        </if>
+        FROM portfolio
+        WHERE email = #{email}
+          AND is_public = 1
+          AND is_deleted = 0
         <include refid="PortfolioOrderBy"/>
-        LIMIT #{size} OFFSET #{offset}
+        <include refid="Pagination"/>
     </select>
 
     <select id="countPublicByEmail" resultType="long">
         SELECT COUNT(*)
-        FROM portfolio p
-        WHERE p.email = #{email}
-          AND p.is_public = 1
-          AND p.is_deleted = 0
-        <if test="keyword != null and keyword != ''">
-          AND (
-              p.title LIKE CONCAT('%', #{keyword}, '%')
-              OR p.content LIKE CONCAT('%', #{keyword}, '%')
-              OR p.summary LIKE CONCAT('%', #{keyword}, '%')
-          )
-        </if>
-        <if test="category != null and category != ''">
-          AND p.category = #{category}
-        </if>
+        FROM portfolio
+        WHERE email = #{email}
+          AND is_public = 1
+          AND is_deleted = 0
     </select>
 
-    <select id="findById" parameterType="int" resultType="PortfolioDTO">
+    <select id="findById" resultMap="PortfolioResultMap">
         SELECT
         <include refid="PortfolioColumns"/>
-        FROM portfolio p
-        WHERE p.portfolio_id = #{portfolioId}
-          AND p.is_deleted = 0
+        FROM portfolio
+        WHERE portfolio_id = #{portfolioId}
+          AND is_deleted = 0
     </select>
 
-    <select id="findOwnerEmailById" parameterType="int" resultType="String">
+    <select id="findOwnerEmailById" resultType="string">
         SELECT email
         FROM portfolio
         WHERE portfolio_id = #{portfolioId}
@@ -130,10 +129,7 @@
             work_start_at,
             work_end_at,
             is_public,
-            banner_file_id,
-            created_at,
-            updated_at,
-            is_deleted
+            banner_file_id
         ) VALUES (
             #{email},
             #{category},
@@ -143,10 +139,7 @@
             #{workStartAt},
             #{workEndAt},
             #{isPublic},
-            #{bannerFileId},
-            NOW(),
-            NOW(),
-            0
+            #{bannerFileId}
         )
     </insert>
 
@@ -163,18 +156,18 @@
             banner_file_id = #{dto.bannerFileId},
             updated_at = NOW()
         WHERE portfolio_id = #{portfolioId}
-          AND email = #{email}
           AND is_deleted = 0
     </update>
 
     <update id="softDelete">
         UPDATE portfolio
-        SET is_deleted = 1,
+        SET
+            is_deleted = 1,
             deleted_at = NOW(),
             updated_at = NOW()
         WHERE portfolio_id = #{portfolioId}
-          AND email = #{email}
           AND is_deleted = 0
     </update>
 
 </mapper>
+ 
