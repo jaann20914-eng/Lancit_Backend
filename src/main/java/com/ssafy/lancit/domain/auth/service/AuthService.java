@@ -14,6 +14,7 @@ import com.ssafy.lancit.common.exception.CustomException;
 import com.ssafy.lancit.common.exception.ErrorCode;
 import com.ssafy.lancit.common.jwt.JwtTokenProvider;
 import com.ssafy.lancit.common.util.BusinessNumberValidator;
+import com.ssafy.lancit.common.util.RoleUtil;
 import com.ssafy.lancit.domain.auth.dto.LoginDTO;
 import com.ssafy.lancit.domain.auth.dto.SignupDTO;
 import com.ssafy.lancit.domain.company.dto.CompanyDTO;
@@ -46,8 +47,7 @@ public class AuthService {
         if (verified == null) throw new CustomException(ErrorCode.EMAIL_NOT_VERIFIED); 
     	
     	
-        String role = dto.getRole();
-        if (!"company".equals(role) && !"user".equals(role)) {throw new CustomException(ErrorCode.INVALID_ROLE);}
+        String role = RoleUtil.normalizeRole(dto.getRole());
         
         boolean companyExists = companyMapper.existsByEmail(dto.getEmail());
         boolean userExists = userMapper.existsByEmail(dto.getEmail());
@@ -55,7 +55,7 @@ public class AuthService {
         if (companyExists || userExists) {throw new CustomException(ErrorCode.DUPLICATE_EMAIL);} 
 
         String encodedPassword =passwordEncoder.encode(dto.getPassword());// 비번 암호화
-        if ("company".equals(role)) {
+        if (RoleUtil.isCompany(role)) {
 
             // 사업자 번호 있으면 백엔드에서 한 번 더 검증
             boolean verifiedBussinessNumber = false;
@@ -79,7 +79,7 @@ public class AuthService {
                     .build();
             companyMapper.insert(companyDTO);
             
-        } else if("user".equals(role)){
+        } else if(RoleUtil.isUser(role)){
             UserDTO userDTO = UserDTO.builder()
                     .email(dto.getEmail())
                     .password(encodedPassword)
@@ -103,12 +103,12 @@ public class AuthService {
     // 2. /sub/chat/{chatRoomId} 구독 (진행중인 계약 채팅방 전부)
     public Map<String, Object> login(LoginDTO dto) {
     	String email = dto.getEmail();
-    	String role = dto.getRole().toLowerCase();
+        String role = RoleUtil.normalizeRole(dto.getRole());
     	
         // role 분기 후 이메일로 조회
     	// 조회 결과 null 이면 throw new CustomException(ErrorCode.INVALID_CREDENTIALS)
     	String encodedPassword;
-    	if("user".equals(role)) {
+        if(RoleUtil.isUser(role)) {
     		UserDTO user = userMapper.findByEmail(email);
     		if (user == null) throw new CustomException(ErrorCode.INVALID_CREDENTIALS);
     		encodedPassword = user.getPassword();
@@ -117,7 +117,7 @@ public class AuthService {
     		if (user.isDeleted()) {
     		    throw new CustomException(ErrorCode.WITHDRAWN_USER);
     		}
-    	}else if("company".equals(role)) {
+        }else if(RoleUtil.isCompany(role)) {
     		CompanyDTO company = companyMapper.findByEmail(email);
     		if (company == null) throw new CustomException(ErrorCode.INVALID_CREDENTIALS);
     		
@@ -143,9 +143,9 @@ public class AuthService {
         
     	//채팅방 목록 조회
     	List<Integer> chatRoomIds= new ArrayList<>();
-    	if("user".equals(role)) {
+        if(RoleUtil.isUser(role)) {
     		chatRoomIds= chatRoomMapper.findChatRoomIdsByFreelancerEmail(email);
-    	}else if("company".equals(role)) {
+        }else if(RoleUtil.isCompany(role)) {
     		chatRoomIds= chatRoomMapper.findChatRoomIdsByCompanyEmail(email);
     	}
     	
@@ -169,19 +169,20 @@ public class AuthService {
     	String verified = redisTemplate.opsForValue().get(key);
         if (verified == null) throw new CustomException(ErrorCode.EMAIL_NOT_VERIFIED);
     	
-        if("user".equals(role)) {
+        role = RoleUtil.normalizeRole(role);
+        if(RoleUtil.isUser(role)) {
         	boolean existUser = userMapper.existsByEmail(email);
         	if(!existUser) throw new CustomException(ErrorCode.NOT_FOUND);
-        }else if("company".equals(role)) {
+        }else if(RoleUtil.isCompany(role)) {
         	boolean existCompany = companyMapper.existsByEmail(email);
         	if(!existCompany) throw new CustomException(ErrorCode.NOT_FOUND);
         }
        
         // 새로운 비밀번호 암호화해서 db 저정
         String encoded = passwordEncoder.encode(newPassword);
-        if("user".equals(role)) {
+        if(RoleUtil.isUser(role)) {
         	userMapper.updatePassword(email, encoded);
-        }else if("company".equals(role)) {
+        }else if(RoleUtil.isCompany(role)) {
         	companyMapper.updatePassword(email, encoded);
         }
         // 비밀번호 변경 완료 후 인증 키 삭제

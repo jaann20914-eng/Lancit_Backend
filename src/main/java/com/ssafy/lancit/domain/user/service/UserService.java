@@ -95,8 +95,8 @@ public class UserService {
         }
 
         // [2] Task, Category 앱 레벨 삭제
-        taskMapper.deleteByOwner(email, OwnerType.USER);
-        categoryMapper.deleteByOwner(email, OwnerType.USER);
+        taskMapper.deleteByOwner(email, OwnerType.user);
+        categoryMapper.deleteByOwner(email, OwnerType.user);
 
         // [3] User 소프트 삭제 처리
         userMapper.softDelete(email);

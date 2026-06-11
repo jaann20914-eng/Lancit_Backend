@@ -153,6 +153,21 @@ class AuthServiceTest {
         }
 
         @Test
+        @DisplayName("role 대문자 입력도 user로 정규화해 회원가입 처리")
+        void signup_roleUpperCase() {
+            userDto.setRole("USER");
+            given(valueOps.get("signup:verified:user@test.com")).willReturn("true");
+            given(companyMapper.existsByEmail(anyString())).willReturn(false);
+            given(userMapper.existsByEmail(anyString())).willReturn(false);
+            given(passwordEncoder.encode(anyString())).willReturn("encodedPw");
+
+            authService.signup(userDto);
+
+            verify(userMapper, times(1)).insert(any(UserDTO.class));
+            verify(companyMapper, never()).insert(any());
+        }
+
+        @Test
         @DisplayName("정상 company 회원가입 성공 (사업자번호 없음)")
         void signup_company_success_noBusiness() {
             given(valueOps.get("signup:verified:company@test.com")).willReturn("true");
@@ -404,6 +419,18 @@ class AuthServiceTest {
 
             verify(userMapper, times(1)).updatePassword("user@test.com", "encodedNewPw");
             verify(redisTemplate, times(1)).delete("pwreset:verified:user@test.com");
+        }
+
+        @Test
+        @DisplayName("role 대문자 입력도 user로 정규화해 비밀번호 변경")
+        void reset_roleUpperCase() {
+            given(valueOps.get("pwreset:verified:user@test.com")).willReturn("true");
+            given(userMapper.existsByEmail("user@test.com")).willReturn(true);
+            given(passwordEncoder.encode("newPw")).willReturn("encodedNewPw");
+
+            authService.resetPassword("user@test.com", "newPw", "USER");
+
+            verify(userMapper, times(1)).updatePassword("user@test.com", "encodedNewPw");
         }
 
         @Test

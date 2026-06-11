@@ -4,6 +4,7 @@ import com.ssafy.lancit.common.exception.CustomException;
 import com.ssafy.lancit.common.exception.ErrorCode;
 import com.ssafy.lancit.common.page.dto.PageRequest;
 import com.ssafy.lancit.common.page.dto.PageResponse;
+import com.ssafy.lancit.common.util.RoleUtil;
 import com.ssafy.lancit.domain.contract.dto.ChatRoomDTO;
 import com.ssafy.lancit.domain.contract.dto.ContractDTO;
 import com.ssafy.lancit.domain.contract.mapper.ChatRoomMapper;
@@ -25,9 +26,10 @@ public class ContractService {
     private final ChatRoomMapper chatRoomMapper;
 
     // CONT-01 / CLI-CONT-01 계약서 목록 조회 (상태/키워드 필터 + 페이지네이션)
-    // role 로 USER(freelancerEmail) / COMPANY(companyEmail) 분기는 XML 에서 처리
+    // role 로 user(freelancerEmail) / company(companyEmail) 분기는 XML 에서 처리
     public PageResponse<ContractDTO> getList(String email, String role, String status,
                                               String keyword, PageRequest pageRequest) {
+        RoleUtil.normalizeRole(role);
         // TODO 지원 [1]: List<ContractDTO> list = contractMapper.findByUser(email, status, keyword, pageRequest)
         // TODO 지원 [2]: long total = contractMapper.countByUser(email, status, keyword)
         // TODO 지원 [3]: return PageResponse.of(list, total, pageRequest)

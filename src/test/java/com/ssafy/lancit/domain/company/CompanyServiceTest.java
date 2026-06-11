@@ -267,8 +267,8 @@ class CompanyServiceTest {
  
                 companyService.delete();
  
-                verify(taskMapper, times(1)).deleteByOwner("company@test.com", OwnerType.COMPANY);
-                verify(categoryMapper, times(1)).deleteByOwner("company@test.com", OwnerType.COMPANY);
+                verify(taskMapper, times(1)).deleteByOwner("company@test.com", OwnerType.company);
+                verify(categoryMapper, times(1)).deleteByOwner("company@test.com", OwnerType.company);
                 verify(companyMapper, times(1)).softDelete("company@test.com");
             }
         }
@@ -305,8 +305,8 @@ class CompanyServiceTest {
                 companyService.delete();
  
                 // Task, Category 는 FK 없어서 앱 레벨 삭제 필요
-                verify(taskMapper).deleteByOwner("company@test.com", OwnerType.COMPANY);
-                verify(categoryMapper).deleteByOwner("company@test.com", OwnerType.COMPANY);
+                verify(taskMapper).deleteByOwner("company@test.com", OwnerType.company);
+                verify(categoryMapper).deleteByOwner("company@test.com", OwnerType.company);
                 // Recruitment, Bookmark 등은 CASCADE 자동 처리
                 verify(companyMapper).softDelete("company@test.com");
             }

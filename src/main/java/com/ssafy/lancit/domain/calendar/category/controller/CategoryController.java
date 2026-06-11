@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-// 캘린더 카테고리 CRUD - 프리랜서(USER) / 회사(COMPANY) 공용
+// 캘린더 카테고리 CRUD - 프리랜서(user) / 회사(company) 공용
 // SecurityUtil 로 이메일 + role 꺼내서 ownerType 분기
 @RestController
 @RequestMapping("/api/calendar/categories")
@@ -62,6 +62,6 @@ public class CategoryController {
     }
 
     private OwnerType getCurrentOwnerType() {
-        return "USER".equals(SecurityUtil.getCurrentRole()) ? OwnerType.USER : OwnerType.COMPANY;
+        return OwnerType.fromRole(SecurityUtil.getCurrentRole());
     }
 }

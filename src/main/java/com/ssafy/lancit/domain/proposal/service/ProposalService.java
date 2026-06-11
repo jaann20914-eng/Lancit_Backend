@@ -4,6 +4,7 @@ import com.ssafy.lancit.common.exception.CustomException;
 import com.ssafy.lancit.common.exception.ErrorCode;
 import com.ssafy.lancit.common.page.dto.PageRequest;
 import com.ssafy.lancit.common.page.dto.PageResponse;
+import com.ssafy.lancit.common.util.RoleUtil;
 import com.ssafy.lancit.domain.contract.dto.ChatRoomDTO;
 import com.ssafy.lancit.domain.contract.dto.ContractDTO;
 import com.ssafy.lancit.domain.contract.mapper.ChatRoomMapper;
@@ -33,11 +34,12 @@ public class ProposalService {
     private final SimpMessagingTemplate messagingTemplate;
 
     // PROP-01 제안서 목록 조회 (페이지네이션)
-    // USER → 받은 목록, COMPANY → 보낸 목록
+    // user → 받은 목록, company → 보낸 목록
     public PageResponse<ProposalDTO> getList(String email, String role, PageRequest pageRequest) {
+        String normalizedRole = RoleUtil.normalizeRole(role);
         List<ProposalDTO> list;
         long total;
-        if ("USER".equals(role)) {
+        if (RoleUtil.isUser(normalizedRole)) {
             list  = proposalMapper.findByFreelancer(email, pageRequest);
             total = proposalMapper.countByFreelancer(email);
         } else {

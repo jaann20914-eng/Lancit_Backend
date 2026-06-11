@@ -98,8 +98,8 @@ public class CompanyService {
         }
 
         // [2] Task, Category 앱 레벨 삭제
-        taskMapper.deleteByOwner(email, OwnerType.COMPANY);
-        categoryMapper.deleteByOwner(email, OwnerType.COMPANY);
+        taskMapper.deleteByOwner(email, OwnerType.company);
+        categoryMapper.deleteByOwner(email, OwnerType.company);
 
         // [3] Company 소프트 삭제
         companyMapper.softDelete(email);

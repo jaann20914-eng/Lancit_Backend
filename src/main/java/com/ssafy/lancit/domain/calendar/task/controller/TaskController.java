@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.util.List;
 
-// 캘린더 일정 CRUD - 프리랜서(USER) / 회사(COMPANY) 공용
+// 캘린더 일정 CRUD - 프리랜서(user) / 회사(company) 공용
 // 납기일 알림(CAL-11)은 TaskScheduler 가 매일 오전 9시 자동 실행
 // → STOMP /sub/notification/{email} 으로 푸시 + Redis 중복 방지
 @RestController
@@ -91,6 +91,6 @@ public class TaskController {
     }
 
     private OwnerType getCurrentOwnerType() {
-        return "USER".equals(SecurityUtil.getCurrentRole()) ? OwnerType.USER : OwnerType.COMPANY;
+        return OwnerType.fromRole(SecurityUtil.getCurrentRole());
     }
 }

@@ -5,6 +5,9 @@ import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+
+import com.ssafy.lancit.common.exception.CustomException;
+import com.ssafy.lancit.common.util.RoleUtil;
  
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
@@ -28,9 +31,10 @@ public class JwtTokenProvider {
  
     // 로그인 성공 시 JWT 토큰 생성
     public String createAccessToken(String email, String role) {
+        String normalizedRole = RoleUtil.normalizeRole(role);
         return Jwts.builder()
                 .subject(email) // 토큰 안에 email
-                .claim("role", role) // role
+                .claim("role", normalizedRole) // role
                 .issuedAt(new Date()) // 발급시간
                 .expiration(new Date(System.currentTimeMillis() + jwtProperties.getAccessTokenExpiration())) // 만료시간 을 담고
                 .signWith(getKey()) // 암호화 시킴
@@ -43,16 +47,17 @@ public class JwtTokenProvider {
     public String getEmail(String token) { 
         return getClaims(token).getSubject();
     }
-    //토큰에서 역할(USER/COMPANY) 꺼내기 함수 (JwtAuthenticationFilter에서 사용)
+    //토큰에서 역할(user/company) 꺼내기 함수 (JwtAuthenticationFilter에서 사용)
     public String getRole(String token) {
-        return getClaims(token).get("role", String.class);
+        return RoleUtil.normalizeRole(getClaims(token).get("role", String.class));
     }
     // 토큰 유효한지 검증 (만료/위변조 확인) (JwtAuthenticationFilter에서 사용)
     public boolean validate(String token) {
         try {
-            getClaims(token);
+            Claims claims = getClaims(token);
+            RoleUtil.normalizeRole(claims.get("role", String.class));
             return true;
-        } catch (JwtException | IllegalArgumentException e) {
+        } catch (JwtException | IllegalArgumentException | CustomException e) {
             log.warn("[JWT] 유효하지 않은 토큰: {}", e.getMessage());
             return false;
         }

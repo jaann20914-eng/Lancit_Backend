@@ -223,7 +223,7 @@ public class TaskService {
     }
 
     private OwnerType getCurrentOwnerType() {
-        return "USER".equals(SecurityUtil.getCurrentRole()) ? OwnerType.USER : OwnerType.COMPANY;
+        return OwnerType.fromRole(SecurityUtil.getCurrentRole());
     }
 
     private boolean isBlank(String value) {

@@ -234,8 +234,8 @@ class UserServiceTest {
  
                 userService.delete();
  
-                verify(taskMapper, times(1)).deleteByOwner("user@test.com", OwnerType.USER);
-                verify(categoryMapper, times(1)).deleteByOwner("user@test.com", OwnerType.USER);
+                verify(taskMapper, times(1)).deleteByOwner("user@test.com", OwnerType.user);
+                verify(categoryMapper, times(1)).deleteByOwner("user@test.com", OwnerType.user);
                 verify(userMapper, times(1)).softDelete("user@test.com");
             }
         }

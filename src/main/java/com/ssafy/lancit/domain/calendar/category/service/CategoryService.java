@@ -14,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.regex.Pattern;
 
-// 캘린더 카테고리 CRUD - 프리랜서(USER) / 회사(COMPANY) 공용
+// 캘린더 카테고리 CRUD - 프리랜서(user) / 회사(company) 공용
 @Service
 @RequiredArgsConstructor
 public class CategoryService {
@@ -96,7 +96,7 @@ public class CategoryService {
     }
 
     private OwnerType getCurrentOwnerType() {
-        return "USER".equals(SecurityUtil.getCurrentRole()) ? OwnerType.USER : OwnerType.COMPANY;
+        return OwnerType.fromRole(SecurityUtil.getCurrentRole());
     }
 
     private void validateCreate(CategoryDTO dto) {

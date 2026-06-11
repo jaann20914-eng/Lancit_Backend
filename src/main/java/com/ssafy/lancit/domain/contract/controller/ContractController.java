@@ -22,7 +22,7 @@ public class ContractController {
     private final ContractService contractService;
 
     // CONT-01 / CLI-CONT-01 계약서 목록 조회 (상태/키워드 필터 + 페이지네이션)
-    // role 로 USER(freelancerEmail) / COMPANY(companyEmail) 분기
+    // role 로 user(freelancerEmail) / company(companyEmail) 분기
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<ContractDTO>>> getContracts(
             @RequestParam(required = false) String status,

@@ -13,7 +13,7 @@ public class JwtTokenTest {
 
     @Test
     void generateTestToken() {
-        String token = jwtTokenProvider.createAccessToken("test4@lancit.com", "USER");
+        String token = jwtTokenProvider.createAccessToken("test4@lancit.com", "user");
         System.out.println("===== 테스트용 JWT =====");
         System.out.println("Bearer " + token);
         System.out.println("=======================");

@@ -1,5 +1,7 @@
 package com.ssafy.lancit.domain.auth.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import com.ssafy.lancit.global.enums.JobCategory;
 
 import lombok.Getter;
@@ -15,5 +17,6 @@ public class SignupDTO {
     private JobCategory jobCategory;
     private boolean pushable;    
     private String businessNumber;     // 회사 전용
-    private String role;               // "USER" | "COMPANY"
+    @Schema(example = "user", allowableValues = {"user", "company"})
+    private String role;               // "user" | "company"
 }

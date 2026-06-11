@@ -147,7 +147,7 @@ ALTER TABLE `file`
 CREATE TABLE `category` (
     category_id     INT             NOT NULL    AUTO_INCREMENT,
     email           VARCHAR(255)    NOT NULL                    COMMENT '소유자 이메일',
-    owner_type      ENUM('USER','COMPANY')
+    owner_type      ENUM('user','company')
                                     NOT NULL                    COMMENT '소유자 타입',
     category_name   VARCHAR(100)    NOT NULL,
     color           VARCHAR(7)      NOT NULL                    COMMENT 'hex 코드 (#FF5733)',
@@ -161,7 +161,7 @@ CREATE TABLE `category` (
 CREATE TABLE `task` (
     task_id                 INT             NOT NULL    AUTO_INCREMENT,
     email                   VARCHAR(255)    NOT NULL                    COMMENT '소유자 이메일',
-    owner_type              ENUM('USER','COMPANY')
+    owner_type              ENUM('user','company')
                                             NOT NULL                    COMMENT '소유자 타입',
     category_id             INT             NOT NULL,
     title                   VARCHAR(255)    NOT NULL,
@@ -441,6 +441,31 @@ CREATE TABLE file_delete_queue (
     retry_count INT DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
+
+
+-- ============================================================
+--  기존 owner_type 데이터 소문자 마이그레이션
+--  기존 DB에 category/task가 이미 있는 경우 DDL 변경 전 별도 실행
+-- ============================================================
+ALTER TABLE `category`
+MODIFY COLUMN owner_type VARCHAR(20) NOT NULL COMMENT '소유자 타입';
+
+UPDATE `category`
+SET owner_type = LOWER(owner_type)
+WHERE owner_type IN ('USER', 'COMPANY');
+
+ALTER TABLE `category`
+MODIFY COLUMN owner_type ENUM('user','company') NOT NULL COMMENT '소유자 타입';
+
+ALTER TABLE `task`
+MODIFY COLUMN owner_type VARCHAR(20) NOT NULL COMMENT '소유자 타입';
+
+UPDATE `task`
+SET owner_type = LOWER(owner_type)
+WHERE owner_type IN ('USER', 'COMPANY');
+
+ALTER TABLE `task`
+MODIFY COLUMN owner_type ENUM('user','company') NOT NULL COMMENT '소유자 타입';
 
 
 

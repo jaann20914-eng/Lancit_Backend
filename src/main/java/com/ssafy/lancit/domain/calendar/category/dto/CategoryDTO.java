@@ -12,7 +12,7 @@ import lombok.Setter;
 public class CategoryDTO {
     private Integer categoryId;
     private String email;           // 소유자 이메일
-    private OwnerType ownerType;    // USER | COMPANY
+    private OwnerType ownerType;    // user | company
     private String categoryName;
     private String color;           // hex 코드 (#FF5733)
 }

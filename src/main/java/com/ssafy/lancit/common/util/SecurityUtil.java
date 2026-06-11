@@ -22,12 +22,12 @@ public class SecurityUtil {
         return (String) auth.getPrincipal();
     }
  
-    // 현재 로그인한 역할 반환 (USER 인지 COMPANY) : 확인 불가 상태면 UNAUTHORIZED 예외
+    // 현재 로그인한 역할 반환 (user 인지 company) : 확인 불가 상태면 UNAUTHORIZED 예외
     public static String getCurrentRole() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || auth.getAuthorities().isEmpty()) {
+        if (auth == null || !auth.isAuthenticated() || auth.getAuthorities().isEmpty()) {
             throw new CustomException(ErrorCode.UNAUTHORIZED);
         }
-        return auth.getAuthorities().iterator().next().getAuthority().replace("ROLE_", "");
+        return RoleUtil.normalizeRole(auth.getAuthorities().iterator().next().getAuthority().replace("ROLE_", ""));
     }
 }

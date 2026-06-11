@@ -16,6 +16,7 @@ import com.ssafy.lancit.common.annotation.OwnerCheck;
 import com.ssafy.lancit.common.exception.CustomException;
 import com.ssafy.lancit.common.exception.ErrorCode;
 import com.ssafy.lancit.common.util.GcsSignedUrlUtil;
+import com.ssafy.lancit.common.util.RoleUtil;
 import com.ssafy.lancit.domain.file.dto.FileDTO;
 import com.ssafy.lancit.domain.file.event.FileDeleteEvent;
 import com.ssafy.lancit.domain.file.mapper.FileDeleteQueueMapper;
@@ -45,6 +46,8 @@ public class FileService {
     @Transactional
     public List<FileDTO> upload(List<MultipartFile> files, FileParentType parentType,
                           Integer parentId, String email, String role) {
+        String normalizedRole = RoleUtil.normalizeRole(role);
+        boolean userRole = RoleUtil.USER.equals(normalizedRole);
     	
     	// TEMP 업로드 시 기존 TEMP 파일 삭제 큐에 추가
         // (여러 번 바꿨을 때 이전 TEMP 파일 정리)
@@ -66,8 +69,8 @@ public class FileService {
 			try {
 				sysName = gcsService.upload(file, parentType);
 				FileDTO dto = FileDTO.builder()
-	    		        .userEmail("USER".equals(role) ? email : null) // 유저면 유저로 
-	    		        .companyEmail("USER".equals(role) ? null : email) // 회사면 회사로
+                        .userEmail(userRole ? email : null) // 유저면 유저로
+                        .companyEmail(userRole ? null : email) // 회사면 회사로
 	    		        .sysName(sysName)
 	    		        .oriName(file.getOriginalFilename())
 	    		        .parentType(parentType)

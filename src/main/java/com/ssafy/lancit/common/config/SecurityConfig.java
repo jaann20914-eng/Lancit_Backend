@@ -40,8 +40,8 @@ public class SecurityConfig {
                 // TODO 지원: 개발 완료 후 아래로 교체
                 //   .requestMatchers("/api/auth/**").permitAll()  // 로그인, 회원가입, 비밀번호 찾기
                 //   .requestMatchers("/ws/**").permitAll()        // STOMP 핸드쉐이크
-                //   .requestMatchers(HttpMethod.POST, "/api/recruitments").hasRole("COMPANY")  // 공고 등록은 회사만
-                //   .requestMatchers("/api/portfolios/**").hasRole("USER")                     // 포트폴리오는 프리랜서만
+                //   .requestMatchers(HttpMethod.POST, "/api/recruitments").hasRole("company")  // 공고 등록은 회사만
+                //   .requestMatchers("/api/portfolios/**").hasRole("user")                     // 포트폴리오는 프리랜서만
                 //   .anyRequest().authenticated()
                 .anyRequest().permitAll()
             )

@@ -60,12 +60,12 @@ public class FileServiceTest {
     @Order(1)
     @DisplayName("유저 단건 업로드 - PROFILE + GCS 실제 저장 확인")
     void uploadUserProfile() throws Exception {
-        setAuth("test@lancit.com", "USER");
+        setAuth("test@lancit.com", "user");
         MockMultipartFile file = new MockMultipartFile(
                 "files", "user-profile.jpg", "image/jpeg", "user-image".getBytes());
 
         List<FileDTO> result = fileService.upload(
-                List.of(file), FileParentType.PROFILE, null, "test@lancit.com", "USER");
+                List.of(file), FileParentType.PROFILE, null, "test@lancit.com", "user");
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getUserEmail()).isEqualTo("test@lancit.com");
@@ -84,12 +84,12 @@ public class FileServiceTest {
     @Order(2)
     @DisplayName("회사 단건 업로드 - PROFILE + GCS 실제 저장 확인")
     void uploadCompanyProfile() throws Exception {
-        setAuth("company@lancit.com", "COMPANY");
+        setAuth("company@lancit.com", "company");
         MockMultipartFile file = new MockMultipartFile(
                 "files", "company-profile.jpg", "image/jpeg", "company-image".getBytes());
 
         List<FileDTO> result = fileService.upload(
-                List.of(file), FileParentType.PROFILE, null, "company@lancit.com", "COMPANY");
+                List.of(file), FileParentType.PROFILE, null, "company@lancit.com", "company");
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getCompanyEmail()).isEqualTo("company@lancit.com");
@@ -106,12 +106,12 @@ public class FileServiceTest {
     @Order(3)
     @DisplayName("유저 다건 업로드 - PORTFOLIO_FILE + GCS 실제 저장 확인")
     void uploadMultipleFiles() throws Exception {
-        setAuth("test@lancit.com", "USER");
+        setAuth("test@lancit.com", "user");
         MockMultipartFile f1 = new MockMultipartFile("files", "f1.jpg", "image/jpeg", "c1".getBytes());
         MockMultipartFile f2 = new MockMultipartFile("files", "f2.jpg", "image/jpeg", "c2".getBytes());
 
         List<FileDTO> result = fileService.upload(
-                List.of(f1, f2), FileParentType.PORTFOLIO_FILE, 1, "test@lancit.com", "USER");
+                List.of(f1, f2), FileParentType.PORTFOLIO_FILE, 1, "test@lancit.com", "user");
 
         assertThat(result).hasSize(2);
         result.forEach(dto -> assertThat(dto.getUploadPath()).startsWith("portfolio/file/"));
@@ -200,7 +200,7 @@ public class FileServiceTest {
     @Order(10)
     @DisplayName("OwnerCheck - 본인 파일 삭제 성공 + GCS 삭제 확인")
     void deleteOwnerSuccess() {
-        setAuth("test@lancit.com", "USER");
+        setAuth("test@lancit.com", "user");
         assertThatNoException().isThrownBy(() -> fileService.delete(userFileId));
 
         assertThat(fileMapper.findById(userFileId)).isNull();
@@ -215,7 +215,7 @@ public class FileServiceTest {
     @Order(11)
     @DisplayName("OwnerCheck - 유저가 회사 파일 삭제 시도 → FORBIDDEN")
     void deleteOwnerFail_UserTriesCompanyFile() {
-        setAuth("test@lancit.com", "USER");
+        setAuth("test@lancit.com", "user");
         assertThatThrownBy(() -> fileService.delete(companyFileId))
                 .isInstanceOf(CustomException.class)
                 .hasMessageContaining("접근 권한이 없습니다");
@@ -226,20 +226,20 @@ public class FileServiceTest {
     @Order(12)
     @DisplayName("OwnerCheck - 다른 유저 파일 삭제 시도 → FORBIDDEN")
     void deleteOwnerFail_OtherUser() throws Exception {
-        setAuth("test２@lancit.com", "USER");
+        setAuth("test２@lancit.com", "user");
         MockMultipartFile file = new MockMultipartFile(
                 "files", "other.jpg", "image/jpeg", "other".getBytes());
         List<FileDTO> uploaded = fileService.upload(
-                List.of(file), FileParentType.PROFILE, null, "test２@lancit.com", "USER");
+                List.of(file), FileParentType.PROFILE, null, "test２@lancit.com", "user");
         int otherFileId = uploaded.get(0).getFileId();
 
-        setAuth("test@lancit.com", "USER");
+        setAuth("test@lancit.com", "user");
         assertThatThrownBy(() -> fileService.delete(otherFileId))
                 .isInstanceOf(CustomException.class)
                 .hasMessageContaining("접근 권한이 없습니다");
         System.out.println("[OwnerCheck] 다른 유저 파일 접근 차단 확인");
 
-        setAuth("test２@lancit.com", "USER");
+        setAuth("test２@lancit.com", "user");
         fileService.delete(otherFileId);
     }
 
@@ -247,7 +247,7 @@ public class FileServiceTest {
     @Order(13)
     @DisplayName("OwnerCheck - 없는 fileId 삭제 → NOT_FOUND")
     void deleteNotFound() {
-        setAuth("test@lancit.com", "USER");
+        setAuth("test@lancit.com", "user");
         assertThatThrownBy(() -> fileService.delete(99999))
                 .isInstanceOf(CustomException.class)
                 .hasMessageContaining("리소스를 찾을 수 없습니다");
@@ -286,7 +286,7 @@ public class FileServiceTest {
     @Order(16)
     @DisplayName("회사 파일 삭제 - 본인 확인 후 삭제 + GCS 삭제 확인")
     void deleteCompanyFile() {
-        setAuth("company@lancit.com", "COMPANY");
+        setAuth("company@lancit.com", "company");
         String companyUploadPath = fileMapper.findById(companyFileId).getUploadPath();
 
         assertThatNoException().isThrownBy(() -> fileService.delete(companyFileId));
