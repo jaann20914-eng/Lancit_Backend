@@ -2,8 +2,202 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.ssafy.lancit.domain.portfolio.mapper.PortfolioMapper">
- 
-    <!-- TODO 영은: SQL 작성 -->
- 
+
+    <sql id="PortfolioColumns">
+        p.portfolio_id,
+        p.email,
+        p.category,
+        p.title,
+        p.summary,
+        p.content,
+        p.work_start_at,
+        p.work_end_at,
+        p.is_public,
+        p.banner_file_id,
+        p.created_at,
+        p.updated_at,
+        p.is_deleted,
+        p.deleted_at
+    </sql>
+
+    <sql id="ActivePortfolioFilter">
+        p.email = #{email}
+        AND p.is_deleted = 0
+        <if test="keyword != null and keyword != ''">
+            AND (
+                p.title LIKE CONCAT('%', #{keyword}, '%')
+                OR p.content LIKE CONCAT('%', #{keyword}, '%')
+                OR p.summary LIKE CONCAT('%', #{keyword}, '%')
+            )
+        </if>
+        <if test="visibility != null">
+            AND p.is_public = #{visibility}
+        </if>
+        <if test="category != null and category != ''">
+            AND p.category = #{category}
+        </if>
+    </sql>
+
+    <sql id="PortfolioOrderBy">
+        <choose>
+            <when test="sort == 'oldest'">
+                ORDER BY p.created_at ASC, p.portfolio_id ASC
+            </when>
+            <otherwise>
+                ORDER BY p.created_at DESC, p.portfolio_id DESC
+            </otherwise>
+        </choose>
+    </sql>
+
+    <select id="findByEmail" resultType="PortfolioDTO">
+        SELECT
+        <include refid="PortfolioColumns"/>
+        FROM portfolio p
+        WHERE
+        <include refid="ActivePortfolioFilter"/>
+        <include refid="PortfolioOrderBy"/>
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <select id="countByEmail" resultType="long">
+        SELECT COUNT(*)
+        FROM portfolio p
+        WHERE
+        <include refid="ActivePortfolioFilter"/>
+    </select>
+
+    <select id="findPublicByEmail" resultType="PortfolioDTO">
+        SELECT
+        <include refid="PortfolioColumns"/>
+        FROM portfolio p
+        WHERE p.email = #{email}
+          AND p.is_public = 1
+          AND p.is_deleted = 0
+        <if test="keyword != null and keyword != ''">
+          AND (
+              p.title LIKE CONCAT('%', #{keyword}, '%')
+              OR p.content LIKE CONCAT('%', #{keyword}, '%')
+              OR p.summary LIKE CONCAT('%', #{keyword}, '%')
+          )
+        </if>
+        <if test="category != null and category != ''">
+          AND p.category = #{category}
+        </if>
+        <include refid="PortfolioOrderBy"/>
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <select id="countPublicByEmail" resultType="long">
+        SELECT COUNT(*)
+        FROM portfolio p
+        WHERE p.email = #{email}
+          AND p.is_public = 1
+          AND p.is_deleted = 0
+        <if test="keyword != null and keyword != ''">
+          AND (
+              p.title LIKE CONCAT('%', #{keyword}, '%')
+              OR p.content LIKE CONCAT('%', #{keyword}, '%')
+              OR p.summary LIKE CONCAT('%', #{keyword}, '%')
+          )
+        </if>
+        <if test="category != null and category != ''">
+          AND p.category = #{category}
+        </if>
+    </select>
+
+    <select id="findById" parameterType="int" resultType="PortfolioDTO">
+        SELECT
+        <include refid="PortfolioColumns"/>
+        FROM portfolio p
+        WHERE p.portfolio_id = #{portfolioId}
+          AND p.is_deleted = 0
+    </select>
+
+    <select id="findByIdIncludingDeleted" parameterType="int" resultType="PortfolioDTO">
+        SELECT
+        <include refid="PortfolioColumns"/>
+        FROM portfolio p
+        WHERE p.portfolio_id = #{portfolioId}
+    </select>
+
+    <select id="findOwnerEmailById" parameterType="int" resultType="String">
+        SELECT email
+        FROM portfolio
+        WHERE portfolio_id = #{portfolioId}
+          AND is_deleted = 0
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="portfolioId">
+        INSERT INTO portfolio (
+            email,
+            category,
+            title,
+            summary,
+            content,
+            work_start_at,
+            work_end_at,
+            is_public,
+            banner_file_id,
+            created_at,
+            updated_at,
+            is_deleted
+        ) VALUES (
+            #{email},
+            #{category},
+            #{title},
+            #{summary},
+            #{content},
+            #{workStartAt},
+            #{workEndAt},
+            #{isPublic},
+            #{bannerFileId},
+            NOW(),
+            NOW(),
+            0
+        )
+    </insert>
+
+    <update id="update">
+        UPDATE portfolio
+        <set>
+            <if test="dto.category != null">
+                category = #{dto.category},
+            </if>
+            <if test="dto.title != null">
+                title = #{dto.title},
+            </if>
+            <if test="dto.summary != null">
+                summary = #{dto.summary},
+            </if>
+            <if test="dto.content != null">
+                content = #{dto.content},
+            </if>
+            <if test="dto.workStartAt != null">
+                work_start_at = #{dto.workStartAt},
+            </if>
+            <if test="dto.workEndAt != null">
+                work_end_at = #{dto.workEndAt},
+            </if>
+            <if test="dto.isPublic != null">
+                is_public = #{dto.isPublic},
+            </if>
+            <if test="dto.bannerFileId != null">
+                banner_file_id = #{dto.bannerFileId},
+            </if>
+            updated_at = NOW()
+        </set>
+        WHERE portfolio_id = #{portfolioId}
+          AND is_deleted = 0
+    </update>
+
+    <update id="softDelete" parameterType="int">
+        UPDATE portfolio
+        SET is_deleted = 1,
+            deleted_at = NOW(),
+            updated_at = NOW()
+        WHERE portfolio_id = #{portfolioId}
+          AND is_deleted = 0
+    </update>
+
 </mapper>
- 
+
