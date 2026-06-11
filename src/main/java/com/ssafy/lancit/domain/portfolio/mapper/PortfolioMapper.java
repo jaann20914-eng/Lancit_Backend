@@ -8,16 +8,21 @@ import org.apache.ibatis.annotations.Param;
 
 import com.ssafy.lancit.common.page.dto.PageRequest;
 import com.ssafy.lancit.domain.portfolio.dto.PortfolioDTO;
+import com.ssafy.lancit.domain.portfolio.dto.PortfolioSearchCondition;
 
 @Mapper
 public interface PortfolioMapper {
     List<PortfolioDTO> findByEmail(@Param("email") String email,
-                                   @Param("pageRequest") PageRequest pageRequest);
-    long countByEmail(@Param("email") String email);
+                                   @Param("pageRequest") PageRequest pageRequest,
+                                   @Param("condition") PortfolioSearchCondition condition);
+    long countByEmail(@Param("email") String email,
+                      @Param("condition") PortfolioSearchCondition condition);
 
     List<PortfolioDTO> findPublicByEmail(@Param("email") String email,
-                                         @Param("pageRequest") PageRequest pageRequest);
-    long countPublicByEmail(@Param("email") String email);
+                                         @Param("pageRequest") PageRequest pageRequest,
+                                         @Param("condition") PortfolioSearchCondition condition);
+    long countPublicByEmail(@Param("email") String email,
+                            @Param("condition") PortfolioSearchCondition condition);
 
     PortfolioDTO findById(@Param("portfolioId") int portfolioId);
     String findOwnerEmailById(@Param("portfolioId") int portfolioId);

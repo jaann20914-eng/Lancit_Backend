@@ -68,12 +68,36 @@
         LIMIT #{limit} OFFSET #{offset}
     </sql>
 
+    <sql id="SearchFilters">
+        <if test="condition != null and condition.keyword != null">
+            AND (
+                title LIKE CONCAT('%', #{condition.keyword}, '%')
+                OR summary LIKE CONCAT('%', #{condition.keyword}, '%')
+                OR content LIKE CONCAT('%', #{condition.keyword}, '%')
+            )
+        </if>
+        <if test="condition != null and condition.category != null">
+            AND category = #{condition.category}
+        </if>
+    </sql>
+
+    <sql id="VisibilityFilter">
+        <if test="condition != null and condition.visibility == 'PUBLIC'">
+            AND is_public = 1
+        </if>
+        <if test="condition != null and condition.visibility == 'PRIVATE'">
+            AND is_public = 0
+        </if>
+    </sql>
+
     <select id="findByEmail" resultMap="PortfolioResultMap">
         SELECT
         <include refid="PortfolioColumns"/>
         FROM portfolio
         WHERE email = #{email}
           AND is_deleted = 0
+        <include refid="SearchFilters"/>
+        <include refid="VisibilityFilter"/>
         <include refid="PortfolioOrderBy"/>
         <include refid="Pagination"/>
     </select>
@@ -83,6 +107,8 @@
         FROM portfolio
         WHERE email = #{email}
           AND is_deleted = 0
+        <include refid="SearchFilters"/>
+        <include refid="VisibilityFilter"/>
     </select>
 
     <select id="findPublicByEmail" resultMap="PortfolioResultMap">
@@ -92,6 +118,7 @@
         WHERE email = #{email}
           AND is_public = 1
           AND is_deleted = 0
+        <include refid="SearchFilters"/>
         <include refid="PortfolioOrderBy"/>
         <include refid="Pagination"/>
     </select>
@@ -102,6 +129,7 @@
         WHERE email = #{email}
           AND is_public = 1
           AND is_deleted = 0
+        <include refid="SearchFilters"/>
     </select>
 
     <select id="findById" resultMap="PortfolioResultMap">

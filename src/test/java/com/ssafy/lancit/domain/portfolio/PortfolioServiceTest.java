@@ -32,6 +32,7 @@ import com.ssafy.lancit.domain.file.dto.FileDTO;
 import com.ssafy.lancit.domain.file.service.FileService;
 import com.ssafy.lancit.domain.portfolio.controller.PortfolioController;
 import com.ssafy.lancit.domain.portfolio.dto.PortfolioDTO;
+import com.ssafy.lancit.domain.portfolio.dto.PortfolioSearchCondition;
 import com.ssafy.lancit.domain.portfolio.mapper.PortfolioMapper;
 import com.ssafy.lancit.domain.portfolio.service.PortfolioService;
 import com.ssafy.lancit.global.enums.FileParentType;
@@ -63,8 +64,8 @@ class PortfolioServiceTest {
         pageRequest.setSize(5);
         PortfolioDTO portfolio = basePortfolio(1);
 
-        given(portfolioMapper.findByEmail(USER_EMAIL, pageRequest)).willReturn(List.of(portfolio));
-        given(portfolioMapper.countByEmail(USER_EMAIL)).willReturn(1L);
+        given(portfolioMapper.findByEmail(USER_EMAIL, pageRequest, null)).willReturn(List.of(portfolio));
+        given(portfolioMapper.countByEmail(USER_EMAIL, null)).willReturn(1L);
 
         PageResponse<PortfolioDTO> result = portfolioService.getMyList(USER_EMAIL, pageRequest);
 
@@ -72,8 +73,53 @@ class PortfolioServiceTest {
         assertThat(result.getPage()).isEqualTo(2);
         assertThat(result.getSize()).isEqualTo(5);
         assertThat(result.getTotalElements()).isEqualTo(1L);
-        verify(portfolioMapper).findByEmail(USER_EMAIL, pageRequest);
-        verify(portfolioMapper).countByEmail(USER_EMAIL);
+        verify(portfolioMapper).findByEmail(USER_EMAIL, pageRequest, null);
+        verify(portfolioMapper).countByEmail(USER_EMAIL, null);
+    }
+
+    @Test
+    @DisplayName("내 포트폴리오 목록 검색 조건 전달")
+    void getMyList_withSearchCondition_success() {
+        PageRequest pageRequest = new PageRequest();
+        PortfolioSearchCondition condition = new PortfolioSearchCondition();
+        condition.setKeyword(" 랜딩 ");
+        condition.setCategory("design");
+        condition.setVisibility("public");
+        PortfolioDTO portfolio = basePortfolio(1);
+
+        given(portfolioMapper.findByEmail(USER_EMAIL, pageRequest, condition)).willReturn(List.of(portfolio));
+        given(portfolioMapper.countByEmail(USER_EMAIL, condition)).willReturn(1L);
+
+        PageResponse<PortfolioDTO> result = portfolioService.getMyList(USER_EMAIL, pageRequest, condition);
+
+        assertThat(result.getContent()).containsExactly(portfolio);
+        assertThat(condition.getKeyword()).isEqualTo("랜딩");
+        assertThat(condition.getCategory()).isEqualTo("DESIGN");
+        assertThat(condition.getVisibility()).isEqualTo("PUBLIC");
+        verify(portfolioMapper).findByEmail(USER_EMAIL, pageRequest, condition);
+        verify(portfolioMapper).countByEmail(USER_EMAIL, condition);
+    }
+
+    @Test
+    @DisplayName("내 포트폴리오 목록 검색 조건이 공백이면 필터 없이 조회")
+    void getMyList_blankSearchCondition_success() {
+        PageRequest pageRequest = new PageRequest();
+        PortfolioSearchCondition condition = new PortfolioSearchCondition();
+        condition.setKeyword("   ");
+        condition.setCategory("   ");
+        condition.setVisibility("unknown");
+
+        given(portfolioMapper.findByEmail(USER_EMAIL, pageRequest, condition)).willReturn(List.of());
+        given(portfolioMapper.countByEmail(USER_EMAIL, condition)).willReturn(0L);
+
+        PageResponse<PortfolioDTO> result = portfolioService.getMyList(USER_EMAIL, pageRequest, condition);
+
+        assertThat(result.getContent()).isEmpty();
+        assertThat(condition.getKeyword()).isNull();
+        assertThat(condition.getCategory()).isNull();
+        assertThat(condition.getVisibility()).isNull();
+        verify(portfolioMapper).findByEmail(USER_EMAIL, pageRequest, condition);
+        verify(portfolioMapper).countByEmail(USER_EMAIL, condition);
     }
 
     @Test
@@ -82,15 +128,38 @@ class PortfolioServiceTest {
         PageRequest pageRequest = new PageRequest();
         PortfolioDTO portfolio = basePortfolio(1);
 
-        given(portfolioMapper.findPublicByEmail(USER_EMAIL, pageRequest)).willReturn(List.of(portfolio));
-        given(portfolioMapper.countPublicByEmail(USER_EMAIL)).willReturn(1L);
+        given(portfolioMapper.findPublicByEmail(USER_EMAIL, pageRequest, null)).willReturn(List.of(portfolio));
+        given(portfolioMapper.countPublicByEmail(USER_EMAIL, null)).willReturn(1L);
 
         PageResponse<PortfolioDTO> result = portfolioService.getPublicList(USER_EMAIL, pageRequest);
 
         assertThat(result.getContent()).containsExactly(portfolio);
         assertThat(result.getTotalElements()).isEqualTo(1L);
-        verify(portfolioMapper).findPublicByEmail(USER_EMAIL, pageRequest);
-        verify(portfolioMapper).countPublicByEmail(USER_EMAIL);
+        verify(portfolioMapper).findPublicByEmail(USER_EMAIL, pageRequest, null);
+        verify(portfolioMapper).countPublicByEmail(USER_EMAIL, null);
+    }
+
+    @Test
+    @DisplayName("공개 포트폴리오 목록 검색 조건 전달")
+    void getPublicList_withSearchCondition_success() {
+        PageRequest pageRequest = new PageRequest();
+        PortfolioSearchCondition condition = new PortfolioSearchCondition();
+        condition.setKeyword("앱");
+        condition.setCategory("web_app");
+        condition.setVisibility("PRIVATE");
+        PortfolioDTO portfolio = basePortfolio(1);
+
+        given(portfolioMapper.findPublicByEmail(USER_EMAIL, pageRequest, condition)).willReturn(List.of(portfolio));
+        given(portfolioMapper.countPublicByEmail(USER_EMAIL, condition)).willReturn(1L);
+
+        PageResponse<PortfolioDTO> result = portfolioService.getPublicList(USER_EMAIL, pageRequest, condition);
+
+        assertThat(result.getContent()).containsExactly(portfolio);
+        assertThat(condition.getKeyword()).isEqualTo("앱");
+        assertThat(condition.getCategory()).isEqualTo("WEB_APP");
+        assertThat(condition.getVisibility()).isEqualTo("PRIVATE");
+        verify(portfolioMapper).findPublicByEmail(USER_EMAIL, pageRequest, condition);
+        verify(portfolioMapper).countPublicByEmail(USER_EMAIL, condition);
     }
 
     @Test

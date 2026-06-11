@@ -21,6 +21,7 @@ import com.ssafy.lancit.common.exception.CustomException;
 import com.ssafy.lancit.common.exception.ErrorCode;
 import com.ssafy.lancit.common.util.SecurityUtil;
 import com.ssafy.lancit.domain.portfolio.dto.PortfolioDTO;
+import com.ssafy.lancit.domain.portfolio.dto.PortfolioSearchCondition;
 import com.ssafy.lancit.domain.portfolio.service.PortfolioService;
 
 import lombok.RequiredArgsConstructor;
@@ -37,17 +38,19 @@ public class PortfolioController {
     // PORT-01 내 포트폴리오 목록 조회 (페이지네이션)
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<PortfolioDTO>>> getMyPortfolios(
-            @ModelAttribute PageRequest pageRequest) {
+            @ModelAttribute PageRequest pageRequest,
+            @ModelAttribute PortfolioSearchCondition condition) {
         String email = SecurityUtil.getCurrentEmail();
-        return ResponseEntity.ok(ApiResponse.ok(portfolioService.getMyList(email, pageRequest)));
+        return ResponseEntity.ok(ApiResponse.ok(portfolioService.getMyList(email, pageRequest, condition)));
     }
 
     // CLI-SEAR-02 회사가 특정 프리랜서 공개 포트폴리오 조회 (페이지네이션)
     @GetMapping("/public")
     public ResponseEntity<ApiResponse<PageResponse<PortfolioDTO>>> getPublicPortfolios(
             @RequestParam String email,
-            @ModelAttribute PageRequest pageRequest) {
-        return ResponseEntity.ok(ApiResponse.ok(portfolioService.getPublicList(email, pageRequest)));
+            @ModelAttribute PageRequest pageRequest,
+            @ModelAttribute PortfolioSearchCondition condition) {
+        return ResponseEntity.ok(ApiResponse.ok(portfolioService.getPublicList(email, pageRequest, condition)));
     }
 
 	 // PORT-02 / CLI-SEAR-03 포트폴리오 상세 조회

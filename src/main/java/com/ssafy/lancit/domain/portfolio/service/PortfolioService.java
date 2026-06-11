@@ -15,6 +15,7 @@ import com.ssafy.lancit.common.page.dto.PageResponse;
 import com.ssafy.lancit.domain.file.dto.FileDTO;
 import com.ssafy.lancit.domain.file.service.FileService;
 import com.ssafy.lancit.domain.portfolio.dto.PortfolioDTO;
+import com.ssafy.lancit.domain.portfolio.dto.PortfolioSearchCondition;
 import com.ssafy.lancit.domain.portfolio.mapper.PortfolioMapper;
 import com.ssafy.lancit.global.enums.FileParentType;
 import com.ssafy.lancit.global.enums.PortfolioCategory;
@@ -35,21 +36,29 @@ public class PortfolioService {
 
     // PORT-01 내 포트폴리오 목록 조회 (페이지네이션)
     public PageResponse<PortfolioDTO> getMyList(String email, PageRequest pageRequest) {
-        // TODO 영은 [1]: List<PortfolioDTO> list = portfolioMapper.findByEmail(email, pageRequest)
-        // TODO 영은 [2]: long total = portfolioMapper.countByEmail(email)
-        // TODO 영은 [3]: return PageResponse.of(list, total, pageRequest)
-        List<PortfolioDTO> list = portfolioMapper.findByEmail(email, pageRequest);
-        long total = portfolioMapper.countByEmail(email);
+        return getMyList(email, pageRequest, null);
+    }
+
+    // PORT-01 내 포트폴리오 목록 조회 (페이지네이션 + 검색/필터)
+    public PageResponse<PortfolioDTO> getMyList(String email, PageRequest pageRequest,
+                                                PortfolioSearchCondition condition) {
+        PortfolioSearchCondition normalized = normalizeSearchCondition(condition);
+        List<PortfolioDTO> list = portfolioMapper.findByEmail(email, pageRequest, normalized);
+        long total = portfolioMapper.countByEmail(email, normalized);
         return PageResponse.of(list, total, pageRequest);
     }
 
     // CLI-SEAR-02 회사가 특정 프리랜서 공개 포트폴리오 조회 (페이지네이션)
     public PageResponse<PortfolioDTO> getPublicList(String email, PageRequest pageRequest) {
-        // TODO 영은 [1]: List<PortfolioDTO> list = portfolioMapper.findPublicByEmail(email, pageRequest)
-        // TODO 영은 [2]: long total = portfolioMapper.countPublicByEmail(email)
-        // TODO 영은 [3]: return PageResponse.of(list, total, pageRequest)
-        List<PortfolioDTO> list = portfolioMapper.findPublicByEmail(email, pageRequest);
-        long total = portfolioMapper.countPublicByEmail(email);
+        return getPublicList(email, pageRequest, null);
+    }
+
+    // CLI-SEAR-02 회사가 특정 프리랜서 공개 포트폴리오 조회 (페이지네이션 + 검색/필터)
+    public PageResponse<PortfolioDTO> getPublicList(String email, PageRequest pageRequest,
+                                                    PortfolioSearchCondition condition) {
+        PortfolioSearchCondition normalized = normalizeSearchCondition(condition);
+        List<PortfolioDTO> list = portfolioMapper.findPublicByEmail(email, pageRequest, normalized);
+        long total = portfolioMapper.countPublicByEmail(email, normalized);
         return PageResponse.of(list, total, pageRequest);
     }
 
@@ -132,6 +141,27 @@ public class PortfolioService {
             return DEFAULT_CATEGORY;
         }
         return PortfolioCategory.normalize(category);
+    }
+
+    private PortfolioSearchCondition normalizeSearchCondition(PortfolioSearchCondition condition) {
+        if (condition == null) {
+            return null;
+        }
+
+        condition.setKeyword(hasText(condition.getKeyword()) ? condition.getKeyword().trim() : null);
+        condition.setCategory(hasText(condition.getCategory())
+                ? PortfolioCategory.normalize(condition.getCategory())
+                : null);
+
+        if ("PUBLIC".equalsIgnoreCase(condition.getVisibility())) {
+            condition.setVisibility("PUBLIC");
+        } else if ("PRIVATE".equalsIgnoreCase(condition.getVisibility())) {
+            condition.setVisibility("PRIVATE");
+        } else {
+            condition.setVisibility(null);
+        }
+
+        return condition;
     }
 
     private boolean hasText(String value) {
