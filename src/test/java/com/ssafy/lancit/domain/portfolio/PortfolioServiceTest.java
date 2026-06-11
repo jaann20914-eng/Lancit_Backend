@@ -4,41 +4,42 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.BDDMockito.given;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.ssafy.lancit.common.exception.CustomException;
 import com.ssafy.lancit.common.exception.ErrorCode;
+import com.ssafy.lancit.common.page.dto.PageRequest;
 import com.ssafy.lancit.common.page.dto.PageResponse;
 import com.ssafy.lancit.domain.file.dto.FileDTO;
 import com.ssafy.lancit.domain.file.service.FileService;
+import com.ssafy.lancit.domain.portfolio.controller.PortfolioController;
 import com.ssafy.lancit.domain.portfolio.dto.PortfolioDTO;
-import com.ssafy.lancit.domain.portfolio.dto.PortfolioSearchCondition;
 import com.ssafy.lancit.domain.portfolio.mapper.PortfolioMapper;
 import com.ssafy.lancit.domain.portfolio.service.PortfolioService;
 import com.ssafy.lancit.global.enums.FileParentType;
-import com.ssafy.lancit.global.enums.PortfolioCategory;
 
-@MockitoSettings(strictness = Strictness.LENIENT)
 @ExtendWith(MockitoExtension.class)
 class PortfolioServiceTest {
 
     private static final String USER_EMAIL = "user@test.com";
-    private static final String OTHER_EMAIL = "other@test.com";
 
     @InjectMocks
     private PortfolioService portfolioService;
@@ -49,307 +50,251 @@ class PortfolioServiceTest {
     @Mock
     private FileService fileService;
 
-    @Test
-    @DisplayName("프로젝트 등록 성공")
-    void create_success() {
-        PortfolioDTO request = basePortfolio(null, USER_EMAIL);
-        request.setBannerFileId(10);
-        request.setFileIds(List.of(11, 12));
-
-        given(fileService.findById(10)).willReturn(file(10, USER_EMAIL, FileParentType.TEMP, null));
-        given(fileService.findById(11)).willReturn(file(11, USER_EMAIL, FileParentType.TEMP, null));
-        given(fileService.findById(12)).willReturn(file(12, USER_EMAIL, FileParentType.PORTFOLIO_FILE, null));
-        given(portfolioMapper.insert(any(PortfolioDTO.class))).willAnswer(invocation -> {
-            PortfolioDTO dto = invocation.getArgument(0);
-            dto.setPortfolioId(1);
-            return 1;
-        });
-
-        PortfolioDTO created = basePortfolio(1, USER_EMAIL);
-        created.setBannerFileId(10);
-        given(portfolioMapper.findById(1)).willReturn(created);
-        given(fileService.findByParent(FileParentType.PORTFOLIO_FILE, 1))
-                .willReturn(List.of(file(11, USER_EMAIL, FileParentType.PORTFOLIO_FILE, 1)));
-
-        PortfolioDTO result = portfolioService.create(request, USER_EMAIL, "USER");
-
-        assertThat(result.getPortfolioId()).isEqualTo(1);
-        assertThat(result.isOwner()).isTrue();
-        verify(fileService).attachToParent(10, FileParentType.PORTFOLIO_BANNER, 1, USER_EMAIL);
-        verify(fileService).attachToParent(11, FileParentType.PORTFOLIO_FILE, 1, USER_EMAIL);
-        verify(fileService).attachToParent(12, FileParentType.PORTFOLIO_FILE, 1, USER_EMAIL);
+    @AfterEach
+    void clearSecurityContext() {
+        SecurityContextHolder.clearContext();
     }
 
     @Test
-    @DisplayName("프로젝트 리스트 조회 성공")
+    @DisplayName("내 포트폴리오 목록 조회 성공")
     void getMyList_success() {
-        PortfolioDTO card = basePortfolio(1, USER_EMAIL);
-        card.setBannerFileId(10);
-        given(portfolioMapper.findByEmail(USER_EMAIL, null, null, null, "latest", 0, 10))
-                .willReturn(List.of(card));
-        given(portfolioMapper.countByEmail(USER_EMAIL, null, null, null)).willReturn(1L);
-        given(fileService.findById(10)).willReturn(file(10, USER_EMAIL, FileParentType.PORTFOLIO_BANNER, 1));
+        PageRequest pageRequest = new PageRequest();
+        pageRequest.setPage(2);
+        pageRequest.setSize(5);
+        PortfolioDTO portfolio = basePortfolio(1);
 
-        PageResponse<PortfolioDTO> result = portfolioService.getMyList(
-                USER_EMAIL,
-                "USER",
-                new PortfolioSearchCondition()
-        );
+        given(portfolioMapper.findByEmail(USER_EMAIL, pageRequest)).willReturn(List.of(portfolio));
+        given(portfolioMapper.countByEmail(USER_EMAIL)).willReturn(1L);
 
-        assertThat(result.getContent()).hasSize(1);
-        assertThat(result.getContent().get(0).getBannerFile()).isNotNull();
-        assertThat(result.getContent().get(0).isOwner()).isTrue();
-    }
+        PageResponse<PortfolioDTO> result = portfolioService.getMyList(USER_EMAIL, pageRequest);
 
-    @Test
-    @DisplayName("검색/필터 조회 성공")
-    void getMyList_searchAndFilter_success() {
-        PortfolioSearchCondition condition = new PortfolioSearchCondition();
-        condition.setKeyword("랜딩");
-        condition.setVisibility("PUBLIC");
-        condition.setCategory("web_app");
-        condition.setSort("oldest");
-        condition.setPage(2);
-        condition.setSize(5);
-
-        given(portfolioMapper.findByEmail(USER_EMAIL, "랜딩", true, "WEB_APP", "oldest", 5, 5))
-                .willReturn(List.of());
-        given(portfolioMapper.countByEmail(USER_EMAIL, "랜딩", true, "WEB_APP")).willReturn(0L);
-
-        PageResponse<PortfolioDTO> result = portfolioService.getMyList(USER_EMAIL, "USER", condition);
-
+        assertThat(result.getContent()).containsExactly(portfolio);
         assertThat(result.getPage()).isEqualTo(2);
         assertThat(result.getSize()).isEqualTo(5);
-        verify(portfolioMapper).findByEmail(USER_EMAIL, "랜딩", true, "WEB_APP", "oldest", 5, 5);
+        assertThat(result.getTotalElements()).isEqualTo(1L);
+        verify(portfolioMapper).findByEmail(USER_EMAIL, pageRequest);
+        verify(portfolioMapper).countByEmail(USER_EMAIL);
     }
 
     @Test
-    @DisplayName("프로젝트 상세 조회 성공")
+    @DisplayName("공개 포트폴리오 목록 조회 성공")
+    void getPublicList_success() {
+        PageRequest pageRequest = new PageRequest();
+        PortfolioDTO portfolio = basePortfolio(1);
+
+        given(portfolioMapper.findPublicByEmail(USER_EMAIL, pageRequest)).willReturn(List.of(portfolio));
+        given(portfolioMapper.countPublicByEmail(USER_EMAIL)).willReturn(1L);
+
+        PageResponse<PortfolioDTO> result = portfolioService.getPublicList(USER_EMAIL, pageRequest);
+
+        assertThat(result.getContent()).containsExactly(portfolio);
+        assertThat(result.getTotalElements()).isEqualTo(1L);
+        verify(portfolioMapper).findPublicByEmail(USER_EMAIL, pageRequest);
+        verify(portfolioMapper).countPublicByEmail(USER_EMAIL);
+    }
+
+    @Test
+    @DisplayName("포트폴리오 상세 조회 성공")
     void getOne_success() {
-        PortfolioDTO portfolio = basePortfolio(1, USER_EMAIL);
-        portfolio.setIsPublic(false);
-        portfolio.setBannerFileId(10);
+        PortfolioDTO portfolio = basePortfolio(1);
+        List<FileDTO> files = List.of(file(10));
+
         given(portfolioMapper.findById(1)).willReturn(portfolio);
-        given(fileService.findById(10)).willReturn(file(10, USER_EMAIL, FileParentType.PORTFOLIO_BANNER, 1));
-        given(fileService.findByParent(FileParentType.PORTFOLIO_FILE, 1))
-                .willReturn(List.of(file(11, USER_EMAIL, FileParentType.PORTFOLIO_FILE, 1)));
+        given(fileService.findByParent(FileParentType.PORTFOLIO_FILE, 1)).willReturn(files);
 
-        PortfolioDTO result = portfolioService.getOne(1, USER_EMAIL, "USER");
+        Map<String, Object> result = portfolioService.getOne(1);
 
-        assertThat(result.isOwner()).isTrue();
-        assertThat(result.getFiles()).hasSize(1);
-        assertThat(result.getBannerFile().getFileId()).isEqualTo(10);
+        assertThat(result).containsEntry("portfolio", portfolio);
+        assertThat(result).containsEntry("files", files);
     }
 
     @Test
-    @DisplayName("본인 프로젝트 수정 성공")
-    void update_success() {
-        PortfolioDTO existing = basePortfolio(1, USER_EMAIL);
-        existing.setBannerFileId(10);
-
-        PortfolioDTO request = fullUpdateRequest();
-        request.setTitle("수정된 프로젝트");
-        request.setBannerFileId(20);
-        request.setFileIds(List.of(21));
-
-        PortfolioDTO updated = basePortfolio(1, USER_EMAIL);
-        updated.setTitle("수정된 프로젝트");
-        updated.setBannerFileId(20);
-
-        given(portfolioMapper.findById(1)).willReturn(existing, updated);
-        given(fileService.findById(20)).willReturn(file(20, USER_EMAIL, FileParentType.TEMP, null));
-        given(fileService.findById(21)).willReturn(file(21, USER_EMAIL, FileParentType.TEMP, null));
-        given(portfolioMapper.update(1, USER_EMAIL, request)).willReturn(1);
-        given(fileService.findByParent(FileParentType.PORTFOLIO_FILE, 1))
-                .willReturn(List.of(file(21, USER_EMAIL, FileParentType.PORTFOLIO_FILE, 1)));
-
-        PortfolioDTO result = portfolioService.update(1, request, USER_EMAIL, "USER");
-
-        assertThat(result.getTitle()).isEqualTo("수정된 프로젝트");
-        verify(fileService).detach(10);
-        verify(fileService).detachByParent(FileParentType.PORTFOLIO_FILE, 1);
-        verify(fileService).attachToParent(20, FileParentType.PORTFOLIO_BANNER, 1, USER_EMAIL);
-        verify(fileService).attachToParent(21, FileParentType.PORTFOLIO_FILE, 1, USER_EMAIL);
-    }
-
-    @Test
-    @DisplayName("다른 사람 프로젝트 수정 실패")
-    void update_forbidden() {
-        PortfolioDTO existing = basePortfolio(1, OTHER_EMAIL);
-        PortfolioDTO request = fullUpdateRequest();
-        request.setTitle("수정 시도");
-        given(portfolioMapper.findById(1)).willReturn(existing);
-
-        assertThatThrownBy(() -> portfolioService.update(1, request, USER_EMAIL, "USER"))
-                .isInstanceOf(CustomException.class)
-                .hasMessageContaining(ErrorCode.FORBIDDEN.getMessage());
-
-        verify(portfolioMapper, never()).update(anyInt(), any(), any());
-    }
-
-    @Test
-    @DisplayName("프로젝트 삭제 성공")
-    void delete_success() {
-        PortfolioDTO existing = basePortfolio(1, USER_EMAIL);
-        given(portfolioMapper.findById(1)).willReturn(existing);
-        given(portfolioMapper.softDelete(1, USER_EMAIL)).willReturn(1);
-
-        portfolioService.delete(1, USER_EMAIL, "USER");
-
-        verify(portfolioMapper, times(1)).softDelete(1, USER_EMAIL);
-        verify(fileService, never()).deleteByParent(any(), anyInt());
-    }
-
-    @Test
-    @DisplayName("삭제된 프로젝트 접근 실패")
-    void deletedPortfolio_access_fail() {
+    @DisplayName("포트폴리오 상세 조회 대상 없음 실패")
+    void getOne_notFound_fail() {
         given(portfolioMapper.findById(1)).willReturn(null);
 
-        assertThatThrownBy(() -> portfolioService.getOne(1, USER_EMAIL, "USER"))
-                .isInstanceOf(CustomException.class)
-                .hasMessageContaining(ErrorCode.PORTFOLIO_NOT_FOUND.getMessage());
+        assertCustomException(() -> portfolioService.getOne(1), ErrorCode.PORTFOLIO_NOT_FOUND);
     }
 
     @Test
-    @DisplayName("시작일이 종료일보다 늦은 경우 실패")
+    @DisplayName("포트폴리오 등록 성공")
+    void create_success() {
+        PortfolioDTO request = basePortfolio(null);
+        request.setEmail(null);
+        request.setTitle("  프로젝트  ");
+        request.setSummary("  한줄 소개  ");
+        request.setCategory("design");
+        request.setIsPublic(null);
+
+        portfolioService.create(request, USER_EMAIL);
+
+        assertThat(request.getEmail()).isEqualTo(USER_EMAIL);
+        assertThat(request.getTitle()).isEqualTo("프로젝트");
+        assertThat(request.getSummary()).isEqualTo("한줄 소개");
+        assertThat(request.getCategory()).isEqualTo("DESIGN");
+        assertThat(request.getIsPublic()).isFalse();
+        verify(portfolioMapper).insert(request);
+    }
+
+    @Test
+    @DisplayName("등록 category null이면 WEB_APP 기본값 적용")
+    void create_categoryNull_default() {
+        PortfolioDTO request = basePortfolio(null);
+        request.setCategory(null);
+
+        portfolioService.create(request, USER_EMAIL);
+
+        assertThat(request.getCategory()).isEqualTo("WEB_APP");
+        verify(portfolioMapper).insert(request);
+    }
+
+    @Test
+    @DisplayName("등록 category blank이면 WEB_APP 기본값 적용")
+    void create_categoryBlank_default() {
+        PortfolioDTO request = basePortfolio(null);
+        request.setCategory("   ");
+
+        portfolioService.create(request, USER_EMAIL);
+
+        assertThat(request.getCategory()).isEqualTo("WEB_APP");
+        verify(portfolioMapper).insert(request);
+    }
+
+    @Test
+    @DisplayName("등록 category 허용값이 아니면 실패")
+    void create_invalidCategory_fail() {
+        PortfolioDTO request = basePortfolio(null);
+        request.setCategory("SERVER");
+
+        assertCustomException(() -> portfolioService.create(request, USER_EMAIL),
+                ErrorCode.INVALID_PORTFOLIO_CATEGORY);
+        verify(portfolioMapper, never()).insert(any(PortfolioDTO.class));
+    }
+
+    @Test
+    @DisplayName("등록 시작일이 종료일보다 늦으면 실패")
     void create_invalidPeriod_fail() {
-        PortfolioDTO request = basePortfolio(null, USER_EMAIL);
+        PortfolioDTO request = basePortfolio(null);
         request.setWorkStartAt(LocalDateTime.of(2026, 6, 2, 0, 0));
         request.setWorkEndAt(LocalDateTime.of(2026, 6, 1, 0, 0));
 
-        assertThatThrownBy(() -> portfolioService.create(request, USER_EMAIL, "USER"))
-                .isInstanceOf(CustomException.class)
-                .hasMessageContaining(ErrorCode.INVALID_PORTFOLIO_PERIOD.getMessage());
+        assertCustomException(() -> portfolioService.create(request, USER_EMAIL),
+                ErrorCode.INVALID_PORTFOLIO_PERIOD);
+        verify(portfolioMapper, never()).insert(any(PortfolioDTO.class));
     }
 
     @Test
-    @DisplayName("등록 summary 필수/공백 검증 실패")
-    void create_invalidSummaryBlank_fail() {
-        for (String summary : List.of("", "   ")) {
-            PortfolioDTO request = basePortfolio(null, USER_EMAIL);
-            request.setSummary(summary);
+    @DisplayName("등록 시작일 또는 종료일 한쪽이 null이면 허용")
+    void create_oneSidePeriodNull_success() {
+        PortfolioDTO nullStartAt = basePortfolio(null);
+        nullStartAt.setWorkStartAt(null);
+        PortfolioDTO nullEndAt = basePortfolio(null);
+        nullEndAt.setWorkEndAt(null);
 
-            assertThatThrownBy(() -> portfolioService.create(request, USER_EMAIL, "USER"))
-                    .isInstanceOf(CustomException.class)
-                    .hasMessageContaining(ErrorCode.INVALID_INPUT.getMessage());
-        }
+        portfolioService.create(nullStartAt, USER_EMAIL);
+        portfolioService.create(nullEndAt, USER_EMAIL);
 
-        PortfolioDTO nullSummaryRequest = basePortfolio(null, USER_EMAIL);
-        nullSummaryRequest.setSummary(null);
-        assertThatThrownBy(() -> portfolioService.create(nullSummaryRequest, USER_EMAIL, "USER"))
-                .isInstanceOf(CustomException.class)
-                .hasMessageContaining(ErrorCode.INVALID_INPUT.getMessage());
+        verify(portfolioMapper, times(2)).insert(any(PortfolioDTO.class));
     }
 
     @Test
-    @DisplayName("등록 summary 31자 이상 검증 실패")
-    void create_summaryTooLong_fail() {
-        PortfolioDTO request = basePortfolio(null, USER_EMAIL);
-        request.setSummary("1234567890123456789012345678901");
-
-        assertThatThrownBy(() -> portfolioService.create(request, USER_EMAIL, "USER"))
-                .isInstanceOf(CustomException.class)
-                .hasMessageContaining(ErrorCode.INVALID_INPUT.getMessage());
-    }
-
-    @Test
-    @DisplayName("전체 수정에서 bannerFileId null이면 기존 배너 제거")
-    void update_bannerNull_clearsExistingBanner() {
-        PortfolioDTO existing = basePortfolio(1, USER_EMAIL);
-        existing.setBannerFileId(10);
-
-        PortfolioDTO request = fullUpdateRequest();
-        request.setBannerFileId(null);
-
-        PortfolioDTO updated = basePortfolio(1, USER_EMAIL);
-        updated.setBannerFileId(null);
-
-        given(portfolioMapper.findById(1)).willReturn(existing, updated);
-        given(portfolioMapper.update(1, USER_EMAIL, request)).willReturn(1);
-        given(fileService.findByParent(FileParentType.PORTFOLIO_FILE, 1)).willReturn(List.of());
-
-        PortfolioDTO result = portfolioService.update(1, request, USER_EMAIL, "USER");
-
-        assertThat(result.getBannerFileId()).isNull();
-        verify(fileService).detach(10);
-        verify(fileService, never()).attachToParent(any(), any(), anyInt(), any());
-        verify(portfolioMapper).update(1, USER_EMAIL, request);
-    }
-
-    @Test
-    @DisplayName("수정 summary null/공백/길이 검증 실패")
-    void update_invalidSummary_fail() {
-        PortfolioDTO existing = basePortfolio(1, USER_EMAIL);
-        given(portfolioMapper.findById(1)).willReturn(existing);
-
-        for (String summary : new String[] {null, "", "   ", "1234567890123456789012345678901"}) {
-            PortfolioDTO request = fullUpdateRequest();
-            request.setSummary(summary);
-
-            assertThatThrownBy(() -> portfolioService.update(1, request, USER_EMAIL, "USER"))
-                    .isInstanceOf(CustomException.class)
-                    .hasMessageContaining(ErrorCode.INVALID_INPUT.getMessage());
-        }
-
-        verify(portfolioMapper, never()).update(anyInt(), any(), any());
-    }
-
-    @Test
-    @DisplayName("수정 title null/공백 검증 실패")
-    void update_invalidTitle_fail() {
-        PortfolioDTO existing = basePortfolio(1, USER_EMAIL);
-        given(portfolioMapper.findById(1)).willReturn(existing);
-
+    @DisplayName("등록 title null 또는 공백이면 실패")
+    void create_invalidTitle_fail() {
         for (String title : new String[] {null, "", "   "}) {
-            PortfolioDTO request = fullUpdateRequest();
+            PortfolioDTO request = basePortfolio(null);
             request.setTitle(title);
 
-            assertThatThrownBy(() -> portfolioService.update(1, request, USER_EMAIL, "USER"))
-                    .isInstanceOf(CustomException.class)
-                    .hasMessageContaining(ErrorCode.INVALID_INPUT.getMessage());
+            assertCustomException(() -> portfolioService.create(request, USER_EMAIL), ErrorCode.INVALID_INPUT);
         }
 
-        verify(portfolioMapper, never()).update(anyInt(), any(), any());
+        verify(portfolioMapper, never()).insert(any(PortfolioDTO.class));
     }
 
     @Test
-    @DisplayName("수정 category null 검증 실패")
-    void update_categoryNull_fail() {
-        PortfolioDTO existing = basePortfolio(1, USER_EMAIL);
-        PortfolioDTO request = fullUpdateRequest();
-        request.setCategory(null);
-        given(portfolioMapper.findById(1)).willReturn(existing);
+    @DisplayName("등록 summary null 또는 공백이면 실패")
+    void create_invalidSummaryBlank_fail() {
+        for (String summary : new String[] {null, "", "   "}) {
+            PortfolioDTO request = basePortfolio(null);
+            request.setSummary(summary);
 
-        assertThatThrownBy(() -> portfolioService.update(1, request, USER_EMAIL, "USER"))
-                .isInstanceOf(CustomException.class)
-                .hasMessageContaining(ErrorCode.INVALID_INPUT.getMessage());
+            assertCustomException(() -> portfolioService.create(request, USER_EMAIL), ErrorCode.INVALID_INPUT);
+        }
 
-        verify(portfolioMapper, never()).update(anyInt(), any(), any());
+        verify(portfolioMapper, never()).insert(any(PortfolioDTO.class));
     }
 
     @Test
-    @DisplayName("수정 content null/공백 검증 실패")
-    void update_invalidContent_fail() {
-        PortfolioDTO existing = basePortfolio(1, USER_EMAIL);
-        given(portfolioMapper.findById(1)).willReturn(existing);
+    @DisplayName("등록 summary 30자 초과이면 실패")
+    void create_summaryTooLong_fail() {
+        PortfolioDTO request = basePortfolio(null);
+        request.setSummary("1234567890123456789012345678901");
 
-        for (String content : new String[] {null, "", "   "}) {
-            PortfolioDTO request = fullUpdateRequest();
-            request.setContent(content);
-
-            assertThatThrownBy(() -> portfolioService.update(1, request, USER_EMAIL, "USER"))
-                    .isInstanceOf(CustomException.class)
-                    .hasMessageContaining(ErrorCode.INVALID_INPUT.getMessage());
-        }
-
-        verify(portfolioMapper, never()).update(anyInt(), any(), any());
+        assertCustomException(() -> portfolioService.create(request, USER_EMAIL), ErrorCode.INVALID_INPUT);
+        verify(portfolioMapper, never()).insert(any(PortfolioDTO.class));
     }
 
-    private PortfolioDTO basePortfolio(Integer portfolioId, String email) {
+    @Test
+    @DisplayName("포트폴리오 전체 수정 성공")
+    void update_success() {
+        PortfolioDTO existing = basePortfolio(1);
+        PortfolioDTO request = basePortfolio(null);
+        request.setCategory("planning");
+
+        given(portfolioMapper.findById(1)).willReturn(existing);
+        given(portfolioMapper.update(1, request)).willReturn(1);
+
+        portfolioService.update(1, request);
+
+        assertThat(request.getCategory()).isEqualTo("PLANNING");
+        verify(portfolioMapper).findById(1);
+        verify(portfolioMapper).update(1, request);
+    }
+
+    @Test
+    @DisplayName("포트폴리오 수정 대상 없음 실패")
+    void update_notFound_fail() {
+        PortfolioDTO request = basePortfolio(null);
+        given(portfolioMapper.findById(1)).willReturn(null);
+
+        assertCustomException(() -> portfolioService.update(1, request), ErrorCode.NOT_FOUND);
+        verify(portfolioMapper, never()).update(anyInt(), any(PortfolioDTO.class));
+    }
+
+    @Test
+    @DisplayName("포트폴리오 삭제 성공")
+    void delete_success() {
+        given(portfolioMapper.softDelete(1)).willReturn(1);
+
+        portfolioService.delete(1);
+
+        verify(portfolioMapper).softDelete(1);
+    }
+
+    @Test
+    @DisplayName("등록 권한 실패")
+    void createPortfolio_forbiddenRole_fail() {
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(
+                        USER_EMAIL,
+                        null,
+                        List.of(new SimpleGrantedAuthority("ROLE_COMPANY"))));
+        PortfolioController controller = new PortfolioController(portfolioService);
+
+        assertCustomException(() -> controller.createPortfolio(basePortfolio(null)), ErrorCode.FREELANCER_ONLY);
+        verify(portfolioMapper, never()).insert(any(PortfolioDTO.class));
+    }
+
+    private void assertCustomException(ThrowingCallable callable, ErrorCode expectedErrorCode) {
+        assertThatThrownBy(callable::call)
+                .isInstanceOfSatisfying(CustomException.class,
+                        ex -> assertThat(ex.getErrorCode()).isEqualTo(expectedErrorCode));
+    }
+
+    private PortfolioDTO basePortfolio(Integer portfolioId) {
         return PortfolioDTO.builder()
-                .portfolioId(portfolioId == null ? 0 : portfolioId)
-                .email(email)
-                .category(PortfolioCategory.WEB_APP)
+                .portfolioId(portfolioId)
+                .email(USER_EMAIL)
+                .category("WEB_APP")
                 .title("프로젝트")
                 .summary("한줄 소개")
                 .content("프로젝트 설명")
@@ -362,20 +307,19 @@ class PortfolioServiceTest {
                 .build();
     }
 
-    private PortfolioDTO fullUpdateRequest() {
-        PortfolioDTO request = basePortfolio(null, null);
-        request.setPortfolioId(null);
-        return request;
-    }
-
-    private FileDTO file(int fileId, String email, FileParentType parentType, Integer parentId) {
+    private FileDTO file(int fileId) {
         return FileDTO.builder()
                 .fileId(fileId)
-                .userEmail(email)
-                .parentType(parentType)
-                .parentId(parentId)
+                .userEmail(USER_EMAIL)
+                .parentType(FileParentType.PORTFOLIO_FILE)
+                .parentId(1)
                 .oriName("file-" + fileId + ".png")
-                .uploadPath("temp/file-" + fileId + ".png")
+                .uploadPath("portfolio/file-" + fileId + ".png")
                 .build();
+    }
+
+    @FunctionalInterface
+    private interface ThrowingCallable {
+        void call();
     }
 }
