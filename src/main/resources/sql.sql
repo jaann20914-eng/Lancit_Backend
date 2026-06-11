@@ -18,7 +18,7 @@ delete from file where file_id=49;
 SELECT * FROM file;
 ALTER TABLE `file`
 MODIFY COLUMN parent_type 
-ENUM('PROFILE','PORTFOLIO_BANNER','PORTFOLIO_FILE','CONTRACT','CHAT', 'TEMP') NOT NULL;
+ENUM('PORTFOLIO','PROFILE','PORTFOLIO_BANNER','PORTFOLIO_FILE','CONTRACT','CHAT','TEMP') NOT NULL;
 
 SELECT * FROM user;
 -- test 계정 비번은 test
@@ -76,7 +76,7 @@ CREATE TABLE `file` (
     company_email   VARCHAR(255)    NULL                        COMMENT '업로더 이메일 (회사)',
     sys_name        VARCHAR(255)    NOT NULL                    COMMENT '시스템 파일명 (UUID)',
     ori_name        VARCHAR(255)    NOT NULL                    COMMENT '원본 파일명',
-    parent_type     ENUM('PORTFOLIO','CONTRACT','PROFILE','TEMP')
+    parent_type     ENUM('PORTFOLIO','PROFILE','PORTFOLIO_BANNER','PORTFOLIO_FILE','CONTRACT','CHAT','TEMP')
                                     NOT NULL                    COMMENT '부모 타입',
     parent_id       INT             NULL                        COMMENT '부모 ID (PROFILE은 null)',
     upload_path     VARCHAR(500)    NOT NULL                    COMMENT 'GCS 오브젝트 경로',
