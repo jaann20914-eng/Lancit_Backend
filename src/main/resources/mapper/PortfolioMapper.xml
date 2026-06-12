@@ -118,6 +118,12 @@
         WHERE email = #{email}
           AND is_public = 1
           AND is_deleted = 0
+          AND EXISTS (
+              SELECT 1
+              FROM portfolio_profile pp
+              WHERE pp.freelancer_email = portfolio.email
+                AND pp.is_portfolio_public = 1
+          )
         <include refid="SearchFilters"/>
         <include refid="PortfolioOrderBy"/>
         <include refid="Pagination"/>
@@ -129,7 +135,29 @@
         WHERE email = #{email}
           AND is_public = 1
           AND is_deleted = 0
+          AND EXISTS (
+              SELECT 1
+              FROM portfolio_profile pp
+              WHERE pp.freelancer_email = portfolio.email
+                AND pp.is_portfolio_public = 1
+          )
         <include refid="SearchFilters"/>
+    </select>
+
+    <select id="findPublicProjectsByEmail" resultMap="PortfolioResultMap">
+        SELECT
+        <include refid="PortfolioColumns"/>
+        FROM portfolio
+        WHERE email = #{email}
+          AND is_public = 1
+          AND is_deleted = 0
+          AND EXISTS (
+              SELECT 1
+              FROM portfolio_profile pp
+              WHERE pp.freelancer_email = portfolio.email
+                AND pp.is_portfolio_public = 1
+          )
+        ORDER BY created_at DESC, portfolio_id DESC
     </select>
 
     <select id="findById" resultMap="PortfolioResultMap">

@@ -1,8 +1,11 @@
 package com.ssafy.lancit.domain.portfolio.service;
 
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
+import java.util.Set;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,8 +18,11 @@ import com.ssafy.lancit.common.page.dto.PageResponse;
 import com.ssafy.lancit.domain.file.dto.FileDTO;
 import com.ssafy.lancit.domain.file.service.FileService;
 import com.ssafy.lancit.domain.portfolio.dto.PortfolioDTO;
+import com.ssafy.lancit.domain.portfolio.dto.PortfolioProfileDTO;
+import com.ssafy.lancit.domain.portfolio.dto.PortfolioProfileUpdateRequest;
 import com.ssafy.lancit.domain.portfolio.dto.PortfolioSearchCondition;
 import com.ssafy.lancit.domain.portfolio.mapper.PortfolioMapper;
+import com.ssafy.lancit.domain.portfolio.mapper.PortfolioProfileMapper;
 import com.ssafy.lancit.global.enums.FileParentType;
 import com.ssafy.lancit.global.enums.PortfolioCategory;
 
@@ -30,8 +36,11 @@ public class PortfolioService {
 
     private static final String DEFAULT_CATEGORY = "WEB_APP";
     private static final int MAX_SUMMARY_LENGTH = 30;
+    private static final int MAX_SHORT_INTRO_LENGTH = 30;
+    private static final int MAX_PROFILE_DESCRIPTION_LENGTH = 200;
 
     private final PortfolioMapper portfolioMapper;
+    private final PortfolioProfileMapper portfolioProfileMapper;
     private final FileService fileService;
 
     // PORT-01 내 포트폴리오 목록 조회 (페이지네이션)
@@ -56,10 +65,60 @@ public class PortfolioService {
     // CLI-SEAR-02 회사가 특정 프리랜서 공개 포트폴리오 조회 (페이지네이션 + 검색/필터)
     public PageResponse<PortfolioDTO> getPublicList(String email, PageRequest pageRequest,
                                                     PortfolioSearchCondition condition) {
+        ensurePublicProfile(email);
         PortfolioSearchCondition normalized = normalizeSearchCondition(condition);
         List<PortfolioDTO> list = portfolioMapper.findPublicByEmail(email, pageRequest, normalized);
         long total = portfolioMapper.countPublicByEmail(email, normalized);
         return PageResponse.of(list, total, pageRequest);
+    }
+
+    // PORT-PROFILE-01 내 포트폴리오 프로필 카드 조회
+    public PortfolioProfileDTO getMyProfile(String email) {
+        PortfolioProfileDTO profile = portfolioProfileMapper.findByFreelancerEmail(email);
+        if (profile == null) {
+            throw new CustomException(ErrorCode.NOT_FOUND);
+        }
+        attachTechStacks(profile);
+        return profile;
+    }
+
+    // PORT-PROFILE-02 내 포트폴리오 프로필 카드 저장
+    @Transactional
+    public PortfolioProfileDTO updateMyProfile(String email, PortfolioProfileUpdateRequest request) {
+        PortfolioProfileDTO existing = portfolioProfileMapper.findByFreelancerEmail(email);
+        if (existing == null) {
+            throw new CustomException(ErrorCode.NOT_FOUND);
+        }
+
+        PortfolioProfileDTO profile = PortfolioProfileDTO.builder()
+                .freelancerEmail(email)
+                .isPortfolioPublic(request != null && Boolean.TRUE.equals(request.getIsPortfolioPublic()))
+                .shortIntro(normalizeShortIntro(request == null ? null : request.getShortIntro()))
+                .description(normalizeDescription(request == null ? null : request.getDescription()))
+                .viewCount(0)
+                .build();
+
+        if (portfolioProfileMapper.existsProfile(email)) {
+            portfolioProfileMapper.updateProfile(profile);
+        } else {
+            portfolioProfileMapper.insertProfile(profile);
+        }
+
+        List<String> techStacks = normalizeTechStacks(request == null ? null : request.getTechStacks());
+        portfolioProfileMapper.deleteTechStacks(email);
+        for (String techStack : techStacks) {
+            portfolioProfileMapper.insertTechStack(email, techStack);
+        }
+
+        return getMyProfile(email);
+    }
+
+    // PORT-PROFILE-03 공개 포트폴리오 프로필 + 공개 프로젝트 조회
+    public PortfolioProfileDTO getPublicProfile(String freelancerEmail) {
+        PortfolioProfileDTO profile = ensurePublicProfile(freelancerEmail);
+        attachTechStacks(profile);
+        profile.setProjects(portfolioMapper.findPublicProjectsByEmail(freelancerEmail));
+        return profile;
     }
 
  // PORT-02 포트폴리오 상세 조회 - Map 으로 조립해서 반환
@@ -162,6 +221,58 @@ public class PortfolioService {
         }
 
         return condition;
+    }
+
+    private PortfolioProfileDTO ensurePublicProfile(String freelancerEmail) {
+        PortfolioProfileDTO profile = portfolioProfileMapper.findByFreelancerEmail(freelancerEmail);
+        if (profile == null) {
+            throw new CustomException(ErrorCode.TALENT_NOT_FOUND);
+        }
+        if (!Boolean.TRUE.equals(profile.getIsPortfolioPublic())) {
+            throw new CustomException(ErrorCode.PORTFOLIO_PROFILE_NOT_PUBLIC);
+        }
+        return profile;
+    }
+
+    private void attachTechStacks(PortfolioProfileDTO profile) {
+        profile.setTechStacks(portfolioProfileMapper.findTechStacks(profile.getFreelancerEmail()));
+    }
+
+    private String normalizeShortIntro(String shortIntro) {
+        if (!hasText(shortIntro)) {
+            throw new CustomException(ErrorCode.PORTFOLIO_PROFILE_SHORT_INTRO_REQUIRED);
+        }
+        String normalized = shortIntro.trim();
+        if (normalized.length() > MAX_SHORT_INTRO_LENGTH) {
+            throw new CustomException(ErrorCode.PORTFOLIO_PROFILE_SHORT_INTRO_TOO_LONG);
+        }
+        return normalized;
+    }
+
+    private String normalizeDescription(String description) {
+        if (!hasText(description)) {
+            return null;
+        }
+        String normalized = description.trim();
+        if (normalized.length() > MAX_PROFILE_DESCRIPTION_LENGTH) {
+            throw new CustomException(ErrorCode.PORTFOLIO_PROFILE_DESCRIPTION_TOO_LONG);
+        }
+        return normalized;
+    }
+
+    private List<String> normalizeTechStacks(List<String> techStacks) {
+        if (techStacks == null || techStacks.isEmpty()) {
+            return List.of();
+        }
+
+        Set<String> normalized = new LinkedHashSet<>();
+        for (String techStack : techStacks) {
+            if (!hasText(techStack)) {
+                continue;
+            }
+            normalized.add(techStack.trim().toUpperCase(Locale.ROOT));
+        }
+        return List.copyOf(normalized);
     }
 
     private boolean hasText(String value) {

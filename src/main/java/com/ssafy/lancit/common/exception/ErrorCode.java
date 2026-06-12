@@ -55,8 +55,14 @@ public enum ErrorCode {
     // 포트폴리오/프로젝트
     PORTFOLIO_NOT_FOUND(HttpStatus.NOT_FOUND, "프로젝트를 찾을 수 없습니다."),
     FREELANCER_ONLY(HttpStatus.FORBIDDEN, "프리랜서 계정만 이용할 수 있습니다."),
+    COMPANY_ONLY(HttpStatus.FORBIDDEN, "회사 계정만 이용할 수 있습니다."),
     INVALID_PORTFOLIO_PERIOD(HttpStatus.BAD_REQUEST, "프로젝트 시작일이 종료일보다 늦을 수 없습니다."),
     INVALID_PORTFOLIO_CATEGORY(HttpStatus.BAD_REQUEST, "허용되지 않은 프로젝트 카테고리입니다."),
+    PORTFOLIO_PROFILE_NOT_PUBLIC(HttpStatus.FORBIDDEN, "공개되지 않은 포트폴리오 프로필입니다."),
+    PORTFOLIO_PROFILE_SHORT_INTRO_REQUIRED(HttpStatus.BAD_REQUEST, "포트폴리오 한 줄 소개를 입력해주세요."),
+    PORTFOLIO_PROFILE_SHORT_INTRO_TOO_LONG(HttpStatus.BAD_REQUEST, "포트폴리오 한 줄 소개는 30자 이하로 입력해주세요."),
+    PORTFOLIO_PROFILE_DESCRIPTION_TOO_LONG(HttpStatus.BAD_REQUEST, "포트폴리오 소개글은 200자 이하로 입력해주세요."),
+    TALENT_NOT_FOUND(HttpStatus.NOT_FOUND, "인재 정보를 찾을 수 없습니다."),
     DELETED_PORTFOLIO(HttpStatus.GONE, "삭제된 프로젝트입니다.");
 	
 	

@@ -40,6 +40,19 @@
         AND freelancer_email = #{freelancerEmail}
     </select>
 
+    <select id="existsByCompanyEmailAndFreelancerEmail" resultType="boolean">
+        SELECT COUNT(*) > 0
+        FROM bookmark
+        WHERE company_email = #{companyEmail}
+        AND freelancer_email = #{freelancerEmail}
+    </select>
+
+    <delete id="deleteByCompanyEmailAndFreelancerEmail">
+        DELETE FROM bookmark
+        WHERE company_email = #{companyEmail}
+        AND freelancer_email = #{freelancerEmail}
+    </delete>
+
     <!-- 찜 단건 조회 (소유자 검증용) -->
     <select id="findById" resultType="CompanyBookmarkDTO">
         SELECT * FROM bookmark WHERE bookmark_id = #{bookmarkId}

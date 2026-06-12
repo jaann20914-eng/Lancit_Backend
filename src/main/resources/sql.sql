@@ -21,13 +21,13 @@ MODIFY COLUMN parent_type
 ENUM('PORTFOLIO','PROFILE','PORTFOLIO_BANNER','PORTFOLIO_FILE','CONTRACT','CHAT','TEMP') NOT NULL;
 
 SELECT * FROM user;
--- test 계정 비번은 test
+-- test 계정 비번은 password
 ALTER TABLE user ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP;
 INSERT INTO `user` (email, password, name, phone, job_category, pushable, profile_file_id)
 VALUES (
-    'test３@lancit.com',
-    '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LjZAzsuPPmC', -- test1234
-    '테스트유저３',
+    'test@lancit.com',
+    '$2a$10$oVMj/UONgopeMCS4Z0DP3e2efi87rUwjY0flCnLjhZxQaBBM4qKJ2', -- password
+    '테스트유저',
     '010-1234-5678',
     'IT',
     0,
@@ -37,8 +37,8 @@ VALUES (
 
 SELECT * FROM company;
 INSERT INTO company (email, password, name, company_name, phone, job_category, pushable)
-VALUES ('company@lancit.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LjZAzsuPPmC', '담당자', '테스트회사', '010-9876-5432', 'IT', 0);
--- 비밀번호 : test1234
+VALUES ('company@lancit.com', '$2a$10$oVMj/UONgopeMCS4Z0DP3e2efi87rUwjY0flCnLjhZxQaBBM4qKJ2', '담당자', '테스트회사', '010-9876-5432', 'IT', 0);
+-- 비밀번호 : password
 -- 폴리테루 :polyteru
 
 SELECT * FROM category;
@@ -48,6 +48,39 @@ SELECT * FROM holiday;
 SELECT * FROM portfolio;
 INSERT INTO portfolio (email, category, title, summary, content, work_start_at, work_end_at, is_public, banner_file_id)
 VALUES ('test@lancit.com', 'WEB_APP', '테스트 포트폴리오', '테스트 요약', '포트폴리오 내용', '2026-01-01 00:00:00', '2026-06-01 00:00:00', 0, NULL);
+
+SELECT * FROM portfolio_profile;
+INSERT INTO portfolio_profile (
+    freelancer_email,
+    is_portfolio_public,
+    short_intro,
+    description,
+    view_count,
+    created_at,
+    updated_at
+)
+VALUES (
+    'test@lancit.com',
+    1,
+    'Swagger 검증용 공개 프로필',
+    'Swagger 검증용 공개 프로필입니다.',
+    0,
+    NOW(),
+    NOW()
+)
+ON DUPLICATE KEY UPDATE
+    is_portfolio_public = VALUES(is_portfolio_public),
+    short_intro = VALUES(short_intro),
+    description = VALUES(description),
+    updated_at = NOW();
+
+SELECT * FROM portfolio_profile_tech_stack;
+INSERT IGNORE INTO portfolio_profile_tech_stack (freelancer_email, tech_stack, created_at)
+VALUES
+    ('test@lancit.com', 'Java', NOW()),
+    ('test@lancit.com', 'Spring Boot', NOW()),
+    ('test@lancit.com', 'MyBatis', NOW()),
+    ('test@lancit.com', 'MySQL', NOW());
 
 SELECT * FROM recruitment;
 SELECT * FROM recruitment_application;
@@ -223,6 +256,38 @@ CREATE TABLE `portfolio` (
         FOREIGN KEY (banner_file_id) REFERENCES `file` (file_id)
         ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='포트폴리오';
+
+-- ============================================================
+--  7-1. portfolio_profile (포트폴리오 공개 프로필)
+-- ============================================================
+CREATE TABLE `portfolio_profile` (
+    freelancer_email       VARCHAR(255)    NOT NULL,
+    is_portfolio_public    TINYINT(1)      NOT NULL    DEFAULT 0,
+    short_intro            VARCHAR(30)     NOT NULL,
+    description            VARCHAR(200)    NULL,
+    view_count             INT             NOT NULL    DEFAULT 0,
+    created_at             DATETIME        NOT NULL    DEFAULT CURRENT_TIMESTAMP,
+    updated_at             DATETIME        NOT NULL    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (freelancer_email),
+    CONSTRAINT fk_portfolio_profile_user
+        FOREIGN KEY (freelancer_email) REFERENCES `user` (email)
+        ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='포트폴리오 공개 프로필';
+
+-- ============================================================
+--  7-2. portfolio_profile_tech_stack (포트폴리오 기술 스택)
+-- ============================================================
+CREATE TABLE `portfolio_profile_tech_stack` (
+    id                 BIGINT          NOT NULL    AUTO_INCREMENT,
+    freelancer_email   VARCHAR(255)    NOT NULL,
+    tech_stack         VARCHAR(100)    NOT NULL,
+    created_at         DATETIME        NOT NULL    DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_portfolio_profile_tech_stack (freelancer_email, tech_stack),
+    CONSTRAINT fk_profile_tech_stack_user
+        FOREIGN KEY (freelancer_email) REFERENCES `user` (email)
+        ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='포트폴리오 기술 스택';
 
 -- ============================================================
 --  8. recruitment (공고문 - 회사 전용)
@@ -463,6 +528,8 @@ CREATE TABLE file_delete_queue (
 --   5.  task             (→ category)
 --   6.  holiday
 --   7.  portfolio        (→ user, → file)
+--   7-1. portfolio_profile             (→ user)
+--   7-2. portfolio_profile_tech_stack  (→ user)
 --   8.  recruitment      (→ company)
 --   9.  recruitment_application   (→ recruitment, → user)
 --  10.  portfolio_permission      (→ recruitment_application, → portfolio)

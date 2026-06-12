@@ -24,6 +24,8 @@ public interface PortfolioMapper {
     long countPublicByEmail(@Param("email") String email,
                             @Param("condition") PortfolioSearchCondition condition);
 
+    List<PortfolioDTO> findPublicProjectsByEmail(@Param("email") String email);
+
     PortfolioDTO findById(@Param("portfolioId") int portfolioId);
     String findOwnerEmailById(@Param("portfolioId") int portfolioId);
     void insert(PortfolioDTO dto);

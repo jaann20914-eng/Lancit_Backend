@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ssafy.lancit.domain.talent.mapper.TalentMapper">
+
+    <resultMap id="TalentListResultMap" type="com.ssafy.lancit.domain.talent.dto.TalentListDTO">
+        <id property="freelancerEmail" column="freelancer_email"/>
+        <result property="name" column="name"/>
+        <result property="jobCategory" column="job_category"/>
+        <result property="profileFileId" column="profile_file_id"/>
+        <result property="shortIntro" column="short_intro"/>
+        <result property="viewCount" column="view_count"/>
+        <result property="isFavorite" column="is_favorite"/>
+        <result property="publicProjectCount" column="public_project_count"/>
+    </resultMap>
+
+    <resultMap id="TalentDetailResultMap" type="com.ssafy.lancit.domain.talent.dto.TalentDetailDTO">
+        <id property="freelancerEmail" column="freelancer_email"/>
+        <result property="name" column="name"/>
+        <result property="jobCategory" column="job_category"/>
+        <result property="profileFileId" column="profile_file_id"/>
+        <result property="shortIntro" column="short_intro"/>
+        <result property="description" column="description"/>
+        <result property="viewCount" column="view_count"/>
+        <result property="isFavorite" column="is_favorite"/>
+        <result property="publicProjectCount" column="public_project_count"/>
+    </resultMap>
+
+    <sql id="TalentBaseSelect">
+        SELECT
+            u.email AS freelancer_email,
+            u.name,
+            u.job_category,
+            u.profile_file_id,
+            p.short_intro,
+            p.description,
+            p.view_count,
+            EXISTS (
+                SELECT 1
+                FROM bookmark b
+                WHERE b.company_email = #{companyEmail}
+                  AND b.freelancer_email = u.email
+            ) AS is_favorite,
+            (
+                SELECT COUNT(*)
+                FROM portfolio pf
+                WHERE pf.email = u.email
+                  AND pf.is_public = 1
+                  AND pf.is_deleted = 0
+            ) AS public_project_count
+        FROM user u
+        INNER JOIN portfolio_profile p
+            ON p.freelancer_email = u.email
+           AND p.is_portfolio_public = 1
+    </sql>
+
+    <sql id="TalentFilters">
+        <if test="condition != null and condition.keyword != null">
+            AND (
+                u.name LIKE CONCAT('%', #{condition.keyword}, '%')
+                OR p.short_intro LIKE CONCAT('%', #{condition.keyword}, '%')
+                OR p.description LIKE CONCAT('%', #{condition.keyword}, '%')
+                OR EXISTS (
+                    SELECT 1
+                    FROM portfolio_profile_tech_stack ts
+                    WHERE ts.freelancer_email = u.email
+                      AND ts.tech_stack LIKE CONCAT('%', #{condition.keyword}, '%')
+                )
+            )
+        </if>
+        <if test="condition != null and condition.category != null">
+            AND u.job_category = #{condition.category}
+        </if>
+        <if test="condition != null and condition.favoriteOnly == true">
+            AND EXISTS (
+                SELECT 1
+                FROM bookmark fb
+                WHERE fb.company_email = #{companyEmail}
+                  AND fb.freelancer_email = u.email
+            )
+        </if>
+    </sql>
+
+    <select id="findTalents" resultMap="TalentListResultMap">
+        <include refid="TalentBaseSelect"/>
+        WHERE 1 = 1
+        <include refid="TalentFilters"/>
+        ORDER BY
+        <choose>
+            <when test="condition != null and condition.sort == 'NAME'">
+                u.name ASC, u.email ASC
+            </when>
+            <otherwise>
+                p.view_count DESC, u.name ASC, u.email ASC
+            </otherwise>
+        </choose>
+        LIMIT #{condition.safeSize} OFFSET #{condition.offset}
+    </select>
+
+    <select id="countTalents" resultType="long">
+        SELECT COUNT(*)
+        FROM user u
+        INNER JOIN portfolio_profile p
+            ON p.freelancer_email = u.email
+           AND p.is_portfolio_public = 1
+        WHERE 1 = 1
+        <include refid="TalentFilters"/>
+    </select>
+
+    <select id="findTalentDetail" resultMap="TalentDetailResultMap">
+        <include refid="TalentBaseSelect"/>
+        WHERE u.email = #{freelancerEmail}
+        LIMIT 1
+    </select>
+
+    <update id="incrementViewCount">
+        UPDATE portfolio_profile
+        SET
+            view_count = view_count + 1,
+            updated_at = NOW()
+        WHERE freelancer_email = #{freelancerEmail}
+          AND is_portfolio_public = 1
+    </update>
+</mapper>

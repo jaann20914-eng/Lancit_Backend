@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ssafy.lancit.domain.portfolio.mapper.PortfolioProfileMapper">
+
+    <resultMap id="PortfolioProfileResultMap" type="com.ssafy.lancit.domain.portfolio.dto.PortfolioProfileDTO">
+        <id property="freelancerEmail" column="freelancer_email"/>
+        <result property="name" column="name"/>
+        <result property="jobCategory" column="job_category"/>
+        <result property="profileFileId" column="profile_file_id"/>
+        <result property="isPortfolioPublic" column="is_portfolio_public"/>
+        <result property="shortIntro" column="short_intro"/>
+        <result property="description" column="description"/>
+        <result property="viewCount" column="view_count"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <select id="findByFreelancerEmail" resultMap="PortfolioProfileResultMap">
+        SELECT
+            u.email AS freelancer_email,
+            u.name,
+            u.job_category,
+            u.profile_file_id,
+            COALESCE(p.is_portfolio_public, 0) AS is_portfolio_public,
+            COALESCE(p.short_intro, '') AS short_intro,
+            p.description,
+            COALESCE(p.view_count, 0) AS view_count,
+            p.created_at,
+            p.updated_at
+        FROM user u
+        LEFT JOIN portfolio_profile p
+            ON p.freelancer_email = u.email
+        WHERE u.email = #{freelancerEmail}
+    </select>
+
+    <select id="existsProfile" resultType="boolean">
+        SELECT COUNT(*) > 0
+        FROM portfolio_profile
+        WHERE freelancer_email = #{freelancerEmail}
+    </select>
+
+    <select id="isPortfolioPublic" resultType="java.lang.Boolean">
+        SELECT is_portfolio_public
+        FROM portfolio_profile
+        WHERE freelancer_email = #{freelancerEmail}
+    </select>
+
+    <insert id="insertProfile">
+        INSERT INTO portfolio_profile (
+            freelancer_email,
+            is_portfolio_public,
+            short_intro,
+            description,
+            view_count,
+            created_at,
+            updated_at
+        ) VALUES (
+            #{freelancerEmail},
+            #{isPortfolioPublic},
+            #{shortIntro},
+            #{description},
+            COALESCE(#{viewCount}, 0),
+            NOW(),
+            NOW()
+        )
+    </insert>
+
+    <update id="updateProfile">
+        UPDATE portfolio_profile
+        SET
+            is_portfolio_public = #{isPortfolioPublic},
+            short_intro = #{shortIntro},
+            description = #{description},
+            updated_at = NOW()
+        WHERE freelancer_email = #{freelancerEmail}
+    </update>
+
+    <select id="findTechStacks" resultType="string">
+        SELECT tech_stack
+        FROM portfolio_profile_tech_stack
+        WHERE freelancer_email = #{freelancerEmail}
+        ORDER BY tech_stack ASC
+    </select>
+
+    <delete id="deleteTechStacks">
+        DELETE FROM portfolio_profile_tech_stack
+        WHERE freelancer_email = #{freelancerEmail}
+    </delete>
+
+    <insert id="insertTechStack">
+        INSERT IGNORE INTO portfolio_profile_tech_stack (
+            freelancer_email,
+            tech_stack,
+            created_at
+        ) VALUES (
+            #{freelancerEmail},
+            #{techStack},
+            NOW()
+        )
+    </insert>
+
+    <update id="incrementViewCount">
+        UPDATE portfolio_profile
+        SET
+            view_count = view_count + 1,
+            updated_at = NOW()
+        WHERE freelancer_email = #{freelancerEmail}
+    </update>
+</mapper>

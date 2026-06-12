@@ -32,6 +32,12 @@ public interface CompanyBookmarkMapper {
     boolean exists(@Param("companyEmail") String companyEmail,
                    @Param("freelancerEmail") String freelancerEmail);
 
+    boolean existsByCompanyEmailAndFreelancerEmail(@Param("companyEmail") String companyEmail,
+                                                   @Param("freelancerEmail") String freelancerEmail);
+
+    int deleteByCompanyEmailAndFreelancerEmail(@Param("companyEmail") String companyEmail,
+                                               @Param("freelancerEmail") String freelancerEmail);
+
     // 찜 단건 조회 (소유자 검증용)
     CompanyBookmarkDTO findById(int bookmarkId);
 }
