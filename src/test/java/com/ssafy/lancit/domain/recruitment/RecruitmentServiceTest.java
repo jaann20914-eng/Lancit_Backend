@@ -287,6 +287,46 @@ class RecruitmentServiceTest {
     }
 
     @Test
+    @DisplayName("공고 목록 조회 - 취소 지원도 지원 이력으로 보아 지원 불가")
+    void getList_cancelledApplicationHistoryBlocksApply_success() {
+        PageRequest pageRequest = new PageRequest();
+        RecruitmentSearchCondition condition = new RecruitmentSearchCondition();
+        RecruitmentDTO dto = baseRecruitment(1);
+
+        given(recruitmentMapper.findList(condition, pageRequest)).willReturn(List.of(dto));
+        given(recruitmentMapper.countList(condition)).willReturn(1L);
+        given(recruitmentMapper.findTechStacksByRecruitmentIds(List.of(1))).willReturn(List.of());
+        given(recruitmentMapper.findAppliedRecruitmentIds(USER_EMAIL, List.of(1)))
+                .willReturn(List.of(1));
+
+        PageResponse<RecruitmentListItemResponse> result =
+                recruitmentService.getList(condition, pageRequest, USER_EMAIL, "USER");
+
+        RecruitmentListItemResponse item = result.getContent().get(0);
+        assertThat(item.getIsApplied()).isTrue();
+        assertThat(item.getCanApply()).isFalse();
+    }
+
+    @Test
+    @DisplayName("공고 목록 조회 - 프리랜서가 미지원 OPEN 공고는 지원 가능")
+    void getList_userCanApplyWhenOpenAndNotApplied_success() {
+        PageRequest pageRequest = new PageRequest();
+        RecruitmentSearchCondition condition = new RecruitmentSearchCondition();
+        RecruitmentDTO dto = baseRecruitment(1);
+
+        given(recruitmentMapper.findList(condition, pageRequest)).willReturn(List.of(dto));
+        given(recruitmentMapper.countList(condition)).willReturn(1L);
+        given(recruitmentMapper.findTechStacksByRecruitmentIds(List.of(1))).willReturn(List.of());
+
+        PageResponse<RecruitmentListItemResponse> result =
+                recruitmentService.getList(condition, pageRequest, USER_EMAIL, "USER");
+
+        RecruitmentListItemResponse item = result.getContent().get(0);
+        assertThat(item.getIsApplied()).isFalse();
+        assertThat(item.getCanApply()).isTrue();
+    }
+
+    @Test
     @DisplayName("공고 목록 조회 - 익명 사용자는 지원/찜/지원가능 여부가 false")
     void getList_anonymousFlags_success() {
         PageRequest pageRequest = new PageRequest();
@@ -343,6 +383,32 @@ class RecruitmentServiceTest {
     }
 
     @Test
+    @DisplayName("지원 탭은 회사 계정으로 조회 불가")
+    void getList_appliedTabCompany_fail() {
+        RecruitmentSearchCondition condition = new RecruitmentSearchCondition();
+        condition.setTab("APPLIED");
+
+        assertCustomException(
+                () -> recruitmentService.getList(condition, new PageRequest(), COMPANY_EMAIL, "COMPANY"),
+                ErrorCode.FREELANCER_ONLY);
+
+        verify(recruitmentMapper, never()).findList(any(), any());
+    }
+
+    @Test
+    @DisplayName("찜 탭은 익명 사용자로 조회 불가")
+    void getList_bookmarkedTabAnonymous_fail() {
+        RecruitmentSearchCondition condition = new RecruitmentSearchCondition();
+        condition.setTab("BOOKMARKED");
+
+        assertCustomException(
+                () -> recruitmentService.getList(condition, new PageRequest(), null, null),
+                ErrorCode.UNAUTHORIZED);
+
+        verify(recruitmentMapper, never()).findList(any(), any());
+    }
+
+    @Test
     @DisplayName("찜 탭은 프리랜서만 조회 가능")
     void getList_bookmarkedTabCompany_fail() {
         RecruitmentSearchCondition condition = new RecruitmentSearchCondition();
@@ -353,6 +419,74 @@ class RecruitmentServiceTest {
                 ErrorCode.FREELANCER_ONLY);
 
         verify(recruitmentMapper, never()).findList(any(), any());
+    }
+
+    @Test
+    @DisplayName("찜 탭은 bookmark 기준 목록 조건으로 조회")
+    void getList_bookmarkedTab_success() {
+        PageRequest pageRequest = new PageRequest();
+        RecruitmentSearchCondition condition = new RecruitmentSearchCondition();
+        condition.setTab("bookmarked");
+        RecruitmentDTO dto = baseRecruitment(1);
+
+        given(recruitmentMapper.findList(condition, pageRequest)).willReturn(List.of(dto));
+        given(recruitmentMapper.countList(condition)).willReturn(1L);
+        given(recruitmentMapper.findTechStacksByRecruitmentIds(List.of(1))).willReturn(List.of());
+        given(freelancerBookmarkMapper.findBookmarkedRecruitmentIds(USER_EMAIL, List.of(1)))
+                .willReturn(List.of(1));
+
+        PageResponse<RecruitmentListItemResponse> result =
+                recruitmentService.getList(condition, pageRequest, USER_EMAIL, "USER");
+
+        assertThat(condition.getTab()).isEqualTo("BOOKMARKED");
+        assertThat(condition.getCurrentEmail()).isEqualTo(USER_EMAIL);
+        assertThat(result.getContent().get(0).getIsBookmarked()).isTrue();
+        verify(freelancerBookmarkMapper, never())
+                .findBookmarkedRecruitments(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("직종 필터와 탭 조건은 함께 전달")
+    void getList_tabWithJobCategory_success() {
+        PageRequest pageRequest = new PageRequest();
+        RecruitmentSearchCondition condition = new RecruitmentSearchCondition();
+        condition.setTab("APPLIED");
+        condition.setJobCategory(JobCategory.IT);
+        RecruitmentDTO dto = baseRecruitment(1);
+
+        given(recruitmentMapper.findList(condition, pageRequest)).willReturn(List.of(dto));
+        given(recruitmentMapper.countList(condition)).willReturn(1L);
+        given(recruitmentMapper.findTechStacksByRecruitmentIds(List.of(1))).willReturn(List.of());
+        given(recruitmentMapper.findAppliedRecruitmentIds(USER_EMAIL, List.of(1)))
+                .willReturn(List.of(1));
+
+        recruitmentService.getList(condition, pageRequest, USER_EMAIL, "USER");
+
+        assertThat(condition.getTab()).isEqualTo("APPLIED");
+        assertThat(condition.getJobCategory()).isEqualTo(JobCategory.IT);
+        verify(recruitmentMapper).findList(condition, pageRequest);
+        verify(recruitmentMapper).countList(condition);
+    }
+
+    @Test
+    @DisplayName("정렬 조건은 LATEST, DEADLINE, BUDGET 값을 유지")
+    void getList_sortValues_success() {
+        for (RecruitmentSortType sort : List.of(
+                RecruitmentSortType.LATEST,
+                RecruitmentSortType.DEADLINE,
+                RecruitmentSortType.BUDGET)) {
+            PageRequest pageRequest = new PageRequest();
+            RecruitmentSearchCondition condition = new RecruitmentSearchCondition();
+            condition.setSort(sort);
+
+            given(recruitmentMapper.findList(condition, pageRequest)).willReturn(List.of());
+            given(recruitmentMapper.countList(condition)).willReturn(0L);
+
+            recruitmentService.getList(condition, pageRequest, null, null);
+
+            assertThat(condition.getSort()).isEqualTo(sort);
+            assertThat(condition.getSafeSort()).isEqualTo(sort.name());
+        }
     }
 
     @Test
