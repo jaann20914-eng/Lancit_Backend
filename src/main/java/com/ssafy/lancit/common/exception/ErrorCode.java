@@ -57,7 +57,16 @@ public enum ErrorCode {
     FREELANCER_ONLY(HttpStatus.FORBIDDEN, "프리랜서 계정만 이용할 수 있습니다."),
     INVALID_PORTFOLIO_PERIOD(HttpStatus.BAD_REQUEST, "프로젝트 시작일이 종료일보다 늦을 수 없습니다."),
     INVALID_PORTFOLIO_CATEGORY(HttpStatus.BAD_REQUEST, "허용되지 않은 프로젝트 카테고리입니다."),
-    DELETED_PORTFOLIO(HttpStatus.GONE, "삭제된 프로젝트입니다.");
+    DELETED_PORTFOLIO(HttpStatus.GONE, "삭제된 프로젝트입니다."),
+
+    // 공고
+    RECRUITMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "공고를 찾을 수 없습니다."),
+    RECRUITMENT_FORBIDDEN(HttpStatus.FORBIDDEN, "공고에 접근할 권한이 없습니다."),
+    RECRUITMENT_COMPANY_ONLY(HttpStatus.FORBIDDEN, "회사 계정만 공고를 관리할 수 있습니다."),
+    INVALID_RECRUITMENT_CATEGORY(HttpStatus.BAD_REQUEST, "허용되지 않은 공고 카테고리입니다."),
+    INVALID_RECRUITMENT_STATUS(HttpStatus.BAD_REQUEST, "허용되지 않은 공고 상태입니다."),
+    INVALID_RECRUITMENT_PERIOD(HttpStatus.BAD_REQUEST, "공고 기간이 올바르지 않습니다."),
+    RECRUITMENT_HAS_ACTIVE_APPLICATIONS(HttpStatus.CONFLICT, "지원자가 있는 공고는 수정하거나 삭제할 수 없습니다.");
 	
 	
     // TODO 영은: 기능 구현 중 필요한 에러코드 생기면 여기에 추가

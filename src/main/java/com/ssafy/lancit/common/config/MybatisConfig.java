@@ -14,6 +14,7 @@ import com.ssafy.lancit.global.enums.MessageType;
 import com.ssafy.lancit.global.enums.NotificationType;
 import com.ssafy.lancit.global.enums.OwnerType;
 import com.ssafy.lancit.global.enums.ProposalStatus;
+import com.ssafy.lancit.global.enums.RecruitmentCategory;
 import com.ssafy.lancit.global.enums.RecruitmentStatus;
 import com.ssafy.lancit.global.enums.TaskStatus;
 import com.ssafy.lancit.global.enums.Weekday;
@@ -34,6 +35,7 @@ public class MybatisConfig {
             registry.register(OwnerType.class,          EnumTypeHandler.class);
             registry.register(TaskStatus.class,         EnumTypeHandler.class);
             registry.register(ContractStatus.class,     EnumTypeHandler.class);
+            registry.register(RecruitmentCategory.class, EnumTypeHandler.class);
             registry.register(RecruitmentStatus.class,  EnumTypeHandler.class);
             registry.register(ApplicationStatus.class,  EnumTypeHandler.class);
             registry.register(ProposalStatus.class,     EnumTypeHandler.class);

@@ -36,6 +36,7 @@ public class GcsService {
             case PROFILE           -> "profile/";
             case PORTFOLIO_BANNER  -> "portfolio/banner/";
             case PORTFOLIO_FILE    -> "portfolio/file/";
+            case RECRUITMENT_IMAGE -> "recruitment/image/";
             case CONTRACT          -> "contract/";
             case CHAT              -> "chat/";
             case TEMP              -> "temp/";

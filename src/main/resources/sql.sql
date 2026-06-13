@@ -18,7 +18,7 @@ delete from file where file_id=49;
 SELECT * FROM file;
 ALTER TABLE `file`
 MODIFY COLUMN parent_type 
-ENUM('PORTFOLIO','PROFILE','PORTFOLIO_BANNER','PORTFOLIO_FILE','CONTRACT','CHAT','TEMP') NOT NULL;
+ENUM('PORTFOLIO','PROFILE','PORTFOLIO_BANNER','PORTFOLIO_FILE','RECRUITMENT_IMAGE','CONTRACT','CHAT','TEMP') NOT NULL;
 
 SELECT * FROM user;
 -- test 계정 비번은 test
@@ -50,6 +50,7 @@ INSERT INTO portfolio (email, category, title, summary, content, work_start_at, 
 VALUES ('test@lancit.com', 'WEB_APP', '테스트 포트폴리오', '테스트 요약', '포트폴리오 내용', '2026-01-01 00:00:00', '2026-06-01 00:00:00', 0, NULL);
 
 SELECT * FROM recruitment;
+SELECT * FROM recruitment_tech_stack;
 SELECT * FROM recruitment_application;
 SELECT * FROM portfolio_permission;
 SELECT * FROM bookmark;
@@ -76,7 +77,7 @@ CREATE TABLE `file` (
     company_email   VARCHAR(255)    NULL                        COMMENT '업로더 이메일 (회사)',
     sys_name        VARCHAR(255)    NOT NULL                    COMMENT '시스템 파일명 (UUID)',
     ori_name        VARCHAR(255)    NOT NULL                    COMMENT '원본 파일명',
-    parent_type     ENUM('PORTFOLIO','PROFILE','PORTFOLIO_BANNER','PORTFOLIO_FILE','CONTRACT','CHAT','TEMP')
+    parent_type     ENUM('PORTFOLIO','PROFILE','PORTFOLIO_BANNER','PORTFOLIO_FILE','RECRUITMENT_IMAGE','CONTRACT','CHAT','TEMP')
                                     NOT NULL                    COMMENT '부모 타입',
     parent_id       INT             NULL                        COMMENT '부모 ID (PROFILE은 null)',
     upload_path     VARCHAR(500)    NOT NULL                    COMMENT 'GCS 오브젝트 경로',
@@ -228,36 +229,67 @@ CREATE TABLE `portfolio` (
 --  8. recruitment (공고문 - 회사 전용)
 -- ============================================================
 CREATE TABLE `recruitment` (
-    recruitment_id      INT             NOT NULL    AUTO_INCREMENT,
-    email               VARCHAR(255)    NOT NULL                    COMMENT '회사 이메일',
-    title               VARCHAR(255)    NOT NULL,
-    content             TEXT            NULL,
-    job_category        ENUM('DESIGN','IT','MUSIC','EDUCATION','VIDEO','MARKETING','WRITING','ETC')
-                                        NOT NULL,
-    status              ENUM('OPEN','CLOSED','CANCELLED')
-                                        NOT NULL    DEFAULT 'OPEN',
-    created_at          DATETIME        NOT NULL    DEFAULT CURRENT_TIMESTAMP,
-    contract_start_at   DATETIME        NULL,
-    contract_end_at     DATETIME        NULL,
-    budget              INT             NOT NULL    DEFAULT 0,
+    recruitment_id          INT             NOT NULL    AUTO_INCREMENT,
+    company_email           VARCHAR(255)    NOT NULL                    COMMENT '회사 이메일',
+    title                   VARCHAR(255)    NOT NULL,
+    summary                 VARCHAR(100)    NOT NULL                    COMMENT '한줄 소개',
+    content                 TEXT            NOT NULL,
+    requirements            TEXT            NULL,
+    job_category            ENUM('DESIGN','IT','MUSIC','EDUCATION','VIDEO','MARKETING','WRITING','ETC')
+                                            NOT NULL                    COMMENT '공고 분야',
+    recruitment_category    ENUM('WEB_APP','DESIGN','BRANDING','MARKETING','PLANNING')
+                                            NOT NULL                    COMMENT '공고 카테고리',
+    status                  ENUM('OPEN','CLOSED','CANCELLED')
+                                            NOT NULL    DEFAULT 'OPEN'  COMMENT 'EXPIRED는 조회 시 계산',
+    work_location           VARCHAR(255)    NULL,
+    budget                  INT             NOT NULL    DEFAULT 0,
+    image_file_id           INT             NULL,
+    contract_start_at       DATETIME        NULL                        COMMENT '예상 시작일',
+    contract_end_at         DATETIME        NULL                        COMMENT '예상 종료일',
+    recruitment_start_at    DATETIME        NOT NULL    DEFAULT CURRENT_TIMESTAMP,
+    recruitment_end_at      DATETIME        NULL,
+    created_at              DATETIME        NOT NULL    DEFAULT CURRENT_TIMESTAMP,
+    updated_at              DATETIME        NOT NULL    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    is_deleted              TINYINT(1)      NOT NULL    DEFAULT 0,
+    deleted_at              DATETIME        NULL,
     PRIMARY KEY (recruitment_id),
+    INDEX idx_recruitment_list (is_deleted, status, recruitment_end_at, created_at),
+    INDEX idx_recruitment_company (company_email, is_deleted, created_at),
     CONSTRAINT fk_recruitment_company
-        FOREIGN KEY (email) REFERENCES `company` (email)
-        ON DELETE CASCADE
+        FOREIGN KEY (company_email) REFERENCES `company` (email)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_recruitment_image_file
+        FOREIGN KEY (image_file_id) REFERENCES `file` (file_id)
+        ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='공고문';
 
 -- ============================================================
---  9. recruitment_application (공고문 지원)
+--  9. recruitment_tech_stack (공고 기술 스택)
+-- ============================================================
+CREATE TABLE `recruitment_tech_stack` (
+    recruitment_id  INT             NOT NULL,
+    tag_name        VARCHAR(50)     NOT NULL,
+    created_at      DATETIME        NOT NULL    DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (recruitment_id, tag_name),
+    CONSTRAINT fk_recruitment_tech_stack_recruitment
+        FOREIGN KEY (recruitment_id) REFERENCES `recruitment` (recruitment_id)
+        ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='공고 기술 스택';
+
+-- ============================================================
+--  10. recruitment_application (공고문 지원)
 -- ============================================================
 CREATE TABLE `recruitment_application` (
     application_id              INT             NOT NULL    AUTO_INCREMENT,
     recruitment_id              INT             NOT NULL,
     applicant_email             VARCHAR(255)    NOT NULL,
     applied_at                  DATETIME        NOT NULL    DEFAULT CURRENT_TIMESTAMP,
-    status                      ENUM('PENDING','ACCEPTED','REJECTED')
+    status                      ENUM('PENDING','ACCEPTED','REJECTED','CANCELLED')
                                                 NOT NULL    DEFAULT 'PENDING',
     is_bookmarked_by_company    TINYINT(1)      NOT NULL    DEFAULT 0,
+    viewed_at                   DATETIME        NULL,
     PRIMARY KEY (application_id),
+    UNIQUE KEY uk_application_recruitment_applicant (recruitment_id, applicant_email),
     CONSTRAINT fk_application_recruitment
         FOREIGN KEY (recruitment_id) REFERENCES `recruitment` (recruitment_id)
         ON DELETE CASCADE,
@@ -267,7 +299,7 @@ CREATE TABLE `recruitment_application` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='공고문 지원';
 
 -- ============================================================
---  10. portfolio_permission (포트폴리오 열람 권한)
+--  11. portfolio_permission (포트폴리오 열람 권한)
 -- ============================================================
 CREATE TABLE `portfolio_permission` (
     permission_id   INT         NOT NULL    AUTO_INCREMENT,
@@ -284,7 +316,7 @@ CREATE TABLE `portfolio_permission` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='포트폴리오 열람 권한';
 
 -- ============================================================
---  11. bookmark (회사가 프리랜서 찜 - CompanyBookmark)
+--  12. bookmark (회사가 프리랜서 찜 - CompanyBookmark)
 -- ============================================================
 CREATE TABLE `bookmark` (
     bookmark_id         INT             NOT NULL    AUTO_INCREMENT,
@@ -305,7 +337,7 @@ CREATE TABLE `bookmark` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='회사가 프리랜서 찜';
 
 -- ============================================================
---  12. recruitment_bookmark (프리랜서가 공고 찜 - FreelancerBookmark)
+--  13. recruitment_bookmark (프리랜서가 공고 찜 - FreelancerBookmark)
 -- ============================================================
 CREATE TABLE `recruitment_bookmark` (
     id               BIGINT          NOT NULL    AUTO_INCREMENT,
@@ -323,7 +355,7 @@ CREATE TABLE `recruitment_bookmark` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='프리랜서가 공고문 찜';
 
 -- ============================================================
---  13. contract (계약서)
+--  14. contract (계약서)
 -- ============================================================
 CREATE TABLE `contract` (
     contract_id                 INT             NOT NULL    AUTO_INCREMENT,
@@ -378,7 +410,7 @@ CREATE TABLE `contract` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='계약서';
 
 -- ============================================================
---  14. chat_room (계약서 협의 채팅방)
+--  15. chat_room (계약서 협의 채팅방)
 -- ============================================================
 CREATE TABLE `chat_room` (
     chat_room_id        INT             NOT NULL    AUTO_INCREMENT,
@@ -398,7 +430,7 @@ CREATE TABLE `chat_room` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='협의 채팅방';
 
 -- ============================================================
---  15. message (채팅 메시지)
+--  16. message (채팅 메시지)
 -- ============================================================
 CREATE TABLE `message` (
     message_id      INT             NOT NULL    AUTO_INCREMENT,
@@ -418,7 +450,7 @@ CREATE TABLE `message` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='협의 채팅 메시지';
 
 -- ============================================================
---  16. proposal (제안서 - 회사가 프리랜서에게 발송)
+--  17. proposal (제안서 - 회사가 프리랜서에게 발송)
 -- ============================================================
 CREATE TABLE `proposal` (
     proposal_id         INT             NOT NULL    AUTO_INCREMENT,
@@ -440,7 +472,7 @@ CREATE TABLE `proposal` (
 
 
 -- ============================================================
---  17. 삭제 실패한 파일 목록 저장해 놓는 곳
+--  18. 삭제 실패한 파일 목록 저장해 놓는 곳
 -- ============================================================
 CREATE TABLE file_delete_queue (
     file_id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -464,13 +496,14 @@ CREATE TABLE file_delete_queue (
 --   6.  holiday
 --   7.  portfolio        (→ user, → file)
 --   8.  recruitment      (→ company)
---   9.  recruitment_application   (→ recruitment, → user)
---  10.  portfolio_permission      (→ recruitment_application, → portfolio)
---  11.  bookmark                  (→ company, → user, → recruitment_application)
---  12.  recruitment_bookmark      (→ user, → recruitment)
---  13.  contract         (→ company, → user, → file×3)
---  14.  chat_room        (→ contract, → user, → company)
---  15.  message          (→ chat_room)
---  16.  proposal         (→ company, → user)
---  17.  file_delete_queue
+--   9.  recruitment_tech_stack    (→ recruitment)
+--  10.  recruitment_application   (→ recruitment, → user)
+--  11.  portfolio_permission      (→ recruitment_application, → portfolio)
+--  12.  bookmark                  (→ company, → user, → recruitment_application)
+--  13.  recruitment_bookmark      (→ user, → recruitment)
+--  14.  contract         (→ company, → user, → file×3)
+--  15.  chat_room        (→ contract, → user, → company)
+--  16.  message          (→ chat_room)
+--  17.  proposal         (→ company, → user)
+--  18.  file_delete_queue
 -- ============================================================

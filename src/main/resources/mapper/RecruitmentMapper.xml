@@ -2,8 +2,294 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.ssafy.lancit.domain.recruitment.post.mapper.RecruitmentMapper">
- 
-    <!-- TODO 영은: SQL 작성 -->
- 
+
+    <resultMap id="RecruitmentResultMap" type="com.ssafy.lancit.domain.recruitment.post.dto.RecruitmentDTO">
+        <id property="recruitmentId" column="recruitment_id"/>
+        <result property="companyEmail" column="company_email"/>
+        <result property="companyName" column="company_name"/>
+        <result property="title" column="title"/>
+        <result property="summary" column="summary"/>
+        <result property="content" column="content"/>
+        <result property="requirements" column="requirements"/>
+        <result property="jobCategory" column="job_category"/>
+        <result property="recruitmentCategory" column="recruitment_category"/>
+        <result property="status" column="status"/>
+        <result property="workLocation" column="work_location"/>
+        <result property="budget" column="budget"/>
+        <result property="imageFileId" column="image_file_id"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <result property="contractStartAt" column="contract_start_at"/>
+        <result property="contractEndAt" column="contract_end_at"/>
+        <result property="recruitmentStartAt" column="recruitment_start_at"/>
+        <result property="recruitmentEndAt" column="recruitment_end_at"/>
+        <result property="isDeleted" column="is_deleted"/>
+        <result property="deletedAt" column="deleted_at"/>
+        <result property="applicantCount" column="applicant_count"/>
+    </resultMap>
+
+    <sql id="RecruitmentColumns">
+        r.recruitment_id,
+        r.company_email,
+        c.company_name,
+        r.title,
+        r.summary,
+        r.content,
+        r.requirements,
+        r.job_category,
+        r.recruitment_category,
+        r.status,
+        r.work_location,
+        r.budget,
+        r.image_file_id,
+        r.created_at,
+        r.updated_at,
+        r.contract_start_at,
+        r.contract_end_at,
+        r.recruitment_start_at,
+        r.recruitment_end_at,
+        r.is_deleted,
+        r.deleted_at,
+        (
+            SELECT COUNT(*)
+            FROM recruitment_application ra
+            WHERE ra.recruitment_id = r.recruitment_id
+              AND ra.status &lt;&gt; 'CANCELLED'
+        ) AS applicant_count
+    </sql>
+
+    <sql id="SearchFilters">
+        <if test="condition != null and condition.keyword != null and condition.keyword != ''">
+            AND (
+                r.title LIKE CONCAT('%', #{condition.keyword}, '%')
+                OR c.company_name LIKE CONCAT('%', #{condition.keyword}, '%')
+                OR r.content LIKE CONCAT('%', #{condition.keyword}, '%')
+                OR r.summary LIKE CONCAT('%', #{condition.keyword}, '%')
+            )
+        </if>
+        <if test="condition != null and condition.jobCategory != null">
+            AND r.job_category = #{condition.jobCategory}
+        </if>
+        <if test="condition != null and condition.recruitmentCategory != null">
+            AND r.recruitment_category = #{condition.recruitmentCategory}
+        </if>
+        <if test="condition != null and condition.status != null">
+            <choose>
+                <when test="condition.status == 'OPEN'">
+                    AND r.status = 'OPEN'
+                    AND (
+                        r.recruitment_end_at IS NULL
+                        OR r.recruitment_end_at &gt;= NOW()
+                    )
+                </when>
+                <when test="condition.status == 'EXPIRED'">
+                    AND r.status = 'OPEN'
+                    AND r.recruitment_end_at IS NOT NULL
+                    AND r.recruitment_end_at &lt; NOW()
+                </when>
+                <when test="condition.status == 'CLOSED'">
+                    AND r.status = 'CLOSED'
+                </when>
+                <when test="condition.status == 'CANCELLED'">
+                    AND r.status = 'CANCELLED'
+                </when>
+            </choose>
+        </if>
+    </sql>
+
+    <sql id="RecruitmentOrderBy">
+        ORDER BY
+        <choose>
+            <when test="condition != null and condition.safeSort == 'DEADLINE'">
+                CASE WHEN r.recruitment_end_at IS NULL THEN 1 ELSE 0 END,
+                r.recruitment_end_at ASC,
+                r.recruitment_id DESC
+            </when>
+            <when test="condition != null and condition.safeSort == 'BUDGET'">
+                r.budget DESC,
+                r.recruitment_id DESC
+            </when>
+            <otherwise>
+                r.created_at DESC,
+                r.recruitment_id DESC
+            </otherwise>
+        </choose>
+    </sql>
+
+    <sql id="Pagination">
+        <bind name="limit" value="pageRequest.size &lt;= 0 ? 10 : pageRequest.size"/>
+        <bind name="offset" value="pageRequest.offset &lt; 0 ? 0 : pageRequest.offset"/>
+        LIMIT #{limit} OFFSET #{offset}
+    </sql>
+
+    <insert id="insertRecruitment" useGeneratedKeys="true" keyProperty="recruitmentId">
+        INSERT INTO recruitment (
+            company_email,
+            title,
+            summary,
+            content,
+            requirements,
+            job_category,
+            recruitment_category,
+            status,
+            work_location,
+            budget,
+            image_file_id,
+            contract_start_at,
+            contract_end_at,
+            recruitment_start_at,
+            recruitment_end_at
+        ) VALUES (
+            #{companyEmail},
+            #{title},
+            #{summary},
+            #{content},
+            #{requirements},
+            #{jobCategory},
+            #{recruitmentCategory},
+            #{status},
+            #{workLocation},
+            #{budget},
+            #{imageFileId},
+            #{contractStartAt},
+            #{contractEndAt},
+            #{recruitmentStartAt},
+            #{recruitmentEndAt}
+        )
+    </insert>
+
+    <update id="updateRecruitment">
+        UPDATE recruitment
+        SET
+            title = #{dto.title},
+            summary = #{dto.summary},
+            content = #{dto.content},
+            requirements = #{dto.requirements},
+            job_category = #{dto.jobCategory},
+            recruitment_category = #{dto.recruitmentCategory},
+            work_location = #{dto.workLocation},
+            budget = #{dto.budget},
+            image_file_id = #{dto.imageFileId},
+            contract_start_at = #{dto.contractStartAt},
+            contract_end_at = #{dto.contractEndAt},
+            recruitment_start_at = #{dto.recruitmentStartAt},
+            recruitment_end_at = #{dto.recruitmentEndAt},
+            updated_at = NOW()
+        WHERE recruitment_id = #{recruitmentId}
+          AND is_deleted = 0
+    </update>
+
+    <update id="softDeleteRecruitment">
+        UPDATE recruitment
+        SET
+            is_deleted = 1,
+            deleted_at = NOW(),
+            updated_at = NOW()
+        WHERE recruitment_id = #{recruitmentId}
+          AND is_deleted = 0
+    </update>
+
+    <update id="updateStatus">
+        UPDATE recruitment
+        SET
+            status = #{status},
+            updated_at = NOW()
+        WHERE recruitment_id = #{recruitmentId}
+          AND is_deleted = 0
+    </update>
+
+    <select id="findById" resultMap="RecruitmentResultMap">
+        SELECT
+        <include refid="RecruitmentColumns"/>
+        FROM recruitment r
+        LEFT JOIN company c ON c.email = r.company_email
+        WHERE r.recruitment_id = #{recruitmentId}
+          AND r.is_deleted = 0
+    </select>
+
+    <select id="findList" resultMap="RecruitmentResultMap">
+        SELECT
+        <include refid="RecruitmentColumns"/>
+        FROM recruitment r
+        LEFT JOIN company c ON c.email = r.company_email
+        WHERE r.is_deleted = 0
+        <include refid="SearchFilters"/>
+        <include refid="RecruitmentOrderBy"/>
+        <include refid="Pagination"/>
+    </select>
+
+    <select id="countList" resultType="long">
+        SELECT COUNT(*)
+        FROM recruitment r
+        LEFT JOIN company c ON c.email = r.company_email
+        WHERE r.is_deleted = 0
+        <include refid="SearchFilters"/>
+    </select>
+
+    <select id="findMyList" resultMap="RecruitmentResultMap">
+        SELECT
+        <include refid="RecruitmentColumns"/>
+        FROM recruitment r
+        LEFT JOIN company c ON c.email = r.company_email
+        WHERE r.is_deleted = 0
+          AND r.company_email = #{companyEmail}
+        <include refid="SearchFilters"/>
+        <include refid="RecruitmentOrderBy"/>
+        <include refid="Pagination"/>
+    </select>
+
+    <select id="countMyList" resultType="long">
+        SELECT COUNT(*)
+        FROM recruitment r
+        LEFT JOIN company c ON c.email = r.company_email
+        WHERE r.is_deleted = 0
+          AND r.company_email = #{companyEmail}
+        <include refid="SearchFilters"/>
+    </select>
+
+    <insert id="insertTechStacks">
+        INSERT INTO recruitment_tech_stack (
+            recruitment_id,
+            tag_name
+        ) VALUES
+        <foreach collection="techStacks" item="tagName" separator=",">
+            (#{recruitmentId}, #{tagName})
+        </foreach>
+    </insert>
+
+    <delete id="deleteTechStacks">
+        DELETE FROM recruitment_tech_stack
+        WHERE recruitment_id = #{recruitmentId}
+    </delete>
+
+    <select id="findTechStacksByRecruitmentId" resultType="string">
+        SELECT tag_name
+        FROM recruitment_tech_stack
+        WHERE recruitment_id = #{recruitmentId}
+        ORDER BY tag_name ASC
+    </select>
+
+    <select id="findTechStacksByRecruitmentIds" resultType="com.ssafy.lancit.domain.recruitment.post.dto.RecruitmentTechStackDTO">
+        SELECT recruitment_id, tag_name
+        FROM recruitment_tech_stack
+        WHERE recruitment_id IN
+        <foreach collection="recruitmentIds" item="recruitmentId" open="(" separator="," close=")">
+            #{recruitmentId}
+        </foreach>
+        ORDER BY recruitment_id ASC, tag_name ASC
+    </select>
+
+    <select id="countActiveApplications" resultType="int">
+        SELECT COUNT(*)
+        FROM recruitment_application
+        WHERE recruitment_id = #{recruitmentId}
+          AND status &lt;&gt; 'CANCELLED'
+    </select>
+
+    <select id="findOwnerEmailById" resultType="string">
+        SELECT company_email
+        FROM recruitment
+        WHERE recruitment_id = #{recruitmentId}
+          AND is_deleted = 0
+    </select>
 </mapper>
- 
