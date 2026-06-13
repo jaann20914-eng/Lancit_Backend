@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -32,10 +33,14 @@ import com.ssafy.lancit.domain.file.dto.FileDTO;
 import com.ssafy.lancit.domain.file.service.FileService;
 import com.ssafy.lancit.domain.portfolio.controller.PortfolioController;
 import com.ssafy.lancit.domain.portfolio.dto.PortfolioDTO;
+import com.ssafy.lancit.domain.portfolio.dto.PortfolioProfileDTO;
+import com.ssafy.lancit.domain.portfolio.dto.PortfolioProfileUpdateRequest;
 import com.ssafy.lancit.domain.portfolio.dto.PortfolioSearchCondition;
 import com.ssafy.lancit.domain.portfolio.mapper.PortfolioMapper;
+import com.ssafy.lancit.domain.portfolio.mapper.PortfolioProfileMapper;
 import com.ssafy.lancit.domain.portfolio.service.PortfolioService;
 import com.ssafy.lancit.global.enums.FileParentType;
+import com.ssafy.lancit.global.enums.JobCategory;
 
 @ExtendWith(MockitoExtension.class)
 class PortfolioServiceTest {
@@ -47,6 +52,9 @@ class PortfolioServiceTest {
 
     @Mock
     private PortfolioMapper portfolioMapper;
+
+    @Mock
+    private PortfolioProfileMapper portfolioProfileMapper;
 
     @Mock
     private FileService fileService;
@@ -160,6 +168,68 @@ class PortfolioServiceTest {
         assertThat(condition.getVisibility()).isEqualTo("PRIVATE");
         verify(portfolioMapper).findPublicByEmail(USER_EMAIL, pageRequest, condition);
         verify(portfolioMapper).countPublicByEmail(USER_EMAIL, condition);
+    }
+
+    @Test
+    @DisplayName("내 포트폴리오 프로필 row가 없으면 기본값으로 생성 후 조회")
+    void getMyProfile_createDefault_success() {
+        PortfolioProfileDTO profile = profile(false, "");
+        given(portfolioProfileMapper.findByFreelancerEmail(USER_EMAIL)).willReturn(profile, profile);
+        given(portfolioProfileMapper.existsProfile(USER_EMAIL)).willReturn(false);
+        given(portfolioProfileMapper.findTechStacks(USER_EMAIL)).willReturn(List.of());
+
+        PortfolioProfileDTO result = portfolioService.getMyProfile(USER_EMAIL);
+
+        assertThat(result.getIsPortfolioPublic()).isFalse();
+        assertThat(result.getIntro()).isEmpty();
+        assertThat(result.getTechStacks()).isEmpty();
+        verify(portfolioProfileMapper).insertProfile(argThat(defaultProfile ->
+                USER_EMAIL.equals(defaultProfile.getFreelancerEmail())
+                        && Boolean.FALSE.equals(defaultProfile.getIsPortfolioPublic())
+                        && "".equals(defaultProfile.getIntro())));
+    }
+
+    @Test
+    @DisplayName("내 포트폴리오 프로필 저장 시 공개 여부, intro, 기술스택을 함께 갱신")
+    void updateMyProfile_updateProfileAndTechStacks_success() {
+        PortfolioProfileUpdateRequest request = new PortfolioProfileUpdateRequest();
+        request.setIsPortfolioPublic(true);
+        request.setIntro(" 백엔드 개발자 ");
+        request.setTechStacks(List.of(" Java ", "", "Spring Boot", "Java"));
+
+        PortfolioProfileDTO before = profile(false, "");
+        PortfolioProfileDTO after = profile(true, "백엔드 개발자");
+        given(portfolioProfileMapper.findByFreelancerEmail(USER_EMAIL)).willReturn(before, after);
+        given(portfolioProfileMapper.existsProfile(USER_EMAIL)).willReturn(true, true);
+        given(portfolioProfileMapper.findTechStacks(USER_EMAIL)).willReturn(List.of("Java", "Spring Boot"));
+
+        PortfolioProfileDTO result = portfolioService.updateMyProfile(USER_EMAIL, request);
+
+        assertThat(result.getIsPortfolioPublic()).isTrue();
+        assertThat(result.getIntro()).isEqualTo("백엔드 개발자");
+        assertThat(result.getTechStacks()).containsExactly("Java", "Spring Boot");
+        verify(portfolioProfileMapper).updateProfile(argThat(profile ->
+                USER_EMAIL.equals(profile.getFreelancerEmail())
+                        && Boolean.TRUE.equals(profile.getIsPortfolioPublic())
+                        && "백엔드 개발자".equals(profile.getIntro())));
+        verify(portfolioProfileMapper).deleteTechStacks(USER_EMAIL);
+        verify(portfolioProfileMapper).insertTechStack(USER_EMAIL, "Java");
+        verify(portfolioProfileMapper).insertTechStack(USER_EMAIL, "Spring Boot");
+    }
+
+    @Test
+    @DisplayName("포트폴리오 프로필 intro가 30자를 초과하면 실패")
+    void updateMyProfile_introTooLong_fail() {
+        PortfolioProfileUpdateRequest request = new PortfolioProfileUpdateRequest();
+        request.setIntro("가".repeat(31));
+
+        given(portfolioProfileMapper.findByFreelancerEmail(USER_EMAIL)).willReturn(profile(false, ""));
+        given(portfolioProfileMapper.existsProfile(USER_EMAIL)).willReturn(true);
+
+        assertCustomException(() -> portfolioService.updateMyProfile(USER_EMAIL, request),
+                ErrorCode.PORTFOLIO_PROFILE_INTRO_TOO_LONG);
+        verify(portfolioProfileMapper, never()).updateProfile(any());
+        verify(portfolioProfileMapper, never()).deleteTechStacks(any());
     }
 
     @Test
@@ -353,6 +423,19 @@ class PortfolioServiceTest {
         verify(portfolioMapper, never()).insert(any(PortfolioDTO.class));
     }
 
+    @Test
+    @DisplayName("회사 계정은 내 포트폴리오 프로필 조회 실패")
+    void getMyProfile_forbiddenRole_fail() {
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(
+                        USER_EMAIL,
+                        null,
+                        List.of(new SimpleGrantedAuthority("ROLE_COMPANY"))));
+        PortfolioController controller = new PortfolioController(portfolioService);
+
+        assertCustomException(controller::getMyProfile, ErrorCode.FREELANCER_ONLY);
+    }
+
     private void assertCustomException(ThrowingCallable callable, ErrorCode expectedErrorCode) {
         assertThatThrownBy(callable::call)
                 .isInstanceOfSatisfying(CustomException.class,
@@ -384,6 +467,17 @@ class PortfolioServiceTest {
                 .parentId(1)
                 .oriName("file-" + fileId + ".png")
                 .uploadPath("portfolio/file-" + fileId + ".png")
+                .build();
+    }
+
+    private PortfolioProfileDTO profile(boolean isPublic, String intro) {
+        return PortfolioProfileDTO.builder()
+                .freelancerEmail(USER_EMAIL)
+                .name("홍길동")
+                .jobCategory(JobCategory.IT)
+                .profileFileId(null)
+                .isPortfolioPublic(isPublic)
+                .intro(intro)
                 .build();
     }
 

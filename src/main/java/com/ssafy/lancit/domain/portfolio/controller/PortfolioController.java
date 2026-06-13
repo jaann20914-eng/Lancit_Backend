@@ -21,6 +21,8 @@ import com.ssafy.lancit.common.exception.CustomException;
 import com.ssafy.lancit.common.exception.ErrorCode;
 import com.ssafy.lancit.common.util.SecurityUtil;
 import com.ssafy.lancit.domain.portfolio.dto.PortfolioDTO;
+import com.ssafy.lancit.domain.portfolio.dto.PortfolioProfileDTO;
+import com.ssafy.lancit.domain.portfolio.dto.PortfolioProfileUpdateRequest;
 import com.ssafy.lancit.domain.portfolio.dto.PortfolioSearchCondition;
 import com.ssafy.lancit.domain.portfolio.service.PortfolioService;
 
@@ -42,6 +44,27 @@ public class PortfolioController {
             @ModelAttribute PortfolioSearchCondition condition) {
         String email = SecurityUtil.getCurrentEmail();
         return ResponseEntity.ok(ApiResponse.ok(portfolioService.getMyList(email, pageRequest, condition)));
+    }
+
+    // PORT-PROFILE-01 내 포트폴리오 프로필 카드 조회
+    @GetMapping("/profile")
+    public ResponseEntity<ApiResponse<PortfolioProfileDTO>> getMyProfile() {
+        String email = SecurityUtil.getCurrentEmail();
+        if (!"USER".equals(SecurityUtil.getCurrentRole())) {
+            throw new CustomException(ErrorCode.FREELANCER_ONLY);
+        }
+        return ResponseEntity.ok(ApiResponse.ok(portfolioService.getMyProfile(email)));
+    }
+
+    // PORT-PROFILE-02 내 포트폴리오 프로필 카드 저장
+    @PutMapping("/profile")
+    public ResponseEntity<ApiResponse<PortfolioProfileDTO>> updateMyProfile(
+            @RequestBody PortfolioProfileUpdateRequest request) {
+        String email = SecurityUtil.getCurrentEmail();
+        if (!"USER".equals(SecurityUtil.getCurrentRole())) {
+            throw new CustomException(ErrorCode.FREELANCER_ONLY);
+        }
+        return ResponseEntity.ok(ApiResponse.ok(portfolioService.updateMyProfile(email, request)));
     }
 
     // CLI-SEAR-02 회사가 특정 프리랜서 공개 포트폴리오 조회 (페이지네이션)

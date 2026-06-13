@@ -226,6 +226,36 @@ CREATE TABLE `portfolio` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='포트폴리오';
 
 -- ============================================================
+--  7-1. portfolio_profile (포트폴리오 프로필 카드)
+-- ============================================================
+CREATE TABLE `portfolio_profile` (
+    freelancer_email       VARCHAR(255)    NOT NULL,
+    is_portfolio_public    TINYINT(1)      NOT NULL    DEFAULT 0,
+    short_intro            VARCHAR(30)     NOT NULL    DEFAULT '',
+    created_at             DATETIME        NOT NULL    DEFAULT CURRENT_TIMESTAMP,
+    updated_at             DATETIME        NOT NULL    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (freelancer_email),
+    CONSTRAINT fk_portfolio_profile_user
+        FOREIGN KEY (freelancer_email) REFERENCES `user` (email)
+        ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='포트폴리오 프로필 카드';
+
+-- ============================================================
+--  7-2. portfolio_profile_tech_stack (포트폴리오 프로필 기술 스택)
+-- ============================================================
+CREATE TABLE `portfolio_profile_tech_stack` (
+    id                 BIGINT          NOT NULL    AUTO_INCREMENT,
+    freelancer_email   VARCHAR(255)    NOT NULL,
+    tech_stack         VARCHAR(100)    NOT NULL,
+    created_at         DATETIME        NOT NULL    DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_portfolio_profile_tech_stack (freelancer_email, tech_stack),
+    CONSTRAINT fk_profile_tech_stack_user
+        FOREIGN KEY (freelancer_email) REFERENCES `user` (email)
+        ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='포트폴리오 프로필 기술 스택';
+
+-- ============================================================
 --  8. recruitment (공고문 - 회사 전용)
 -- ============================================================
 CREATE TABLE `recruitment` (
@@ -495,6 +525,8 @@ CREATE TABLE file_delete_queue (
 --   5.  task             (→ category)
 --   6.  holiday
 --   7.  portfolio        (→ user, → file)
+--   7-1. portfolio_profile             (→ user)
+--   7-2. portfolio_profile_tech_stack  (→ user)
 --   8.  recruitment      (→ company)
 --   9.  recruitment_tech_stack    (→ recruitment)
 --  10.  recruitment_application   (→ recruitment, → user)
