@@ -50,7 +50,14 @@ public enum ErrorCode {
     TASK_NOT_FOUND(HttpStatus.NOT_FOUND, "일정을 찾을 수 없습니다."),
     INVALID_TASK_PERIOD(HttpStatus.BAD_REQUEST, "시작 시간이 종료 시간보다 늦을 수 없습니다."),
     CATEGORY_HAS_TASKS(HttpStatus.CONFLICT, "카테고리에 일정이 존재합니다. 먼저 삭제하거나 이동해주세요."),
-    INVALID_CATEGORY_MOVE(HttpStatus.BAD_REQUEST, "삭제 대상 카테고리와 이동 대상 카테고리가 같을 수 없습니다.");
+    INVALID_CATEGORY_MOVE(HttpStatus.BAD_REQUEST, "삭제 대상 카테고리와 이동 대상 카테고리가 같을 수 없습니다."),
+
+    // 포트폴리오/프로젝트
+    PORTFOLIO_NOT_FOUND(HttpStatus.NOT_FOUND, "프로젝트를 찾을 수 없습니다."),
+    FREELANCER_ONLY(HttpStatus.FORBIDDEN, "프리랜서 계정만 이용할 수 있습니다."),
+    INVALID_PORTFOLIO_PERIOD(HttpStatus.BAD_REQUEST, "프로젝트 시작일이 종료일보다 늦을 수 없습니다."),
+    INVALID_PORTFOLIO_CATEGORY(HttpStatus.BAD_REQUEST, "허용되지 않은 프로젝트 카테고리입니다."),
+    DELETED_PORTFOLIO(HttpStatus.GONE, "삭제된 프로젝트입니다.");
 	
 	
     // TODO 영은: 기능 구현 중 필요한 에러코드 생기면 여기에 추가

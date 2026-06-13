@@ -2,8 +2,200 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.ssafy.lancit.domain.portfolio.mapper.PortfolioMapper">
- 
-    <!-- TODO 영은: SQL 작성 -->
- 
+
+    <resultMap id="PortfolioResultMap" type="com.ssafy.lancit.domain.portfolio.dto.PortfolioDTO">
+        <id property="portfolioId" column="portfolio_id"/>
+        <result property="email" column="email"/>
+        <result property="category" column="category"/>
+        <result property="title" column="title"/>
+        <result property="summary" column="summary"/>
+        <result property="content" column="content"/>
+        <result property="workStartAt" column="work_start_at"/>
+        <result property="workEndAt" column="work_end_at"/>
+        <result property="isPublic" column="is_public"/>
+        <result property="bannerFileId" column="banner_file_id"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <result property="isDeleted" column="is_deleted"/>
+        <result property="deletedAt" column="deleted_at"/>
+    </resultMap>
+
+    <sql id="PortfolioColumns">
+        portfolio_id,
+        email,
+        category,
+        title,
+        summary,
+        content,
+        work_start_at,
+        work_end_at,
+        is_public,
+        banner_file_id,
+        created_at,
+        updated_at,
+        is_deleted,
+        deleted_at
+    </sql>
+
+    <sql id="PortfolioOrderBy">
+        ORDER BY
+        <choose>
+            <when test="pageRequest.sort == 'portfolioId' or pageRequest.sort == 'portfolio_id'">
+                portfolio_id
+            </when>
+            <when test="pageRequest.sort == 'title'">
+                title
+            </when>
+            <when test="pageRequest.sort == 'category'">
+                category
+            </when>
+            <when test="pageRequest.sort == 'createdAt' or pageRequest.sort == 'created_at'">
+                created_at
+            </when>
+            <when test="pageRequest.sort == 'updatedAt' or pageRequest.sort == 'updated_at'">
+                updated_at
+            </when>
+            <otherwise>
+                created_at
+            </otherwise>
+        </choose>
+        ${pageRequest.safeDirection}, portfolio_id DESC
+    </sql>
+
+    <sql id="Pagination">
+        <bind name="limit" value="pageRequest.size &lt;= 0 ? 10 : pageRequest.size"/>
+        <bind name="offset" value="pageRequest.offset &lt; 0 ? 0 : pageRequest.offset"/>
+        LIMIT #{limit} OFFSET #{offset}
+    </sql>
+
+    <sql id="SearchFilters">
+        <if test="condition != null and condition.keyword != null">
+            AND (
+                title LIKE CONCAT('%', #{condition.keyword}, '%')
+                OR summary LIKE CONCAT('%', #{condition.keyword}, '%')
+                OR content LIKE CONCAT('%', #{condition.keyword}, '%')
+            )
+        </if>
+        <if test="condition != null and condition.category != null">
+            AND category = #{condition.category}
+        </if>
+    </sql>
+
+    <sql id="VisibilityFilter">
+        <if test="condition != null and condition.visibility == 'PUBLIC'">
+            AND is_public = 1
+        </if>
+        <if test="condition != null and condition.visibility == 'PRIVATE'">
+            AND is_public = 0
+        </if>
+    </sql>
+
+    <select id="findByEmail" resultMap="PortfolioResultMap">
+        SELECT
+        <include refid="PortfolioColumns"/>
+        FROM portfolio
+        WHERE email = #{email}
+          AND is_deleted = 0
+        <include refid="SearchFilters"/>
+        <include refid="VisibilityFilter"/>
+        <include refid="PortfolioOrderBy"/>
+        <include refid="Pagination"/>
+    </select>
+
+    <select id="countByEmail" resultType="long">
+        SELECT COUNT(*)
+        FROM portfolio
+        WHERE email = #{email}
+          AND is_deleted = 0
+        <include refid="SearchFilters"/>
+        <include refid="VisibilityFilter"/>
+    </select>
+
+    <select id="findPublicByEmail" resultMap="PortfolioResultMap">
+        SELECT
+        <include refid="PortfolioColumns"/>
+        FROM portfolio
+        WHERE email = #{email}
+          AND is_public = 1
+          AND is_deleted = 0
+        <include refid="SearchFilters"/>
+        <include refid="PortfolioOrderBy"/>
+        <include refid="Pagination"/>
+    </select>
+
+    <select id="countPublicByEmail" resultType="long">
+        SELECT COUNT(*)
+        FROM portfolio
+        WHERE email = #{email}
+          AND is_public = 1
+          AND is_deleted = 0
+        <include refid="SearchFilters"/>
+    </select>
+
+    <select id="findById" resultMap="PortfolioResultMap">
+        SELECT
+        <include refid="PortfolioColumns"/>
+        FROM portfolio
+        WHERE portfolio_id = #{portfolioId}
+          AND is_deleted = 0
+    </select>
+
+    <select id="findOwnerEmailById" resultType="string">
+        SELECT email
+        FROM portfolio
+        WHERE portfolio_id = #{portfolioId}
+          AND is_deleted = 0
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="portfolioId">
+        INSERT INTO portfolio (
+            email,
+            category,
+            title,
+            summary,
+            content,
+            work_start_at,
+            work_end_at,
+            is_public,
+            banner_file_id
+        ) VALUES (
+            #{email},
+            #{category},
+            #{title},
+            #{summary},
+            #{content},
+            #{workStartAt},
+            #{workEndAt},
+            #{isPublic},
+            #{bannerFileId}
+        )
+    </insert>
+
+    <update id="update">
+        UPDATE portfolio
+        SET
+            category = #{dto.category},
+            title = #{dto.title},
+            summary = #{dto.summary},
+            content = #{dto.content},
+            work_start_at = #{dto.workStartAt},
+            work_end_at = #{dto.workEndAt},
+            is_public = #{dto.isPublic},
+            banner_file_id = #{dto.bannerFileId},
+            updated_at = NOW()
+        WHERE portfolio_id = #{portfolioId}
+          AND is_deleted = 0
+    </update>
+
+    <update id="softDelete">
+        UPDATE portfolio
+        SET
+            is_deleted = 1,
+            deleted_at = NOW(),
+            updated_at = NOW()
+        WHERE portfolio_id = #{portfolioId}
+          AND is_deleted = 0
+    </update>
+
 </mapper>
  
