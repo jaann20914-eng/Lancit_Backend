@@ -1,5 +1,7 @@
 package com.ssafy.lancit.domain.recruitment.application.controller;
 
+import com.ssafy.lancit.common.page.dto.PageRequest;
+import com.ssafy.lancit.common.page.dto.PageResponse;
 import com.ssafy.lancit.common.response.ApiResponse;
 import com.ssafy.lancit.common.util.SecurityUtil;
 import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationDetailResponse;
@@ -12,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -26,6 +29,28 @@ import org.springframework.web.bind.annotation.RestController;
 public class ApplicationController {
 
     private final ApplicationService applicationService;
+
+    @Operation(summary = "회사용 지원자 목록 조회", description = "회사 토큰이 필요합니다. 목록 조회에서는 viewedAt을 기록하지 않습니다.")
+    @GetMapping
+    public ResponseEntity<ApiResponse<PageResponse<ApplicationDetailResponse>>> getApplications(
+            @PathVariable int recruitmentId,
+            @ModelAttribute PageRequest pageRequest) {
+        String email = SecurityUtil.getCurrentEmail();
+        String role = SecurityUtil.getCurrentRole();
+        return ResponseEntity.ok(ApiResponse.ok(
+                applicationService.getCompanyApplications(recruitmentId, email, role, pageRequest)));
+    }
+
+    @Operation(summary = "회사용 지원 상세 조회", description = "회사 토큰이 필요합니다. 최초 상세 조회 시 viewedAt을 기록합니다.")
+    @GetMapping("/{applicationId}")
+    public ResponseEntity<ApiResponse<ApplicationDetailResponse>> getApplication(
+            @PathVariable int recruitmentId,
+            @PathVariable int applicationId) {
+        String email = SecurityUtil.getCurrentEmail();
+        String role = SecurityUtil.getCurrentRole();
+        return ResponseEntity.ok(ApiResponse.ok(
+                applicationService.getCompanyApplication(recruitmentId, applicationId, email, role)));
+    }
 
     @Operation(summary = "공고 지원 등록", description = "프리랜서 토큰이 필요합니다.")
     @PostMapping

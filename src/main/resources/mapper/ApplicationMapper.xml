@@ -8,6 +8,7 @@
         <result property="recruitmentId" column="recruitment_id"/>
         <result property="recruitmentTitle" column="recruitment_title"/>
         <result property="applicantEmail" column="applicant_email"/>
+        <result property="applicantName" column="applicant_name"/>
         <result property="intro" column="intro"/>
         <result property="appliedAt" column="applied_at"/>
         <result property="canceledAt" column="canceled_at"/>
@@ -21,12 +22,19 @@
         ra.recruitment_id,
         r.title AS recruitment_title,
         ra.applicant_email,
+        u.name AS applicant_name,
         ra.intro,
         ra.applied_at,
         ra.canceled_at,
         ra.viewed_at,
         ra.status,
         ra.is_bookmarked_by_company
+    </sql>
+
+    <sql id="Pagination">
+        <bind name="limit" value="pageRequest.size &lt;= 0 ? 10 : pageRequest.size"/>
+        <bind name="offset" value="pageRequest.offset &lt; 0 ? 0 : pageRequest.offset"/>
+        LIMIT #{limit} OFFSET #{offset}
     </sql>
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="applicationId">
@@ -55,6 +63,7 @@
         <include refid="ApplicationColumns"/>
         FROM recruitment_application ra
         LEFT JOIN recruitment r ON r.recruitment_id = ra.recruitment_id
+        LEFT JOIN user u ON u.email = ra.applicant_email
         WHERE ra.recruitment_id = #{recruitmentId}
           AND ra.applicant_email = #{applicantEmail}
     </select>
@@ -64,8 +73,45 @@
         <include refid="ApplicationColumns"/>
         FROM recruitment_application ra
         LEFT JOIN recruitment r ON r.recruitment_id = ra.recruitment_id
+        LEFT JOIN user u ON u.email = ra.applicant_email
         WHERE ra.application_id = #{applicationId}
     </select>
+
+    <select id="findCompanyList" resultMap="ApplicationResultMap">
+        SELECT
+        <include refid="ApplicationColumns"/>
+        FROM recruitment_application ra
+        INNER JOIN recruitment r ON r.recruitment_id = ra.recruitment_id
+        LEFT JOIN user u ON u.email = ra.applicant_email
+        WHERE ra.recruitment_id = #{recruitmentId}
+          AND ra.status &lt;&gt; 'CANCELLED'
+        ORDER BY ra.applied_at DESC, ra.application_id DESC
+        <include refid="Pagination"/>
+    </select>
+
+    <select id="countCompanyList" resultType="long">
+        SELECT COUNT(*)
+        FROM recruitment_application
+        WHERE recruitment_id = #{recruitmentId}
+          AND status &lt;&gt; 'CANCELLED'
+    </select>
+
+    <select id="findCompanyDetail" resultMap="ApplicationResultMap">
+        SELECT
+        <include refid="ApplicationColumns"/>
+        FROM recruitment_application ra
+        INNER JOIN recruitment r ON r.recruitment_id = ra.recruitment_id
+        LEFT JOIN user u ON u.email = ra.applicant_email
+        WHERE ra.recruitment_id = #{recruitmentId}
+          AND ra.application_id = #{applicationId}
+    </select>
+
+    <update id="markViewedIfAbsent">
+        UPDATE recruitment_application
+        SET viewed_at = NOW()
+        WHERE application_id = #{applicationId}
+          AND viewed_at IS NULL
+    </update>
 
     <update id="updateIntro">
         UPDATE recruitment_application

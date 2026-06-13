@@ -16,6 +16,7 @@ public class ApplicationDTO {
     private Integer recruitmentId;
     private String recruitmentTitle;
     private String applicantEmail;
+    private String applicantName;
     private String intro;
     private LocalDateTime appliedAt;
     private LocalDateTime canceledAt;

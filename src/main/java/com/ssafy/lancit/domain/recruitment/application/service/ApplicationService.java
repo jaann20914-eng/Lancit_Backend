@@ -2,7 +2,11 @@ package com.ssafy.lancit.domain.recruitment.application.service;
 
 import com.ssafy.lancit.common.exception.CustomException;
 import com.ssafy.lancit.common.exception.ErrorCode;
+import com.ssafy.lancit.common.page.dto.PageRequest;
+import com.ssafy.lancit.common.page.dto.PageResponse;
+import com.ssafy.lancit.domain.portfolio.dto.PortfolioProfileDTO;
 import com.ssafy.lancit.domain.portfolio.mapper.PortfolioMapper;
+import com.ssafy.lancit.domain.portfolio.mapper.PortfolioProfileMapper;
 import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationDTO;
 import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationDetailResponse;
 import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationPortfolioSummaryResponse;
@@ -28,12 +32,45 @@ import java.util.List;
 public class ApplicationService {
 
     private static final String ROLE_USER = "USER";
+    private static final String ROLE_COMPANY = "COMPANY";
     private static final int MAX_INTRO_LENGTH = 1000;
 
     private final ApplicationMapper applicationMapper;
     private final PortfolioPermissionMapper portfolioPermissionMapper;
     private final PortfolioMapper portfolioMapper;
+    private final PortfolioProfileMapper portfolioProfileMapper;
     private final RecruitmentMapper recruitmentMapper;
+
+    public PageResponse<ApplicationDetailResponse> getCompanyApplications(int recruitmentId,
+                                                                          String companyEmail,
+                                                                          String role,
+                                                                          PageRequest pageRequest) {
+        requireCompany(role);
+        verifyRecruitmentOwner(recruitmentId, companyEmail);
+
+        List<ApplicationDTO> applications = applicationMapper.findCompanyList(recruitmentId, pageRequest);
+        long total = applicationMapper.countCompanyList(recruitmentId);
+        List<ApplicationDetailResponse> content = applications.stream()
+                .map(application -> toDetailResponse(application, false))
+                .toList();
+        return PageResponse.of(content, total, pageRequest);
+    }
+
+    @Transactional
+    public ApplicationDetailResponse getCompanyApplication(int recruitmentId,
+                                                           int applicationId,
+                                                           String companyEmail,
+                                                           String role) {
+        requireCompany(role);
+        verifyRecruitmentOwner(recruitmentId, companyEmail);
+
+        ApplicationDTO application = findCompanyApplication(recruitmentId, applicationId);
+        if (application.getViewedAt() == null) {
+            applicationMapper.markViewedIfAbsent(applicationId);
+            application = findCompanyApplication(recruitmentId, applicationId);
+        }
+        return toDetailResponse(application, true);
+    }
 
     @Transactional
     public ApplicationDetailResponse apply(int recruitmentId,
@@ -67,7 +104,7 @@ public class ApplicationService {
     public ApplicationDetailResponse getMine(int recruitmentId, String freelancerEmail, String role) {
         requireUser(role);
         ApplicationDTO application = findMyApplication(recruitmentId, freelancerEmail);
-        return toDetailResponse(application);
+        return toDetailResponse(application, false);
     }
 
     @Transactional
@@ -110,6 +147,23 @@ public class ApplicationService {
         }
     }
 
+    private void requireCompany(String role) {
+        if (!ROLE_COMPANY.equals(role)) {
+            throw new CustomException(ErrorCode.RECRUITMENT_COMPANY_ONLY);
+        }
+    }
+
+    private RecruitmentDTO verifyRecruitmentOwner(int recruitmentId, String companyEmail) {
+        RecruitmentDTO recruitment = recruitmentMapper.findById(recruitmentId);
+        if (recruitment == null) {
+            throw new CustomException(ErrorCode.RECRUITMENT_NOT_FOUND);
+        }
+        if (!companyEmail.equals(recruitment.getCompanyEmail())) {
+            throw new CustomException(ErrorCode.RECRUITMENT_FORBIDDEN);
+        }
+        return recruitment;
+    }
+
     private RecruitmentDTO findOpenRecruitment(int recruitmentId) {
         RecruitmentDTO recruitment = recruitmentMapper.findById(recruitmentId);
         if (recruitment == null) {
@@ -125,6 +179,14 @@ public class ApplicationService {
 
     private ApplicationDTO findMyApplication(int recruitmentId, String freelancerEmail) {
         ApplicationDTO application = applicationMapper.findByRecruitmentAndApplicant(recruitmentId, freelancerEmail);
+        if (application == null) {
+            throw new CustomException(ErrorCode.APPLICATION_NOT_FOUND);
+        }
+        return application;
+    }
+
+    private ApplicationDTO findCompanyApplication(int recruitmentId, int applicationId) {
+        ApplicationDTO application = applicationMapper.findCompanyDetail(recruitmentId, applicationId);
         if (application == null) {
             throw new CustomException(ErrorCode.APPLICATION_NOT_FOUND);
         }
@@ -188,24 +250,37 @@ public class ApplicationService {
         return normalized;
     }
 
-    private ApplicationDetailResponse toDetailResponse(ApplicationDTO application) {
+    private ApplicationDetailResponse toDetailResponse(ApplicationDTO application, boolean includePortfolioProfile) {
         List<Integer> portfolioIds =
                 portfolioPermissionMapper.findPortfolioIdsByApplicationId(application.getApplicationId());
         List<ApplicationPortfolioSummaryResponse> portfolios = portfolioIds == null || portfolioIds.isEmpty()
                 ? List.of()
                 : portfolioMapper.findApplicationSummariesByIds(portfolioIds);
+        PortfolioProfileDTO portfolioProfile = includePortfolioProfile
+                ? findPortfolioProfile(application.getApplicantEmail())
+                : null;
 
         return ApplicationDetailResponse.builder()
                 .applicationId(application.getApplicationId())
                 .recruitmentId(application.getRecruitmentId())
                 .recruitmentTitle(application.getRecruitmentTitle())
                 .applicantEmail(application.getApplicantEmail())
+                .applicantName(application.getApplicantName())
                 .intro(application.getIntro())
                 .status(application.getStatus())
                 .appliedAt(application.getAppliedAt())
                 .canceledAt(application.getCanceledAt())
                 .viewedAt(application.getViewedAt())
+                .portfolioProfile(portfolioProfile)
                 .portfolios(portfolios == null ? List.of() : portfolios)
                 .build();
+    }
+
+    private PortfolioProfileDTO findPortfolioProfile(String applicantEmail) {
+        PortfolioProfileDTO profile = portfolioProfileMapper.findByFreelancerEmail(applicantEmail);
+        if (profile != null) {
+            profile.setTechStacks(portfolioProfileMapper.findTechStacks(applicantEmail));
+        }
+        return profile;
     }
 }

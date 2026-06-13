@@ -3,6 +3,7 @@ package com.ssafy.lancit.domain.recruitment.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doAnswer;
@@ -14,7 +15,11 @@ import java.util.List;
 
 import com.ssafy.lancit.common.exception.CustomException;
 import com.ssafy.lancit.common.exception.ErrorCode;
+import com.ssafy.lancit.common.page.dto.PageRequest;
+import com.ssafy.lancit.common.page.dto.PageResponse;
+import com.ssafy.lancit.domain.portfolio.dto.PortfolioProfileDTO;
 import com.ssafy.lancit.domain.portfolio.mapper.PortfolioMapper;
+import com.ssafy.lancit.domain.portfolio.mapper.PortfolioProfileMapper;
 import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationDTO;
 import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationDetailResponse;
 import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationPortfolioSummaryResponse;
@@ -40,6 +45,8 @@ class ApplicationServiceTest {
 
     private static final String USER_EMAIL = "user@test.com";
     private static final String OTHER_USER_EMAIL = "other@test.com";
+    private static final String COMPANY_EMAIL = "company@test.com";
+    private static final String OTHER_COMPANY_EMAIL = "other-company@test.com";
     private static final String ROLE_USER = "USER";
     private static final String ROLE_COMPANY = "COMPANY";
 
@@ -56,7 +63,136 @@ class ApplicationServiceTest {
     private PortfolioMapper portfolioMapper;
 
     @Mock
+    private PortfolioProfileMapper portfolioProfileMapper;
+
+    @Mock
     private RecruitmentMapper recruitmentMapper;
+
+    @Test
+    @DisplayName("회사가 자기 공고 지원자 목록 조회 성공")
+    void getCompanyApplications_success() {
+        PageRequest pageRequest = new PageRequest();
+        ApplicationDTO application = application(ApplicationStatus.PENDING, null, null);
+        given(recruitmentMapper.findById(10)).willReturn(openRecruitment());
+        given(applicationMapper.findCompanyList(10, pageRequest)).willReturn(List.of(application));
+        given(applicationMapper.countCompanyList(10)).willReturn(1L);
+        given(portfolioPermissionMapper.findPortfolioIdsByApplicationId(1)).willReturn(List.of(1));
+        given(portfolioMapper.findApplicationSummariesByIds(List.of(1))).willReturn(portfolios(List.of(1)));
+
+        PageResponse<ApplicationDetailResponse> result =
+                applicationService.getCompanyApplications(10, COMPANY_EMAIL, ROLE_COMPANY, pageRequest);
+
+        assertThat(result.getTotalElements()).isEqualTo(1L);
+        assertThat(result.getContent().get(0).getApplicantName()).isEqualTo("홍길동");
+        assertThat(result.getContent().get(0).getViewedAt()).isNull();
+        verify(applicationMapper, never()).markViewedIfAbsent(1);
+    }
+
+    @Test
+    @DisplayName("회사가 자기 공고 지원 상세 조회 성공 - viewedAt 기록")
+    void getCompanyApplication_markViewed_success() {
+        ApplicationDTO beforeView = application(ApplicationStatus.PENDING, null, null);
+        ApplicationDTO afterView = application(ApplicationStatus.PENDING, null,
+                LocalDateTime.of(2026, 6, 13, 20, 30));
+        given(recruitmentMapper.findById(10)).willReturn(openRecruitment());
+        given(applicationMapper.findCompanyDetail(10, 1)).willReturn(beforeView, afterView);
+        given(portfolioPermissionMapper.findPortfolioIdsByApplicationId(1)).willReturn(List.of(1));
+        given(portfolioMapper.findApplicationSummariesByIds(List.of(1))).willReturn(portfolios(List.of(1)));
+        stubPortfolioProfile();
+
+        ApplicationDetailResponse result =
+                applicationService.getCompanyApplication(10, 1, COMPANY_EMAIL, ROLE_COMPANY);
+
+        assertThat(result.getViewedAt()).isEqualTo(LocalDateTime.of(2026, 6, 13, 20, 30));
+        assertThat(result.getPortfolioProfile()).isNotNull();
+        assertThat(result.getPortfolioProfile().getTechStacks()).containsExactly("Java", "Spring");
+        verify(applicationMapper).markViewedIfAbsent(1);
+    }
+
+    @Test
+    @DisplayName("회사가 이미 열람한 지원 상세 조회 시 viewedAt 덮어쓰지 않음")
+    void getCompanyApplication_alreadyViewed_keepValue() {
+        LocalDateTime viewedAt = LocalDateTime.of(2026, 6, 13, 20, 0);
+        given(recruitmentMapper.findById(10)).willReturn(openRecruitment());
+        given(applicationMapper.findCompanyDetail(10, 1))
+                .willReturn(application(ApplicationStatus.PENDING, null, viewedAt));
+        given(portfolioPermissionMapper.findPortfolioIdsByApplicationId(1)).willReturn(List.of(1));
+        given(portfolioMapper.findApplicationSummariesByIds(List.of(1))).willReturn(portfolios(List.of(1)));
+        stubPortfolioProfile();
+
+        ApplicationDetailResponse result =
+                applicationService.getCompanyApplication(10, 1, COMPANY_EMAIL, ROLE_COMPANY);
+
+        assertThat(result.getViewedAt()).isEqualTo(viewedAt);
+        verify(applicationMapper, never()).markViewedIfAbsent(1);
+    }
+
+    @Test
+    @DisplayName("다른 회사가 지원자 목록 조회 실패")
+    void getCompanyApplications_otherCompany_fail() {
+        given(recruitmentMapper.findById(10)).willReturn(openRecruitment());
+
+        assertCustomException(
+                () -> applicationService.getCompanyApplications(10, OTHER_COMPANY_EMAIL, ROLE_COMPANY, new PageRequest()),
+                ErrorCode.RECRUITMENT_FORBIDDEN);
+
+        verify(applicationMapper, never()).findCompanyList(anyInt(), any());
+    }
+
+    @Test
+    @DisplayName("다른 회사가 지원 상세 조회 실패")
+    void getCompanyApplication_otherCompany_fail() {
+        given(recruitmentMapper.findById(10)).willReturn(openRecruitment());
+
+        assertCustomException(
+                () -> applicationService.getCompanyApplication(10, 1, OTHER_COMPANY_EMAIL, ROLE_COMPANY),
+                ErrorCode.RECRUITMENT_FORBIDDEN);
+
+        verify(applicationMapper, never()).findCompanyDetail(anyInt(), anyInt());
+    }
+
+    @Test
+    @DisplayName("프리랜서가 회사용 지원자 목록 조회 실패")
+    void getCompanyApplications_userRole_fail() {
+        assertCustomException(
+                () -> applicationService.getCompanyApplications(10, USER_EMAIL, ROLE_USER, new PageRequest()),
+                ErrorCode.RECRUITMENT_COMPANY_ONLY);
+
+        verify(recruitmentMapper, never()).findById(10);
+    }
+
+    @Test
+    @DisplayName("프리랜서가 회사용 지원 상세 조회 실패")
+    void getCompanyApplication_userRole_fail() {
+        assertCustomException(
+                () -> applicationService.getCompanyApplication(10, 1, USER_EMAIL, ROLE_USER),
+                ErrorCode.RECRUITMENT_COMPANY_ONLY);
+
+        verify(recruitmentMapper, never()).findById(10);
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 공고의 지원자 목록 조회 실패")
+    void getCompanyApplications_recruitmentNotFound_fail() {
+        given(recruitmentMapper.findById(10)).willReturn(null);
+
+        assertCustomException(
+                () -> applicationService.getCompanyApplications(10, COMPANY_EMAIL, ROLE_COMPANY, new PageRequest()),
+                ErrorCode.RECRUITMENT_NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("applicationId가 recruitmentId에 속하지 않으면 상세 조회 실패")
+    void getCompanyApplication_mismatch_fail() {
+        given(recruitmentMapper.findById(10)).willReturn(openRecruitment());
+        given(applicationMapper.findCompanyDetail(10, 99)).willReturn(null);
+
+        assertCustomException(
+                () -> applicationService.getCompanyApplication(10, 99, COMPANY_EMAIL, ROLE_COMPANY),
+                ErrorCode.APPLICATION_NOT_FOUND);
+
+        verify(applicationMapper, never()).markViewedIfAbsent(99);
+    }
 
     @Test
     @DisplayName("OPEN 공고 지원 성공")
@@ -264,6 +400,18 @@ class ApplicationServiceTest {
         given(portfolioMapper.findApplicationSummariesByIds(portfolioIds)).willReturn(portfolios(portfolioIds));
     }
 
+    private void stubPortfolioProfile() {
+        given(portfolioProfileMapper.findByFreelancerEmail(USER_EMAIL)).willReturn(PortfolioProfileDTO.builder()
+                .freelancerEmail(USER_EMAIL)
+                .name("홍길동")
+                .jobCategory(JobCategory.IT)
+                .profileFileId(11)
+                .isPortfolioPublic(false)
+                .intro("백엔드 개발자")
+                .build());
+        given(portfolioProfileMapper.findTechStacks(USER_EMAIL)).willReturn(List.of("Java", "Spring"));
+    }
+
     private ApplicationRequest request(String intro, List<Integer> portfolioIds) {
         ApplicationRequest request = new ApplicationRequest();
         request.setIntro(intro);
@@ -274,7 +422,7 @@ class ApplicationServiceTest {
     private RecruitmentDTO openRecruitment() {
         return RecruitmentDTO.builder()
                 .recruitmentId(10)
-                .companyEmail("company@test.com")
+                .companyEmail(COMPANY_EMAIL)
                 .title("백엔드 개발자 모집")
                 .summary("요약")
                 .content("내용")
@@ -293,6 +441,7 @@ class ApplicationServiceTest {
                 .recruitmentId(10)
                 .recruitmentTitle("백엔드 개발자 모집")
                 .applicantEmail(USER_EMAIL)
+                .applicantName("홍길동")
                 .intro("지원 소개")
                 .status(status)
                 .appliedAt(LocalDateTime.of(2026, 6, 1, 0, 0))
