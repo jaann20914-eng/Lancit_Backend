@@ -2,6 +2,7 @@ package com.ssafy.lancit.common.jwt;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -21,7 +22,10 @@ import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
- 
+	 
+    private static final String ROLE_USER = "USER";
+    private static final String ROLE_COMPANY = "COMPANY";
+
     private final JwtTokenProvider jwtTokenProvider;
  
     
@@ -35,7 +39,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         
         if (token != null && jwtTokenProvider.validate(token)) { // 토큰 유효하면
             String email = jwtTokenProvider.getEmail(token); //이메일, role 뽑아내서
-            String role  = jwtTokenProvider.getRole(token);
+            String role  = normalizeRole(jwtTokenProvider.getRole(token));
             var auth = new UsernamePasswordAuthenticationToken(
                     email, null, List.of(new SimpleGrantedAuthority("ROLE_" + role)));
             SecurityContextHolder.getContext().setAuthentication(auth); //SecurityContext라는 풀에 저장해놓기 (이 필터를 지난 후에 이후 컨트롤러~서비스~등등에서 사용 가능하도록)
@@ -54,6 +58,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return bearer.substring(7);
         }
         return null;
+    }
+
+    private String normalizeRole(String role) {
+        if (role == null) {
+            throw new IllegalArgumentException("JWT role claim is missing");
+        }
+
+        String normalizedRole = role.trim().toUpperCase(Locale.ROOT);
+        if (!ROLE_USER.equals(normalizedRole) && !ROLE_COMPANY.equals(normalizedRole)) {
+            throw new IllegalArgumentException("Unsupported JWT role: " + role);
+        }
+        return normalizedRole;
     }
 }
  
