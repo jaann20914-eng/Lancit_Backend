@@ -2,8 +2,65 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.ssafy.lancit.domain.recruitment.application.mapper.PortfolioPermissionMapper">
- 
-    <!-- TODO 영은: SQL 작성 -->
- 
+
+    <resultMap id="PortfolioPermissionResultMap"
+               type="com.ssafy.lancit.domain.recruitment.application.dto.PortfolioPermissionDTO">
+        <id property="permissionId" column="permission_id"/>
+        <result property="applicationId" column="application_id"/>
+        <result property="portfolioId" column="portfolio_id"/>
+        <result property="isPublic" column="is_public"/>
+    </resultMap>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="permissionId">
+        INSERT INTO portfolio_permission (
+            application_id,
+            portfolio_id,
+            is_public
+        ) VALUES (
+            #{applicationId},
+            #{portfolioId},
+            #{isPublic}
+        )
+    </insert>
+
+    <insert id="insertAll">
+        INSERT INTO portfolio_permission (
+            application_id,
+            portfolio_id,
+            is_public
+        )
+        SELECT
+            #{applicationId},
+            p.portfolio_id,
+            p.is_public
+        FROM portfolio p
+        WHERE p.portfolio_id IN
+        <foreach collection="portfolioIds" item="portfolioId" open="(" separator="," close=")">
+            #{portfolioId}
+        </foreach>
+    </insert>
+
+    <delete id="deleteByApplicationId">
+        DELETE FROM portfolio_permission
+        WHERE application_id = #{applicationId}
+    </delete>
+
+    <select id="findByApplication" resultMap="PortfolioPermissionResultMap">
+        SELECT
+            permission_id,
+            application_id,
+            portfolio_id,
+            is_public
+        FROM portfolio_permission
+        WHERE application_id = #{applicationId}
+        ORDER BY permission_id ASC
+    </select>
+
+    <select id="findPortfolioIdsByApplicationId" resultType="int">
+        SELECT portfolio_id
+        FROM portfolio_permission
+        WHERE application_id = #{applicationId}
+        ORDER BY permission_id ASC
+    </select>
+
 </mapper>
- 

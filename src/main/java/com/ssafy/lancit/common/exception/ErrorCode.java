@@ -67,7 +67,16 @@ public enum ErrorCode {
     INVALID_RECRUITMENT_CATEGORY(HttpStatus.BAD_REQUEST, "허용되지 않은 공고 카테고리입니다."),
     INVALID_RECRUITMENT_STATUS(HttpStatus.BAD_REQUEST, "허용되지 않은 공고 상태입니다."),
     INVALID_RECRUITMENT_PERIOD(HttpStatus.BAD_REQUEST, "공고 기간이 올바르지 않습니다."),
-    RECRUITMENT_HAS_ACTIVE_APPLICATIONS(HttpStatus.CONFLICT, "지원자가 있는 공고는 수정하거나 삭제할 수 없습니다.");
+    RECRUITMENT_HAS_ACTIVE_APPLICATIONS(HttpStatus.CONFLICT, "지원자가 있는 공고는 수정하거나 삭제할 수 없습니다."),
+    RECRUITMENT_NOT_OPEN(HttpStatus.CONFLICT, "지원 가능한 공고가 아닙니다."),
+
+    // 공고 지원
+    APPLICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "지원 내역을 찾을 수 없습니다."),
+    APPLICATION_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 지원한 공고입니다."),
+    APPLICATION_ALREADY_CANCELLED(HttpStatus.CONFLICT, "이미 취소된 지원입니다."),
+    APPLICATION_ALREADY_VIEWED(HttpStatus.CONFLICT, "회사가 열람한 지원은 수정하거나 취소할 수 없습니다."),
+    INVALID_APPLICATION_STATUS(HttpStatus.CONFLICT, "현재 상태에서는 지원을 수정하거나 취소할 수 없습니다."),
+    INVALID_APPLICATION_PORTFOLIO(HttpStatus.BAD_REQUEST, "지원에 사용할 수 없는 포트폴리오입니다.");
 	
 	
     // TODO 영은: 기능 구현 중 필요한 에러코드 생기면 여기에 추가

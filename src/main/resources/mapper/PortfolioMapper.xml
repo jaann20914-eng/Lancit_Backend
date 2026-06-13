@@ -20,6 +20,16 @@
         <result property="deletedAt" column="deleted_at"/>
     </resultMap>
 
+    <resultMap id="ApplicationPortfolioSummaryResultMap"
+               type="com.ssafy.lancit.domain.recruitment.application.dto.ApplicationPortfolioSummaryResponse">
+        <id property="portfolioId" column="portfolio_id"/>
+        <result property="title" column="title"/>
+        <result property="summary" column="summary"/>
+        <result property="category" column="category"/>
+        <result property="bannerFileId" column="banner_file_id"/>
+        <result property="isPublic" column="is_public"/>
+    </resultMap>
+
     <sql id="PortfolioColumns">
         portfolio_id,
         email,
@@ -145,6 +155,38 @@
         FROM portfolio
         WHERE portfolio_id = #{portfolioId}
           AND is_deleted = 0
+    </select>
+
+    <select id="countOwnedActiveByIds" resultType="int">
+        SELECT COUNT(*)
+        FROM portfolio
+        WHERE email = #{email}
+          AND is_deleted = 0
+          AND portfolio_id IN
+        <foreach collection="portfolioIds" item="portfolioId" open="(" separator="," close=")">
+            #{portfolioId}
+        </foreach>
+    </select>
+
+    <select id="findApplicationSummariesByIds" resultMap="ApplicationPortfolioSummaryResultMap">
+        SELECT
+            portfolio_id,
+            title,
+            summary,
+            category,
+            banner_file_id,
+            is_public
+        FROM portfolio
+        WHERE is_deleted = 0
+          AND portfolio_id IN
+        <foreach collection="portfolioIds" item="portfolioId" open="(" separator="," close=")">
+            #{portfolioId}
+        </foreach>
+        ORDER BY FIELD(portfolio_id,
+        <foreach collection="portfolioIds" item="portfolioId" separator=",">
+            #{portfolioId}
+        </foreach>
+        )
     </select>
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="portfolioId">

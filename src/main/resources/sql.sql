@@ -313,7 +313,9 @@ CREATE TABLE `recruitment_application` (
     application_id              INT             NOT NULL    AUTO_INCREMENT,
     recruitment_id              INT             NOT NULL,
     applicant_email             VARCHAR(255)    NOT NULL,
+    intro                       TEXT            NULL                        COMMENT '지원 소개',
     applied_at                  DATETIME        NOT NULL    DEFAULT CURRENT_TIMESTAMP,
+    canceled_at                 DATETIME        NULL,
     status                      ENUM('PENDING','ACCEPTED','REJECTED','CANCELLED')
                                                 NOT NULL    DEFAULT 'PENDING',
     is_bookmarked_by_company    TINYINT(1)      NOT NULL    DEFAULT 0,
@@ -337,6 +339,7 @@ CREATE TABLE `portfolio_permission` (
     portfolio_id    INT         NOT NULL,
     is_public       TINYINT(1)  NOT NULL    DEFAULT 0,
     PRIMARY KEY (permission_id),
+    UNIQUE KEY uk_permission_application_portfolio (application_id, portfolio_id),
     CONSTRAINT fk_permission_application
         FOREIGN KEY (application_id) REFERENCES `recruitment_application` (application_id)
         ON DELETE CASCADE,
