@@ -43,4 +43,7 @@ public interface FileMapper {
     //GCS 폴더경로 바꾸기
     void updatePath(@Param("fileId") Integer fileId,@Param("uploadPath") String uploadPath);
 
+    //파일 매퍼
+    List<FileDTO> findOrphanContractFiles();
+    
 }

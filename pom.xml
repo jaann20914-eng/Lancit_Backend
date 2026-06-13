@@ -25,7 +25,17 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
-
+	
+		<!-- Jackson 2 ObjectMapper (ContractService.objectMapper.convertValue 용) -->
+		<dependency>
+		    <groupId>com.fasterxml.jackson.core</groupId>
+		    <artifactId>jackson-databind</artifactId>
+		</dependency>
+		<dependency>
+		    <groupId>com.fasterxml.jackson.datatype</groupId>
+		    <artifactId>jackson-datatype-jsr310</artifactId>
+		</dependency>
+	
         <!-- DevTools -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -66,6 +76,29 @@
             <version>0.12.5</version>
             <scope>runtime</scope>
         </dependency>
+        
+        
+        <!--pdf용 의존성-->
+        <!-- 1) Thymeleaf (Spring Boot starter에 포함되어 있으면 생략 가능) -->
+		<dependency>
+		    <groupId>org.springframework.boot</groupId>
+		    <artifactId>spring-boot-starter-thymeleaf</artifactId>
+		</dependency>
+		 
+		<!-- 2) OpenHTMLtoPDF - PDF 변환 핵심 -->
+		<dependency>
+		    <groupId>com.openhtmltopdf</groupId>
+		    <artifactId>openhtmltopdf-pdfbox</artifactId>
+		    <version>1.0.10</version>
+		</dependency>
+		 
+		<!-- 3) OpenHTMLtoPDF - SVG 지원 (선택, 로고 등 SVG 쓸 경우) -->
+		<dependency>
+		    <groupId>com.openhtmltopdf</groupId>
+		    <artifactId>openhtmltopdf-svg-support</artifactId>
+		    <version>1.0.10</version>
+		</dependency>
+        
 
         <!-- STOMP (WebSocket) -->
         <dependency>

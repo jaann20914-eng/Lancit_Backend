@@ -31,7 +31,7 @@ public class OwnerCheckAspect {
     private final TaskMapper taskMapper;
     private final CategoryMapper categoryMapper;
     private final PortfolioMapper portfolioMapper;
-    private final ContractMapper contractMapper;
+    //private final ContractMapper contractMapper;
     private final FileMapper fileMapper;
 
     
@@ -47,7 +47,7 @@ public class OwnerCheckAspect {
         String ownerEmail = findOwnerEmail(ownerCheck.resourceType(), resourceId);
 	     // resourceType 에 따라 DB 에서 소유자 이메일 조회
 	     // TASK      → task 테이블에서 email 조회
-	     // CATEGORY  → category 테이블에서 email 조회
+	     																							// CATEGORY  → category 테이블에서 email 조회 -> 이거는 제외,@ParticipantCheck로 확인하기로
 	     // PORTFOLIO → portfolio 테이블에서 email 조회
 	     // CONTRACT  → contract 테이블에서 freelancer_email 조회
 	     // FILE      → file 테이블에서 user_email or company_email 조회
@@ -74,7 +74,7 @@ public class OwnerCheckAspect {
             case "TASK"      -> taskMapper.findOwnerEmailById(resourceId);
             case "CATEGORY"  -> categoryMapper.findOwnerEmailById(resourceId);
             case "PORTFOLIO" -> portfolioMapper.findOwnerEmailById(resourceId);
-            case "CONTRACT"  -> contractMapper.findOwnerEmailById(resourceId);
+            //case "CONTRACT"  -> contractMapper.findOwnerEmailById(resourceId);  -> 이거는 제외,@ParticipantCheck로 확인하기로
             case "FILE"      -> fileMapper.findOwnerEmailById(resourceId);
             default -> throw new CustomException(ErrorCode.INVALID_RESOURCE_TYPE);
         };

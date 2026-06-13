@@ -10,10 +10,22 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class NotificationDTO {
-    private String targetEmail;
-    private String message;
+
+    private Integer notificationId;
+
+    private String receiverEmail;
+
     private NotificationType type;
+
+    private Integer targetId;
+
+    private boolean isRead;
+
     private LocalDateTime createdAt;
 }

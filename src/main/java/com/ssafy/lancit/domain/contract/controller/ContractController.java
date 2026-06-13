@@ -1,100 +1,217 @@
 package com.ssafy.lancit.domain.contract.controller;
 
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.ssafy.lancit.common.page.dto.PageRequest;
 import com.ssafy.lancit.common.page.dto.PageResponse;
 import com.ssafy.lancit.common.response.ApiResponse;
-import com.ssafy.lancit.common.util.SecurityUtil;
-import com.ssafy.lancit.domain.contract.dto.ChatRoomDTO;
 import com.ssafy.lancit.domain.contract.dto.ContractDTO;
+import com.ssafy.lancit.domain.contract.dto.ContractDocumentDTO;
+import com.ssafy.lancit.domain.contract.dto.ContractFileDTO;
+import com.ssafy.lancit.domain.contract.service.ContractFileService;
+import com.ssafy.lancit.domain.contract.service.ContractPdfService;
 import com.ssafy.lancit.domain.contract.service.ContractService;
-import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 
-// 계약서 CRUD + PDF 다운로드 + 채팅방 조회
-// 서명 이미지 → Redis Base64 캐싱 (ContractPdfService 에서 처리)
+import lombok.RequiredArgsConstructor;
+
 @RestController
-@RequestMapping("/api/contracts")
+@RequestMapping("/contracts")
 @RequiredArgsConstructor
 public class ContractController {
 
     private final ContractService contractService;
+    private final ContractFileService contractFileService;
+    private final ContractPdfService contractPdfService;
 
-    // CONT-01 / CLI-CONT-01 계약서 목록 조회 (상태/키워드 필터 + 페이지네이션)
-    // role 로 USER(freelancerEmail) / COMPANY(companyEmail) 분기
+  //==================================================================== 조회 관련 + 임시저장
+    // 계약 목록 조회
     @GetMapping
-    public ResponseEntity<ApiResponse<PageResponse<ContractDTO>>> getContracts(
+    public ApiResponse<PageResponse<Map<String, Object>>> getContracts(
+            @ModelAttribute PageRequest pageRequest,
             @RequestParam(required = false) String status,
-            @RequestParam(required = false) String keyword,
-            @ModelAttribute PageRequest pageRequest) {
-        // TODO 지원 [1]: String email = SecurityUtil.getCurrentEmail()
-        // TODO 지원 [2]: String role = SecurityUtil.getCurrentRole()
-        // TODO 지원 [3]: return ResponseEntity.ok(ApiResponse.ok(
-        //               contractService.getList(email, role, status, keyword, pageRequest)))
-        return ResponseEntity.ok(ApiResponse.ok(null));
+            @RequestParam(required = false) String keywordType,
+            @RequestParam(required = false) String keyword) {
+
+        return ApiResponse.ok(
+                contractService.getContracts(pageRequest, status, keywordType, keyword)
+        );
     }
 
-    // CONT-07 계약서 상세 조회
-    // 서명 파일 3종 (representativeSignFileId, freelancerSignFileId, confirmSignFileId) 포함
-    // Signed URL 은 프론트가 /api/files/{fileId}/url 로 별도 호출
+
+    // 계약 상세 조회
     @GetMapping("/{contractId}")
-    public ResponseEntity<ApiResponse<ContractDTO>> getContract(@PathVariable int contractId) {
-        // TODO 지원 [1]: return ResponseEntity.ok(ApiResponse.ok(contractService.getOne(contractId)))
-        return ResponseEntity.ok(ApiResponse.ok(null));
+    public ApiResponse<Map<String, Object>> getContractDetail(
+            @PathVariable Integer contractId) {
+
+        return ApiResponse.ok(
+                contractService.getContractDetail(contractId)
+        );
     }
 
-    // CONT-06 (회사) 계약서 작성 및 전송
-    // contractId 없으면 최초 작성(INSERT), 있으면 수정(UPDATE)
-    // status 흐름: NEGOTIATING_A → B → C
-    @PostMapping
-    public ResponseEntity<ApiResponse<Void>> createOrUpdateContract(@RequestBody ContractDTO dto) {
-        // TODO 지원 [1]: String companyEmail = SecurityUtil.getCurrentEmail()
-        // TODO 지원 [2]: contractService.createOrUpdate(dto, companyEmail)
-        // TODO 지원 [3]: return ResponseEntity.ok(ApiResponse.ok(null))
-        return ResponseEntity.ok(ApiResponse.ok(null));
+
+    // 계약 문서 임시 저장
+    @PutMapping("/{contractId}/draft")
+    public ApiResponse<Void> saveDraft(
+            @PathVariable Integer contractId,
+            @RequestBody Map<String, Object> request) {
+
+        contractService.saveDraft(contractId, request);
+        return ApiResponse.ok(null);
+    }
+    
+    // 신규: 제안 거절 엔드포인트 추가
+    // 제안 거절 (WAITING -> 완전 삭제, 프리랜서 전용) - Image2 "거절하기"
+    @PutMapping("/{contractId}/reject")
+    public ApiResponse<Void> rejectContract(@PathVariable Integer contractId) {
+        contractService.rejectContract(contractId);
+        return ApiResponse.ok(null);
+    }
+    
+    
+    //==================================================================== 상태 관련
+    
+    // 계약 생성 (WAITING 삽입)
+	 // 회사가 프리랜서에게 계약 시작 버튼 누를 때
+	 @PostMapping
+	 public ApiResponse<Void> createContract( @RequestBody Map<String, Object> request) {
+	     contractService.createContract(request);
+	     return ApiResponse.ok(null);
+	 }
+
+
+    // 계약 작성 시작 (WAITING -> NEGOTIATING_A)
+    @PutMapping("/{contractId}/start")
+    public ApiResponse<Void> startContract(@PathVariable Integer contractId) {
+        contractService.startContract(contractId);
+        return ApiResponse.ok(null);
     }
 
-    // CONT-06 (프리랜서) 계약서 수락
-    // status → IN_PROGRESS, freelancerSignFileId 업데이트
-    @PutMapping("/{contractId}/accept")
-    public ResponseEntity<ApiResponse<Void>> acceptContract(@PathVariable int contractId,
-                                                            @RequestBody ContractDTO dto) {
-        // TODO 지원 [1]: String freelancerEmail = SecurityUtil.getCurrentEmail()
-        // TODO 지원 [2]: contractService.accept(contractId, dto, freelancerEmail)
-        // TODO 지원 [3]: return ResponseEntity.ok(ApiResponse.ok(null))
-        return ResponseEntity.ok(ApiResponse.ok(null));
+
+    // 회사 계약서 발송 (NEGOTIATING_A -> NEGOTIATING_B)
+    @PutMapping("/{contractId}/send-company")
+    public ApiResponse<Void> sendByCompany( @PathVariable Integer contractId,
+            								@RequestBody Map<String, Object> request) {
+        contractService.sendByCompany(contractId, request);
+        return ApiResponse.ok(null);
     }
 
-    // CONT-08 계약 파기 - 프리랜서/회사 양측 모두 가능
-    // status → CANCELLED
+
+    // 프리랜서 계약서 발송 (NEGOTIATING_B -> NEGOTIATING_C)
+    @PutMapping("/{contractId}/send-freelancer")
+    public ApiResponse<Void> sendByFreelancer( @PathVariable Integer contractId,
+            								   @RequestBody Map<String, Object> request) {
+        contractService.sendByFreelancer(contractId, request);
+        return ApiResponse.ok(null);
+    }
+
+
+    // 계약 최종 승인 (NEGOTIATING_C -> IN_PROGRESS)
+    @PutMapping("/{contractId}/approve")
+    public ApiResponse<Void> approveContract( @PathVariable Integer contractId) {
+        contractService.approveContract(contractId);
+        return ApiResponse.ok(null);
+    }
+
+    
+    // 계약 완료 (COMPLETED_PENDING -> COMPLETED)
+    @PutMapping("/{contractId}/complete")
+    public ApiResponse<Void> completeContract(
+            @PathVariable Integer contractId) {
+
+        contractService.completeContract(contractId);
+        return ApiResponse.ok(null);
+    }
+    
+    
+    //==================================================================== 계약 파기 요청-> 계약 파기
+    // 계약 파기 요청
+    @PostMapping("/{contractId}/cancel-request")
+    public ApiResponse<Void> requestCancel(
+            @PathVariable Integer contractId) {
+
+        contractService.requestCancel(contractId);
+        return ApiResponse.ok(null);
+    }
+    // 계약 파기
     @PutMapping("/{contractId}/cancel")
-    public ResponseEntity<ApiResponse<Void>> cancelContract(@PathVariable int contractId) {
-        // TODO 지원 [1]: String email = SecurityUtil.getCurrentEmail()
-        // TODO 지원 [2]: contractService.cancel(contractId, email)
-        // TODO 지원 [3]: return ResponseEntity.ok(ApiResponse.ok(null))
-        return ResponseEntity.ok(ApiResponse.ok(null));
+    public ApiResponse<Void> cancelContract(
+            @PathVariable Integer contractId) {
+
+        contractService.cancelContract(contractId);
+        return ApiResponse.ok(null);
     }
 
-    // CONT-02 채팅방 조회 - chatRoomId 얻기 위해 채팅 페이지 진입 시 호출
-    @GetMapping("/{contractId}/chatroom")
-    public ResponseEntity<ApiResponse<ChatRoomDTO>> getChatRoom(@PathVariable int contractId) {
-        // TODO 지원 [1]: return ResponseEntity.ok(ApiResponse.ok(contractService.getChatRoom(contractId)))
-        return ResponseEntity.ok(ApiResponse.ok(null));
-    }
 
-    // CONT-07 계약서 PDF 다운로드
-    // ★ 서명 이미지 Base64 는 Redis 에서 캐싱 (ContractPdfService 에서 처리)
-    // IN_PROGRESS / COMPLETED 상태만 허용
+
+  //==================================================================== 계약서 pdf
+
+    // 저장된 PDF 다운로드 URL 조회
     @GetMapping("/{contractId}/pdf")
-    public void downloadPdf(@PathVariable int contractId,
-                            HttpServletResponse response) throws Exception {
-        // TODO 지원 [1]: ContractDTO dto = contractService.getOne(contractId)
-        // TODO 지원 [2]: status 가 IN_PROGRESS / COMPLETED 아니면
-        //               throw new CustomException(ErrorCode.FORBIDDEN)
-        // TODO 지원 [3]: response.setContentType("application/pdf")
-        //               response.setHeader("Content-Disposition",
-        //                   "attachment; filename=contract_" + contractId + ".pdf")
-        // TODO 지원 [4]: contractPdfService.generatePdf(dto, response.getOutputStream())
+    public ApiResponse<Map<String, Object>> getPdfDownloadUrl(
+            @PathVariable Integer contractId) {
+
+        return ApiResponse.ok(
+                contractService.getPdfDownloadUrl(contractId)
+        );
+    }
+
+    // 내부 함수
+    private String buildFilename(ContractDocumentDTO dto) {
+    	String name = (dto.getPartyB() != null && !dto.getPartyB().isBlank())
+    	        ? dto.getPartyB().trim()
+    	        : "계약서";
+        return "근로계약서_" + name + ".pdf";
+    }
+    
+    
+  //==================================================================== 컨펌 파일
+
+
+    // 컨펌파일 업로드 (IN_PROGRESS, 프리랜서만)
+    @PostMapping("/{contractId}/confirm-files")
+    public ApiResponse<Void> uploadConfirmFile(
+            @PathVariable Integer contractId,
+            @RequestBody Map<String, Object> request) {
+
+        Integer fileId = (Integer) request.get("fileId");
+        contractFileService.uploadConfirmFile(contractId, fileId);
+        return ApiResponse.ok(null);
+    }
+
+
+    // 컨펌파일 목록 조회
+    @GetMapping("/{contractId}/confirm-files")
+    public ApiResponse<List<ContractFileDTO>> getConfirmFiles(
+            @PathVariable Integer contractId) {
+
+        return ApiResponse.ok(
+                contractFileService.getConfirmFiles(contractId)
+        );
+    }
+
+
+    // 컨펌파일 삭제 (IN_PROGRESS, 프리랜서만)
+    @DeleteMapping("/{contractId}/confirm-files/{contractFileId}")
+    public ApiResponse<Void> deleteConfirmFile(
+            @PathVariable Integer contractId,
+            @PathVariable Integer contractFileId) {
+
+        contractFileService.deleteConfirmFile(contractId, contractFileId);
+        return ApiResponse.ok(null);
     }
 }

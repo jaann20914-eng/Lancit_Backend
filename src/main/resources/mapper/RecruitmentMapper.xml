@@ -4,6 +4,11 @@
 <mapper namespace="com.ssafy.lancit.domain.recruitment.post.mapper.RecruitmentMapper">
  
     <!-- TODO 영은: SQL 작성 -->
- 
+    <!--지원 필요 작성 : 아이디가지고 공고문 찾기-->
+ 	<select id="findById" resultType="com.ssafy.lancit.domain.recruitment.post.dto.RecruitmentDTO">
+	    SELECT *
+	    FROM recruitment
+	    WHERE recruitment_id = #{recruitmentId}
+	</select>
 </mapper>
  

@@ -1,9 +1,10 @@
 package com.ssafy.lancit;
 
-import com.ssafy.lancit.common.jwt.JwtTokenProvider;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+
+import com.ssafy.lancit.common.jwt.JwtTokenProvider;
 
 @SpringBootTest
 public class JwtTokenTest {
@@ -19,6 +20,11 @@ public class JwtTokenTest {
         System.out.println("=======================");
     }
     
-    
+    @Test
+    void password() {
+    	org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder encoder =
+            new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder();
+            System.out.println(encoder.encode("test1234"));
+    }
     
 }

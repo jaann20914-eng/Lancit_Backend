@@ -16,9 +16,9 @@ import com.ssafy.lancit.common.jwt.JwtTokenProvider;
 import com.ssafy.lancit.common.util.BusinessNumberValidator;
 import com.ssafy.lancit.domain.auth.dto.LoginDTO;
 import com.ssafy.lancit.domain.auth.dto.SignupDTO;
+import com.ssafy.lancit.domain.chat.mapper.ChatRoomMapper;
 import com.ssafy.lancit.domain.company.dto.CompanyDTO;
 import com.ssafy.lancit.domain.company.mapper.CompanyMapper;
-import com.ssafy.lancit.domain.contract.mapper.ChatRoomMapper;
 import com.ssafy.lancit.domain.user.dto.UserDTO;
 import com.ssafy.lancit.domain.user.mapper.UserMapper;
 

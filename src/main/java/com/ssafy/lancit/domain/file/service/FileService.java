@@ -66,8 +66,8 @@ public class FileService {
 			try {
 				sysName = gcsService.upload(file, parentType);
 				FileDTO dto = FileDTO.builder()
-	    		        .userEmail("USER".equals(role) ? email : null) // 유저면 유저로 
-	    		        .companyEmail("USER".equals(role) ? null : email) // 회사면 회사로
+						.userEmail("user".equalsIgnoreCase(role) ? email : null) // 유저면 유저로 
+						.companyEmail("user".equalsIgnoreCase(role) ? null : email)// 회사면 회사로
 	    		        .sysName(sysName)
 	    		        .oriName(file.getOriginalFilename())
 	    		        .parentType(parentType)
@@ -91,6 +91,26 @@ public class FileService {
         return result;
     }
 
+    
+    //계약서 파일 업로드 (계약서만 사용 다른건 사용xxxxxx)
+    @Transactional
+    public FileDTO uploadContractPdf(
+            MultipartFile file,
+            Integer contractId,
+            String companyEmail
+    ) {
+
+        List<FileDTO> result = upload(
+                List.of(file),
+                FileParentType.CONTRACT,
+                contractId,
+                companyEmail,
+                "COMPANY"
+        );
+
+        return result.get(0);
+    }
+    
     
     
     // 파일 단건 조회
@@ -122,7 +142,7 @@ public class FileService {
     
     
     
-    // 파일 단건 삭제
+    // 파일 단건 삭제 : 파일 소유자만삭제 가능
     @OwnerCheck(resourceType = "FILE") // 1.오너 체크먼저 AOP로 진행 : (현재 로그인한 이메일 + 파일 소유자 조회 + 같으면 통과 + 다르면 예외)
     @Transactional // file_db--portfolio_db 등 트랜잭션 처리
     public void delete(int fileId) {
@@ -136,6 +156,20 @@ public class FileService {
         // 트랜잭션이 정상적으로 COMMIT 된 후 실행됨
         // 단, gcs까지는 삭제를 보장하지 않고 트랜잭션 처리가 안됨. 삭제 실패한 파일 목록들 저장해서 배치로 재시도
     }
+    
+    
+	 // 시스템(도메인 서비스) 주도 삭제 - OwnerCheck 미적용 : 개인것만 지워야하는 상화에서는 사용 금지
+	 // 계약 파기/완료 등 계약 도메인이 자신의 PDF/첨부파일을 정리할 때 사용
+	 @Transactional
+	 public void deleteBySystem(int fileId) {
+	
+	     FileDTO dto = fileMapper.findById(fileId);
+	     if (dto == null) return;
+	
+	     eventPublisher.publishEvent(new FileDeleteEvent(dto.getUploadPath()));
+	     fileMapper.delete(fileId);
+	     cacheManager.getCache("signedUrl").evict(dto.getFileId());
+	 }
     
 
 

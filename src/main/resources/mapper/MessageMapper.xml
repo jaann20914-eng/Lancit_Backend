@@ -1,38 +1,66 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.ssafy.lancit.domain.contract.mapper.MessageMapper">
 
-    <!-- TODO 지원: 채팅 메시지 목록 조회
-         - WHERE chat_room_id = #{chatRoomId}
-         - AND is_deleted = false
-         - ORDER BY created_at ASC -->
-    <select id="findByChatRoom" resultType="com.ssafy.lancit.domain.contract.dto.MessageDTO">
+<mapper namespace="com.ssafy.lancit.domain.chat.mapper.MessageMapper">
 
-    </select>
+<!--    <resultMap id="MessageResultMap" type="com.ssafy.lancit.domain.chat.dto.MessageDTO">
+        <id     property="messageId"   column="message_id"/>
+        <result property="chatRoomId"  column="chat_room_id"/>
+        <result property="senderEmail" column="sender_email"/>
+        <result property="messageType" column="message_type"
+                typeHandler="org.apache.ibatis.type.EnumTypeHandler"/>
+        <result property="message"     column="message"/>
+        <result property="isDeleted"   column="is_deleted"/>
+        <result property="isUpdated"   column="is_updated"/>
+        <result property="createdAt"   column="created_at"/>
+    </resultMap>-->
 
-    <!-- TODO 지원: 메시지 삽입
-         - useGeneratedKeys="true" keyProperty="messageId" 유지할 것
-         - created_at = NOW() 로 처리
-         - is_read = false, is_deleted = false, is_updated = false 기본값 -->
+
+    <!-- 메시지 저장 -->
     <insert id="insert" useGeneratedKeys="true" keyProperty="messageId">
-
+        INSERT INTO message (chat_room_id, sender_email, message_type, message,
+                             is_deleted, is_updated, created_at)
+        VALUES (#{chatRoomId}, #{senderEmail}, #{messageType}, #{message},
+                false, false, NOW())
     </insert>
 
-    <!-- TODO 지원: 메시지 수정
-         - null 인 필드는 업데이트 제외 → <if test="xxx != null"> 사용
-         - is_updated = true (수정 시)
-         - is_deleted = true (soft delete 시)
-         - WHERE message_id = #{messageId} -->
-    <update id="update">
 
+    <!-- 무한스크롤 조회 (lastMessageId 없으면 최신부터) -->
+    <select id="findMessages" resultType="MessageDTO">
+        SELECT *
+        FROM message
+        WHERE chat_room_id = #{chatRoomId}
+        <if test="lastMessageId != null">
+            AND message_id &lt; #{lastMessageId}
+        </if>
+        ORDER BY message_id DESC
+        LIMIT #{size}
+    </select>
+
+
+    <!-- 단건 조회 -->
+    <select id="findById"  resultType="MessageDTO">
+        SELECT *
+        FROM message
+        WHERE message_id = #{messageId}
+    </select>
+
+
+    <!-- 소프트 삭제 -->
+    <update id="softDelete">
+        UPDATE message
+        SET is_deleted = true
+        WHERE message_id = #{messageId}
     </update>
 
-    <!-- TODO 지원: 메시지 발신자 이메일 조회
-         - SELECT email FROM message WHERE message_id = #{messageId}
-         - OwnerCheck (수정/삭제 시 본인 메시지인지 검증) 에서 사용 -->
-    <select id="findOwnerEmail" resultType="String">
 
-    </select>
+    <!-- 메시지 수정 -->
+    <update id="update">
+        UPDATE message
+        SET message    = #{content},
+            is_updated = true
+        WHERE message_id = #{messageId}
+    </update>
 
 </mapper>
