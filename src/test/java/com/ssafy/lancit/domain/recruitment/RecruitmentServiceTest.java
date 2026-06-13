@@ -23,6 +23,7 @@ import com.ssafy.lancit.common.exception.CustomException;
 import com.ssafy.lancit.common.exception.ErrorCode;
 import com.ssafy.lancit.common.page.dto.PageRequest;
 import com.ssafy.lancit.common.page.dto.PageResponse;
+import com.ssafy.lancit.domain.bookmark.freelancer.mapper.FreelancerBookmarkMapper;
 import com.ssafy.lancit.domain.file.service.FileService;
 import com.ssafy.lancit.domain.recruitment.post.dto.RecruitmentCreateRequest;
 import com.ssafy.lancit.domain.recruitment.post.dto.RecruitmentDTO;
@@ -46,12 +47,16 @@ class RecruitmentServiceTest {
 
     private static final String COMPANY_EMAIL = "company@lancit.com";
     private static final String OTHER_COMPANY_EMAIL = "other@lancit.com";
+    private static final String USER_EMAIL = "user@lancit.com";
 
     @InjectMocks
     private RecruitmentService recruitmentService;
 
     @Mock
     private RecruitmentMapper recruitmentMapper;
+
+    @Mock
+    private FreelancerBookmarkMapper freelancerBookmarkMapper;
 
     @Mock
     private FileService fileService;
@@ -235,7 +240,58 @@ class RecruitmentServiceTest {
         assertThat(result.getTotalElements()).isEqualTo(3L);
         assertThat(result.getContent().get(0).getTechStacks()).containsExactly("Spring");
         assertThat(result.getContent().get(0).getIsMine()).isTrue();
+        assertThat(result.getContent().get(0).getIsBookmarked()).isFalse();
         assertThat(condition.getKeyword()).isEqualTo("공고");
+    }
+
+    @Test
+    @DisplayName("공고 목록 조회 - 프리랜서 기준 찜 여부 계산")
+    void getList_userBookmarkedFlag_success() {
+        PageRequest pageRequest = new PageRequest();
+        RecruitmentSearchCondition condition = new RecruitmentSearchCondition();
+        RecruitmentDTO dto = baseRecruitment(1);
+
+        given(recruitmentMapper.findList(condition, pageRequest)).willReturn(List.of(dto));
+        given(recruitmentMapper.countList(condition)).willReturn(1L);
+        given(recruitmentMapper.findTechStacksByRecruitmentIds(List.of(1))).willReturn(List.of());
+        given(freelancerBookmarkMapper.findBookmarkedRecruitmentIds(USER_EMAIL, List.of(1)))
+                .willReturn(List.of(1));
+
+        PageResponse<RecruitmentListItemResponse> result =
+                recruitmentService.getList(condition, pageRequest, USER_EMAIL, "USER");
+
+        assertThat(result.getContent().get(0).getIsBookmarked()).isTrue();
+    }
+
+    @Test
+    @DisplayName("찜한 공고 목록 조회 - 응답 구조와 찜 여부")
+    void getBookmarkedList_success() {
+        PageRequest pageRequest = new PageRequest();
+        RecruitmentSearchCondition condition = new RecruitmentSearchCondition();
+        RecruitmentDTO dto = baseRecruitment(1);
+
+        given(freelancerBookmarkMapper.findBookmarkedRecruitments(USER_EMAIL, condition, pageRequest))
+                .willReturn(List.of(dto));
+        given(freelancerBookmarkMapper.countBookmarkedRecruitments(USER_EMAIL, condition)).willReturn(1L);
+        given(recruitmentMapper.findTechStacksByRecruitmentIds(List.of(1)))
+                .willReturn(List.of(new RecruitmentTechStackDTO(1, "Spring")));
+
+        PageResponse<RecruitmentListItemResponse> result =
+                recruitmentService.getBookmarkedList(USER_EMAIL, "USER", condition, pageRequest);
+
+        assertThat(result.getTotalElements()).isEqualTo(1L);
+        assertThat(result.getContent().get(0).getRecruitmentId()).isEqualTo(1);
+        assertThat(result.getContent().get(0).getTechStacks()).containsExactly("Spring");
+        assertThat(result.getContent().get(0).getIsBookmarked()).isTrue();
+    }
+
+    @Test
+    @DisplayName("찜한 공고 목록은 프리랜서만 조회 가능")
+    void getBookmarkedList_companyRole_fail() {
+        assertCustomException(
+                () -> recruitmentService.getBookmarkedList(COMPANY_EMAIL, "COMPANY",
+                        new RecruitmentSearchCondition(), new PageRequest()),
+                ErrorCode.FREELANCER_ONLY);
     }
 
     @Test
@@ -260,10 +316,24 @@ class RecruitmentServiceTest {
         given(recruitmentMapper.findById(1)).willReturn(dto);
         given(recruitmentMapper.findTechStacksByRecruitmentId(1)).willReturn(List.of());
 
-        RecruitmentDetailResponse result = recruitmentService.getOne(1, "user@lancit.com", "USER");
+        RecruitmentDetailResponse result = recruitmentService.getOne(1, USER_EMAIL, "USER");
 
         assertThat(result.getViewStatus()).isEqualTo(RecruitmentViewStatus.EXPIRED);
         assertThat(result.getCanApply()).isFalse();
+        assertThat(result.getIsBookmarked()).isFalse();
+    }
+
+    @Test
+    @DisplayName("공고 상세 조회 - 프리랜서 기준 찜 여부 계산")
+    void getOne_userBookmarkedFlag_success() {
+        RecruitmentDTO dto = baseRecruitment(1);
+        given(recruitmentMapper.findById(1)).willReturn(dto);
+        given(recruitmentMapper.findTechStacksByRecruitmentId(1)).willReturn(List.of());
+        given(freelancerBookmarkMapper.exists(USER_EMAIL, 1)).willReturn(true);
+
+        RecruitmentDetailResponse result = recruitmentService.getOne(1, USER_EMAIL, "USER");
+
+        assertThat(result.getIsBookmarked()).isTrue();
     }
 
     private RecruitmentCreateRequest baseCreateRequest() {
