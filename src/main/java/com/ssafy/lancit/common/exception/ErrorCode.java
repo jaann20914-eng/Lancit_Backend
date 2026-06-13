@@ -66,6 +66,7 @@ public enum ErrorCode {
     RECRUITMENT_COMPANY_ONLY(HttpStatus.FORBIDDEN, "회사 계정만 공고를 관리할 수 있습니다."),
     INVALID_RECRUITMENT_CATEGORY(HttpStatus.BAD_REQUEST, "허용되지 않은 공고 카테고리입니다."),
     INVALID_RECRUITMENT_STATUS(HttpStatus.BAD_REQUEST, "허용되지 않은 공고 상태입니다."),
+    INVALID_RECRUITMENT_TAB(HttpStatus.BAD_REQUEST, "허용되지 않은 공고 목록 탭입니다."),
     INVALID_RECRUITMENT_PERIOD(HttpStatus.BAD_REQUEST, "공고 기간이 올바르지 않습니다."),
     RECRUITMENT_HAS_ACTIVE_APPLICATIONS(HttpStatus.CONFLICT, "지원자가 있는 공고는 수정하거나 삭제할 수 없습니다."),
     RECRUITMENT_NOT_OPEN(HttpStatus.CONFLICT, "지원 가능한 공고가 아닙니다."),

@@ -73,6 +73,29 @@
         <if test="condition != null and condition.recruitmentCategory != null">
             AND r.recruitment_category = #{condition.recruitmentCategory}
         </if>
+        <if test="condition != null and condition.safeTab == 'ALL'">
+            AND r.status = 'OPEN'
+            AND (
+                r.recruitment_end_at IS NULL
+                OR r.recruitment_end_at &gt;= NOW()
+            )
+        </if>
+        <if test="condition != null and condition.safeTab == 'APPLIED'">
+            AND EXISTS (
+                SELECT 1
+                FROM recruitment_application ra_tab
+                WHERE ra_tab.recruitment_id = r.recruitment_id
+                  AND ra_tab.applicant_email = #{condition.currentEmail}
+            )
+        </if>
+        <if test="condition != null and condition.safeTab == 'BOOKMARKED'">
+            AND EXISTS (
+                SELECT 1
+                FROM recruitment_bookmark rb_tab
+                WHERE rb_tab.recruitment_id = r.recruitment_id
+                  AND rb_tab.freelancer_email = #{condition.currentEmail}
+            )
+        </if>
         <if test="condition != null and condition.status != null">
             <choose>
                 <when test="condition.status == 'OPEN'">
@@ -277,6 +300,16 @@
             #{recruitmentId}
         </foreach>
         ORDER BY recruitment_id ASC, tag_name ASC
+    </select>
+
+    <select id="findAppliedRecruitmentIds" resultType="int">
+        SELECT DISTINCT recruitment_id
+        FROM recruitment_application
+        WHERE applicant_email = #{applicantEmail}
+          AND recruitment_id IN
+        <foreach collection="recruitmentIds" item="recruitmentId" open="(" separator="," close=")">
+            #{recruitmentId}
+        </foreach>
     </select>
 
     <select id="countActiveApplications" resultType="int">

@@ -240,8 +240,11 @@ class RecruitmentServiceTest {
         assertThat(result.getTotalElements()).isEqualTo(3L);
         assertThat(result.getContent().get(0).getTechStacks()).containsExactly("Spring");
         assertThat(result.getContent().get(0).getIsMine()).isTrue();
+        assertThat(result.getContent().get(0).getCanApply()).isFalse();
+        assertThat(result.getContent().get(0).getIsApplied()).isFalse();
         assertThat(result.getContent().get(0).getIsBookmarked()).isFalse();
         assertThat(condition.getKeyword()).isEqualTo("공고");
+        assertThat(condition.getTab()).isEqualTo("ALL");
     }
 
     @Test
@@ -264,17 +267,107 @@ class RecruitmentServiceTest {
     }
 
     @Test
+    @DisplayName("공고 목록 조회 - 프리랜서 기준 지원 여부 계산")
+    void getList_userAppliedFlag_success() {
+        PageRequest pageRequest = new PageRequest();
+        RecruitmentSearchCondition condition = new RecruitmentSearchCondition();
+        RecruitmentDTO dto = baseRecruitment(1);
+
+        given(recruitmentMapper.findList(condition, pageRequest)).willReturn(List.of(dto));
+        given(recruitmentMapper.countList(condition)).willReturn(1L);
+        given(recruitmentMapper.findTechStacksByRecruitmentIds(List.of(1))).willReturn(List.of());
+        given(recruitmentMapper.findAppliedRecruitmentIds(USER_EMAIL, List.of(1)))
+                .willReturn(List.of(1));
+
+        PageResponse<RecruitmentListItemResponse> result =
+                recruitmentService.getList(condition, pageRequest, USER_EMAIL, "USER");
+
+        assertThat(result.getContent().get(0).getIsApplied()).isTrue();
+        assertThat(result.getContent().get(0).getCanApply()).isFalse();
+    }
+
+    @Test
+    @DisplayName("공고 목록 조회 - 익명 사용자는 지원/찜/지원가능 여부가 false")
+    void getList_anonymousFlags_success() {
+        PageRequest pageRequest = new PageRequest();
+        RecruitmentSearchCondition condition = new RecruitmentSearchCondition();
+        RecruitmentDTO dto = baseRecruitment(1);
+
+        given(recruitmentMapper.findList(condition, pageRequest)).willReturn(List.of(dto));
+        given(recruitmentMapper.countList(condition)).willReturn(1L);
+        given(recruitmentMapper.findTechStacksByRecruitmentIds(List.of(1))).willReturn(List.of());
+
+        PageResponse<RecruitmentListItemResponse> result =
+                recruitmentService.getList(condition, pageRequest, null, null);
+
+        RecruitmentListItemResponse item = result.getContent().get(0);
+        assertThat(item.getIsApplied()).isFalse();
+        assertThat(item.getIsBookmarked()).isFalse();
+        assertThat(item.getCanApply()).isFalse();
+    }
+
+    @Test
+    @DisplayName("지원 탭은 프리랜서가 지원한 공고만 조회하고 isApplied=true")
+    void getList_appliedTab_success() {
+        PageRequest pageRequest = new PageRequest();
+        RecruitmentSearchCondition condition = new RecruitmentSearchCondition();
+        condition.setTab("applied");
+        RecruitmentDTO dto = baseRecruitment(1);
+
+        given(recruitmentMapper.findList(condition, pageRequest)).willReturn(List.of(dto));
+        given(recruitmentMapper.countList(condition)).willReturn(1L);
+        given(recruitmentMapper.findTechStacksByRecruitmentIds(List.of(1))).willReturn(List.of());
+        given(recruitmentMapper.findAppliedRecruitmentIds(USER_EMAIL, List.of(1)))
+                .willReturn(List.of(1));
+
+        PageResponse<RecruitmentListItemResponse> result =
+                recruitmentService.getList(condition, pageRequest, USER_EMAIL, "USER");
+
+        assertThat(condition.getTab()).isEqualTo("APPLIED");
+        assertThat(condition.getCurrentEmail()).isEqualTo(USER_EMAIL);
+        assertThat(result.getContent().get(0).getIsApplied()).isTrue();
+        assertThat(result.getContent().get(0).getCanApply()).isFalse();
+    }
+
+    @Test
+    @DisplayName("지원 탭은 인증된 프리랜서만 조회 가능")
+    void getList_appliedTabAnonymous_fail() {
+        RecruitmentSearchCondition condition = new RecruitmentSearchCondition();
+        condition.setTab("APPLIED");
+
+        assertCustomException(
+                () -> recruitmentService.getList(condition, new PageRequest(), null, null),
+                ErrorCode.UNAUTHORIZED);
+
+        verify(recruitmentMapper, never()).findList(any(), any());
+    }
+
+    @Test
+    @DisplayName("찜 탭은 프리랜서만 조회 가능")
+    void getList_bookmarkedTabCompany_fail() {
+        RecruitmentSearchCondition condition = new RecruitmentSearchCondition();
+        condition.setTab("BOOKMARKED");
+
+        assertCustomException(
+                () -> recruitmentService.getList(condition, new PageRequest(), COMPANY_EMAIL, "COMPANY"),
+                ErrorCode.FREELANCER_ONLY);
+
+        verify(recruitmentMapper, never()).findList(any(), any());
+    }
+
+    @Test
     @DisplayName("찜한 공고 목록 조회 - 응답 구조와 찜 여부")
     void getBookmarkedList_success() {
         PageRequest pageRequest = new PageRequest();
         RecruitmentSearchCondition condition = new RecruitmentSearchCondition();
         RecruitmentDTO dto = baseRecruitment(1);
 
-        given(freelancerBookmarkMapper.findBookmarkedRecruitments(USER_EMAIL, condition, pageRequest))
-                .willReturn(List.of(dto));
-        given(freelancerBookmarkMapper.countBookmarkedRecruitments(USER_EMAIL, condition)).willReturn(1L);
+        given(recruitmentMapper.findList(condition, pageRequest)).willReturn(List.of(dto));
+        given(recruitmentMapper.countList(condition)).willReturn(1L);
         given(recruitmentMapper.findTechStacksByRecruitmentIds(List.of(1)))
                 .willReturn(List.of(new RecruitmentTechStackDTO(1, "Spring")));
+        given(freelancerBookmarkMapper.findBookmarkedRecruitmentIds(USER_EMAIL, List.of(1)))
+                .willReturn(List.of(1));
 
         PageResponse<RecruitmentListItemResponse> result =
                 recruitmentService.getBookmarkedList(USER_EMAIL, "USER", condition, pageRequest);
@@ -283,6 +376,7 @@ class RecruitmentServiceTest {
         assertThat(result.getContent().get(0).getRecruitmentId()).isEqualTo(1);
         assertThat(result.getContent().get(0).getTechStacks()).containsExactly("Spring");
         assertThat(result.getContent().get(0).getIsBookmarked()).isTrue();
+        assertThat(condition.getTab()).isEqualTo("BOOKMARKED");
     }
 
     @Test
@@ -303,6 +397,19 @@ class RecruitmentServiceTest {
         assertCustomException(
                 () -> recruitmentService.getList(condition, new PageRequest(), null, null),
                 ErrorCode.INVALID_RECRUITMENT_STATUS);
+
+        verify(recruitmentMapper, never()).findList(any(), any());
+    }
+
+    @Test
+    @DisplayName("잘못된 탭이면 목록 조회 실패")
+    void getList_invalidTab_fail() {
+        RecruitmentSearchCondition condition = new RecruitmentSearchCondition();
+        condition.setTab("LIKED");
+
+        assertCustomException(
+                () -> recruitmentService.getList(condition, new PageRequest(), USER_EMAIL, "USER"),
+                ErrorCode.INVALID_RECRUITMENT_TAB);
 
         verify(recruitmentMapper, never()).findList(any(), any());
     }

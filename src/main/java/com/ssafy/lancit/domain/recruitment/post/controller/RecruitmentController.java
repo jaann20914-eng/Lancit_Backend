@@ -37,7 +37,11 @@ public class RecruitmentController {
 
     private final RecruitmentService recruitmentService;
 
-    @Operation(summary = "공고 목록 조회")
+    @Operation(
+            summary = "공고 목록 조회",
+            description = "구인페이지 목록을 조회합니다. tab은 ALL, APPLIED, BOOKMARKED를 지원하며 기본값은 ALL입니다. "
+                    + "jobCategory로 직종 필터를 적용할 수 있고 sort는 LATEST, DEADLINE, BUDGET을 지원합니다. "
+                    + "APPLIED/BOOKMARKED 탭은 프리랜서 토큰이 필요합니다.")
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<RecruitmentListItemResponse>>> getRecruitments(
             @ModelAttribute RecruitmentSearchCondition condition,

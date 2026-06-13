@@ -47,6 +47,10 @@ public interface RecruitmentMapper {
     List<RecruitmentTechStackDTO> findTechStacksByRecruitmentIds(
             @Param("recruitmentIds") List<Integer> recruitmentIds);
 
+    List<Integer> findAppliedRecruitmentIds(
+            @Param("applicantEmail") String applicantEmail,
+            @Param("recruitmentIds") List<Integer> recruitmentIds);
+
     int countActiveApplications(@Param("recruitmentId") int recruitmentId);
 
     String findOwnerEmailById(@Param("recruitmentId") int recruitmentId);
