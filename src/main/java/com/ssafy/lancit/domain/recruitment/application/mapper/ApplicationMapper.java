@@ -12,11 +12,26 @@ import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationDTO;
 public interface ApplicationMapper {
     void insert(ApplicationDTO dto);
 
-    List<ApplicationDTO> findByRecruitment(@Param("recruitmentId") int recruitmentId,
-                                            @Param("pageRequest") PageRequest pageRequest);
-    long countByRecruitment(int recruitmentId);
+    boolean existsByRecruitmentAndApplicant(@Param("recruitmentId") int recruitmentId,
+                                            @Param("applicantEmail") String applicantEmail);
 
-    ApplicationDTO findById(int applicationId);
-    void updateBookmark(@Param("applicationId") int applicationId,
-                        @Param("bookmarked") boolean bookmarked);
+    ApplicationDTO findByRecruitmentAndApplicant(@Param("recruitmentId") int recruitmentId,
+                                                 @Param("applicantEmail") String applicantEmail);
+
+    ApplicationDTO findById(@Param("applicationId") int applicationId);
+
+    List<ApplicationDTO> findCompanyList(@Param("recruitmentId") int recruitmentId,
+                                         @Param("pageRequest") PageRequest pageRequest);
+
+    long countCompanyList(@Param("recruitmentId") int recruitmentId);
+
+    ApplicationDTO findCompanyDetail(@Param("recruitmentId") int recruitmentId,
+                                     @Param("applicationId") int applicationId);
+
+    int markViewedIfAbsent(@Param("applicationId") int applicationId);
+
+    int updateIntro(@Param("applicationId") int applicationId,
+                    @Param("intro") String intro);
+
+    int cancel(@Param("applicationId") int applicationId);
 }

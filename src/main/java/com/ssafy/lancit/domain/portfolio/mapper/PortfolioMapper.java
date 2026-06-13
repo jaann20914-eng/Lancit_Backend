@@ -9,6 +9,7 @@ import org.apache.ibatis.annotations.Param;
 import com.ssafy.lancit.common.page.dto.PageRequest;
 import com.ssafy.lancit.domain.portfolio.dto.PortfolioDTO;
 import com.ssafy.lancit.domain.portfolio.dto.PortfolioSearchCondition;
+import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationPortfolioSummaryResponse;
 
 @Mapper
 public interface PortfolioMapper {
@@ -26,6 +27,10 @@ public interface PortfolioMapper {
 
     PortfolioDTO findById(@Param("portfolioId") int portfolioId);
     String findOwnerEmailById(@Param("portfolioId") int portfolioId);
+    int countOwnedActiveByIds(@Param("email") String email,
+                              @Param("portfolioIds") List<Integer> portfolioIds);
+    List<ApplicationPortfolioSummaryResponse> findApplicationSummariesByIds(
+            @Param("portfolioIds") List<Integer> portfolioIds);
     void insert(PortfolioDTO dto);
     int update(@Param("portfolioId") int portfolioId, @Param("dto") PortfolioDTO dto);
     int softDelete(@Param("portfolioId") int portfolioId);

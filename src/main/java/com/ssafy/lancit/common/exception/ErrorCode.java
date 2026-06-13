@@ -57,7 +57,27 @@ public enum ErrorCode {
     FREELANCER_ONLY(HttpStatus.FORBIDDEN, "프리랜서 계정만 이용할 수 있습니다."),
     INVALID_PORTFOLIO_PERIOD(HttpStatus.BAD_REQUEST, "프로젝트 시작일이 종료일보다 늦을 수 없습니다."),
     INVALID_PORTFOLIO_CATEGORY(HttpStatus.BAD_REQUEST, "허용되지 않은 프로젝트 카테고리입니다."),
-    DELETED_PORTFOLIO(HttpStatus.GONE, "삭제된 프로젝트입니다.");
+    PORTFOLIO_PROFILE_INTRO_TOO_LONG(HttpStatus.BAD_REQUEST, "포트폴리오 한 줄 소개는 30자 이하로 입력해주세요."),
+    DELETED_PORTFOLIO(HttpStatus.GONE, "삭제된 프로젝트입니다."),
+
+    // 공고
+    RECRUITMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "공고를 찾을 수 없습니다."),
+    RECRUITMENT_FORBIDDEN(HttpStatus.FORBIDDEN, "공고에 접근할 권한이 없습니다."),
+    RECRUITMENT_COMPANY_ONLY(HttpStatus.FORBIDDEN, "회사 계정만 공고를 관리할 수 있습니다."),
+    INVALID_RECRUITMENT_CATEGORY(HttpStatus.BAD_REQUEST, "허용되지 않은 공고 카테고리입니다."),
+    INVALID_RECRUITMENT_STATUS(HttpStatus.BAD_REQUEST, "허용되지 않은 공고 상태입니다."),
+    INVALID_RECRUITMENT_TAB(HttpStatus.BAD_REQUEST, "허용되지 않은 공고 목록 탭입니다."),
+    INVALID_RECRUITMENT_PERIOD(HttpStatus.BAD_REQUEST, "공고 기간이 올바르지 않습니다."),
+    RECRUITMENT_HAS_ACTIVE_APPLICATIONS(HttpStatus.CONFLICT, "지원자가 있는 공고는 수정하거나 삭제할 수 없습니다."),
+    RECRUITMENT_NOT_OPEN(HttpStatus.CONFLICT, "지원 가능한 공고가 아닙니다."),
+
+    // 공고 지원
+    APPLICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "지원 내역을 찾을 수 없습니다."),
+    APPLICATION_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 지원한 공고입니다."),
+    APPLICATION_ALREADY_CANCELLED(HttpStatus.CONFLICT, "이미 취소된 지원입니다."),
+    APPLICATION_ALREADY_VIEWED(HttpStatus.CONFLICT, "회사가 열람한 지원은 수정하거나 취소할 수 없습니다."),
+    INVALID_APPLICATION_STATUS(HttpStatus.CONFLICT, "현재 상태에서는 지원을 수정하거나 취소할 수 없습니다."),
+    INVALID_APPLICATION_PORTFOLIO(HttpStatus.BAD_REQUEST, "지원에 사용할 수 없는 포트폴리오입니다.");
 	
 	
     // TODO 영은: 기능 구현 중 필요한 에러코드 생기면 여기에 추가
