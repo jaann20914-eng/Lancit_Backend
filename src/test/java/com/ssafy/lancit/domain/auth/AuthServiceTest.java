@@ -296,14 +296,14 @@ class AuthServiceTest {
             UserDTO user = UserDTO.builder().email("user@test.com").password("encodedPw").build();
             given(userMapper.findByEmail("user@test.com")).willReturn(user);
             given(passwordEncoder.matches("password123", "encodedPw")).willReturn(true);
-            given(jwtTokenProvider.createAccessToken("user@test.com", "user")).willReturn("jwt.token");
+            given(jwtTokenProvider.createAccessToken("user@test.com", "USER")).willReturn("jwt.token");
             given(chatRoomMapper.findChatRoomIdsByFreelancerEmail("user@test.com")).willReturn(List.of(1, 2, 3));
 
             Map<String, Object> result = authService.login(loginDto);
 
             assertThat(result.get("accessToken")).isEqualTo("jwt.token");
             assertThat(result.get("email")).isEqualTo("user@test.com");
-            assertThat(result.get("role")).isEqualTo("user");
+            assertThat(result.get("role")).isEqualTo("USER");
             assertThat(result.get("chatRoomIds")).isEqualTo(List.of(1, 2, 3));
         }
 
@@ -315,7 +315,7 @@ class AuthServiceTest {
             CompanyDTO company = CompanyDTO.builder().email("company@test.com").password("encodedPw").build();
             given(companyMapper.findByEmail("company@test.com")).willReturn(company);
             given(passwordEncoder.matches("password123", "encodedPw")).willReturn(true);
-            given(jwtTokenProvider.createAccessToken("company@test.com", "company")).willReturn("jwt.token");
+            given(jwtTokenProvider.createAccessToken("company@test.com", "COMPANY")).willReturn("jwt.token");
             given(chatRoomMapper.findChatRoomIdsByCompanyEmail("company@test.com")).willReturn(List.of());
 
             Map<String, Object> result = authService.login(loginDto);
@@ -339,7 +339,7 @@ class AuthServiceTest {
         }
 
         @Test
-        @DisplayName("role 대소문자 구분 없이 처리 - USER → user 변환")
+        @DisplayName("role 대소문자 구분 없이 처리 - USER → USER 유지")
         void login_roleUpperCase() {
             loginDto.setRole("USER");
             UserDTO user = UserDTO.builder().email("user@test.com").password("encodedPw").build();
@@ -350,7 +350,7 @@ class AuthServiceTest {
 
             Map<String, Object> result = authService.login(loginDto);
 
-            assertThat(result.get("role")).isEqualTo("user");
+            assertThat(result.get("role")).isEqualTo("USER");
         }
     }
 

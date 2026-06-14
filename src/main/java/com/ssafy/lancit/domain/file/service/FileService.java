@@ -210,6 +210,41 @@ public class FileService {
         fileMapper.updatePath(fileId, newPath);
         fileMapper.updateParentType(fileId, targetType);
     }
+
+    @Transactional
+    public void attachToParent(Integer fileId, FileParentType targetType, int parentId, String ownerEmail) {
+        if (fileId == null) {
+            return;
+        }
+
+        FileDTO file = findById(fileId);
+        String fileOwnerEmail = file.getUserEmail() != null ? file.getUserEmail() : file.getCompanyEmail();
+        if (!ownerEmail.equals(fileOwnerEmail)) {
+            throw new CustomException(ErrorCode.FORBIDDEN);
+        }
+        if (file.getParentId() != null && !file.getParentId().equals(parentId)) {
+            throw new CustomException(ErrorCode.FORBIDDEN);
+        }
+        if (!FileParentType.TEMP.equals(file.getParentType()) && !targetType.equals(file.getParentType())) {
+            throw new CustomException(ErrorCode.INVALID_INPUT);
+        }
+
+        if (FileParentType.TEMP.equals(file.getParentType())) {
+            String newPath = gcsService.move(file.getSysName(), targetType);
+            fileMapper.updatePath(fileId, newPath);
+        }
+        fileMapper.updateParent(fileId, targetType, parentId);
+    }
+
+    @Transactional
+    public void detachByParent(FileParentType parentType, int parentId) {
+        fileMapper.detachByParent(parentType, parentId);
+    }
+
+    @Transactional
+    public void detach(int fileId) {
+        fileMapper.detach(fileId);
+    }
     
     
 }

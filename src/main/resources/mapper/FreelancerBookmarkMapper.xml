@@ -3,5 +3,179 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.ssafy.lancit.domain.bookmark.freelancer.mapper.FreelancerBookmarkMapper">
 
+    <resultMap id="RecruitmentResultMap" type="com.ssafy.lancit.domain.recruitment.post.dto.RecruitmentDTO">
+        <id property="recruitmentId" column="recruitment_id"/>
+        <result property="companyEmail" column="company_email"/>
+        <result property="companyName" column="company_name"/>
+        <result property="title" column="title"/>
+        <result property="summary" column="summary"/>
+        <result property="content" column="content"/>
+        <result property="requirements" column="requirements"/>
+        <result property="jobCategory" column="job_category"/>
+        <result property="recruitmentCategory" column="recruitment_category"/>
+        <result property="status" column="status"/>
+        <result property="workLocation" column="work_location"/>
+        <result property="budget" column="budget"/>
+        <result property="imageFileId" column="image_file_id"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <result property="contractStartAt" column="contract_start_at"/>
+        <result property="contractEndAt" column="contract_end_at"/>
+        <result property="recruitmentStartAt" column="recruitment_start_at"/>
+        <result property="recruitmentEndAt" column="recruitment_end_at"/>
+        <result property="isDeleted" column="is_deleted"/>
+        <result property="deletedAt" column="deleted_at"/>
+        <result property="applicantCount" column="applicant_count"/>
+    </resultMap>
+
+    <sql id="RecruitmentColumns">
+        r.recruitment_id,
+        r.company_email,
+        c.company_name,
+        r.title,
+        r.summary,
+        r.content,
+        r.requirements,
+        r.job_category,
+        r.recruitment_category,
+        r.status,
+        r.work_location,
+        r.budget,
+        r.image_file_id,
+        r.created_at,
+        r.updated_at,
+        r.contract_start_at,
+        r.contract_end_at,
+        r.recruitment_start_at,
+        r.recruitment_end_at,
+        r.is_deleted,
+        r.deleted_at,
+        (
+            SELECT COUNT(*)
+            FROM recruitment_application ra
+            WHERE ra.recruitment_id = r.recruitment_id
+              AND ra.status &lt;&gt; 'CANCELLED'
+        ) AS applicant_count
+    </sql>
+
+    <sql id="SearchFilters">
+        <if test="condition != null and condition.keyword != null and condition.keyword != ''">
+            AND (
+                r.title LIKE CONCAT('%', #{condition.keyword}, '%')
+                OR c.company_name LIKE CONCAT('%', #{condition.keyword}, '%')
+                OR r.content LIKE CONCAT('%', #{condition.keyword}, '%')
+                OR r.summary LIKE CONCAT('%', #{condition.keyword}, '%')
+            )
+        </if>
+        <if test="condition != null and condition.jobCategory != null">
+            AND r.job_category = #{condition.jobCategory}
+        </if>
+        <if test="condition != null and condition.recruitmentCategory != null">
+            AND r.recruitment_category = #{condition.recruitmentCategory}
+        </if>
+        <if test="condition != null and condition.status != null">
+            <choose>
+                <when test="condition.status == 'OPEN'">
+                    AND r.status = 'OPEN'
+                    AND (
+                        r.recruitment_end_at IS NULL
+                        OR r.recruitment_end_at &gt;= NOW()
+                    )
+                </when>
+                <when test="condition.status == 'EXPIRED'">
+                    AND r.status = 'OPEN'
+                    AND r.recruitment_end_at IS NOT NULL
+                    AND r.recruitment_end_at &lt; NOW()
+                </when>
+                <when test="condition.status == 'CLOSED'">
+                    AND r.status = 'CLOSED'
+                </when>
+                <when test="condition.status == 'CANCELLED'">
+                    AND r.status = 'CANCELLED'
+                </when>
+            </choose>
+        </if>
+    </sql>
+
+    <sql id="RecruitmentOrderBy">
+        ORDER BY
+        <choose>
+            <when test="condition != null and condition.safeSort == 'DEADLINE'">
+                CASE WHEN r.recruitment_end_at IS NULL THEN 1 ELSE 0 END,
+                r.recruitment_end_at ASC,
+                r.recruitment_id DESC
+            </when>
+            <when test="condition != null and condition.safeSort == 'BUDGET'">
+                r.budget DESC,
+                r.recruitment_id DESC
+            </when>
+            <otherwise>
+                rb.bookmarked_at DESC,
+                r.recruitment_id DESC
+            </otherwise>
+        </choose>
+    </sql>
+
+    <sql id="Pagination">
+        <bind name="limit" value="pageRequest.size &lt;= 0 ? 10 : pageRequest.size"/>
+        <bind name="offset" value="pageRequest.offset &lt; 0 ? 0 : pageRequest.offset"/>
+        LIMIT #{limit} OFFSET #{offset}
+    </sql>
+
+    <insert id="insert">
+        INSERT INTO recruitment_bookmark (
+            freelancer_email,
+            recruitment_id
+        ) VALUES (
+            #{freelancerEmail},
+            #{recruitmentId}
+        )
+    </insert>
+
+    <delete id="delete">
+        DELETE FROM recruitment_bookmark
+        WHERE freelancer_email = #{freelancerEmail}
+          AND recruitment_id = #{recruitmentId}
+    </delete>
+
+    <select id="exists" resultType="boolean">
+        SELECT COUNT(*) &gt; 0
+        FROM recruitment_bookmark
+        WHERE freelancer_email = #{freelancerEmail}
+          AND recruitment_id = #{recruitmentId}
+    </select>
+
+    <select id="findBookmarkedRecruitments" resultMap="RecruitmentResultMap">
+        SELECT
+        <include refid="RecruitmentColumns"/>
+        FROM recruitment_bookmark rb
+        INNER JOIN recruitment r ON r.recruitment_id = rb.recruitment_id
+        LEFT JOIN company c ON c.email = r.company_email
+        WHERE rb.freelancer_email = #{freelancerEmail}
+          AND r.is_deleted = 0
+        <include refid="SearchFilters"/>
+        <include refid="RecruitmentOrderBy"/>
+        <include refid="Pagination"/>
+    </select>
+
+    <select id="countBookmarkedRecruitments" resultType="long">
+        SELECT COUNT(*)
+        FROM recruitment_bookmark rb
+        INNER JOIN recruitment r ON r.recruitment_id = rb.recruitment_id
+        LEFT JOIN company c ON c.email = r.company_email
+        WHERE rb.freelancer_email = #{freelancerEmail}
+          AND r.is_deleted = 0
+        <include refid="SearchFilters"/>
+    </select>
+
+    <select id="findBookmarkedRecruitmentIds" resultType="int">
+        SELECT recruitment_id
+        FROM recruitment_bookmark
+        WHERE freelancer_email = #{freelancerEmail}
+          AND recruitment_id IN
+        <foreach collection="recruitmentIds" item="recruitmentId" open="(" separator="," close=")">
+            #{recruitmentId}
+        </foreach>
+    </select>
 
 </mapper>

@@ -7,21 +7,58 @@ import org.apache.ibatis.annotations.Param;
 
 import com.ssafy.lancit.common.page.dto.PageRequest;
 import com.ssafy.lancit.domain.recruitment.post.dto.RecruitmentDTO;
-import com.ssafy.lancit.global.enums.JobCategory;
+import com.ssafy.lancit.domain.recruitment.post.dto.RecruitmentSearchCondition;
+import com.ssafy.lancit.domain.recruitment.post.dto.RecruitmentTechStackDTO;
+import com.ssafy.lancit.global.enums.RecruitmentStatus;
 
 @Mapper
 public interface RecruitmentMapper {
-    List<RecruitmentDTO> findAll(@Param("jobCategory") JobCategory jobCategory,
-                                  @Param("keyword") String keyword,
+	
+	//지원 추가 필요
+	RecruitmentDTO findByIdJiwon(@Param("recruitmentId") int recruitmentId);
+	
+	
+    void insertRecruitment(RecruitmentDTO dto);
+
+    int updateRecruitment(@Param("recruitmentId") int recruitmentId,
+                          @Param("dto") RecruitmentDTO dto);
+
+    int softDeleteRecruitment(@Param("recruitmentId") int recruitmentId);
+
+    int updateStatus(@Param("recruitmentId") int recruitmentId,
+                     @Param("status") RecruitmentStatus status);
+    
+    
+
+    RecruitmentDTO findById(@Param("recruitmentId") int recruitmentId);
+
+    List<RecruitmentDTO> findList(@Param("condition") RecruitmentSearchCondition condition,
                                   @Param("pageRequest") PageRequest pageRequest);
-    long countAll(@Param("jobCategory") JobCategory jobCategory,
-                  @Param("keyword") String keyword);
 
-    List<RecruitmentDTO> findByCompany(@Param("email") String email,
-                                        @Param("status") String status,
-                                        @Param("pageRequest") PageRequest pageRequest);
-    long countByCompany(@Param("email") String email, @Param("status") String status);
+    long countList(@Param("condition") RecruitmentSearchCondition condition);
 
-    RecruitmentDTO findById(int recruitmentId);
-    void insert(RecruitmentDTO dto);
+    List<RecruitmentDTO> findMyList(@Param("companyEmail") String companyEmail,
+                                    @Param("condition") RecruitmentSearchCondition condition,
+                                    @Param("pageRequest") PageRequest pageRequest);
+
+    long countMyList(@Param("companyEmail") String companyEmail,
+                     @Param("condition") RecruitmentSearchCondition condition);
+
+    void insertTechStacks(@Param("recruitmentId") int recruitmentId,
+                          @Param("techStacks") List<String> techStacks);
+
+    void deleteTechStacks(@Param("recruitmentId") int recruitmentId);
+
+    List<String> findTechStacksByRecruitmentId(@Param("recruitmentId") int recruitmentId);
+
+    List<RecruitmentTechStackDTO> findTechStacksByRecruitmentIds(
+            @Param("recruitmentIds") List<Integer> recruitmentIds);
+
+    List<Integer> findAppliedRecruitmentIds(
+            @Param("applicantEmail") String applicantEmail,
+            @Param("recruitmentIds") List<Integer> recruitmentIds);
+
+    int countActiveApplications(@Param("recruitmentId") int recruitmentId);
+
+    String findOwnerEmailById(@Param("recruitmentId") int recruitmentId);
 }

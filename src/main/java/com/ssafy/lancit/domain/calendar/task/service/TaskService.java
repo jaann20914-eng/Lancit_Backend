@@ -170,6 +170,7 @@ public class TaskService {
         return dto.getCategoryId() != null
                 || dto.getTitle() != null
                 || dto.getContent() != null
+                || dto.getMemo() != null
                 || dto.getStatus() != null
                 || dto.getStartAt() != null
                 || dto.getEndAt() != null

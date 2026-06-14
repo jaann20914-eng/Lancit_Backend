@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.Locale;
  
 @Slf4j
 @Component
@@ -18,7 +19,10 @@ import java.util.Date;
 //JWT 생성 + 검증 + 파싱 : 로그인 시 토큰 발급, 요청마다 토큰 유효성 검사 및 이메일/역할 추출
 
 public class JwtTokenProvider {
- 
+	 
+    private static final String ROLE_USER = "USER";
+    private static final String ROLE_COMPANY = "COMPANY";
+
     private final JwtProperties jwtProperties;
     
     // secret 키 → 암호화 키 객체로 변환 (서명/검증에 사용)
@@ -28,9 +32,10 @@ public class JwtTokenProvider {
  
     // 로그인 성공 시 JWT 토큰 생성
     public String createAccessToken(String email, String role) {
+        String normalizedRole = normalizeRole(role);
         return Jwts.builder()
                 .subject(email) // 토큰 안에 email
-                .claim("role", role) // role
+                .claim("role", normalizedRole) // role
                 .issuedAt(new Date()) // 발급시간
                 .expiration(new Date(System.currentTimeMillis() + jwtProperties.getAccessTokenExpiration())) // 만료시간 을 담고
                 .signWith(getKey()) // 암호화 시킴
@@ -45,12 +50,13 @@ public class JwtTokenProvider {
     }
     //토큰에서 역할(USER/COMPANY) 꺼내기 함수 (JwtAuthenticationFilter에서 사용)
     public String getRole(String token) {
-        return getClaims(token).get("role", String.class);
+        return normalizeRole(getClaims(token).get("role", String.class));
     }
     // 토큰 유효한지 검증 (만료/위변조 확인) (JwtAuthenticationFilter에서 사용)
     public boolean validate(String token) {
         try {
-            getClaims(token);
+            Claims claims = getClaims(token);
+            normalizeRole(claims.get("role", String.class));
             return true;
         } catch (JwtException | IllegalArgumentException e) {
             log.warn("[JWT] 유효하지 않은 토큰: {}", e.getMessage());
@@ -66,5 +72,17 @@ public class JwtTokenProvider {
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
+    }
+
+    private String normalizeRole(String role) {
+        if (role == null) {
+            throw new IllegalArgumentException("JWT role claim is missing");
+        }
+
+        String normalizedRole = role.trim().toUpperCase(Locale.ROOT);
+        if (!ROLE_USER.equals(normalizedRole) && !ROLE_COMPANY.equals(normalizedRole)) {
+            throw new IllegalArgumentException("Unsupported JWT role: " + role);
+        }
+        return normalizedRole;
     }
 }

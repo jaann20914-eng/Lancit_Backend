@@ -172,7 +172,7 @@ public class ContractService {
         if (recruitment == null) {
             throw new CustomException(ErrorCode.NOT_FOUND);
         }
-        if (!recruitment.getEmail().equals(companyEmail)) {
+        if (!recruitment.getCompanyEmail().equals(companyEmail)) {
             throw new CustomException(ErrorCode.FORBIDDEN);
         }
         

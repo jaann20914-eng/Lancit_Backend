@@ -40,6 +40,17 @@ public interface FileMapper {
     void updateParentType(@Param("fileId") int fileId,
                           @Param("parentType") FileParentType parentType);
 
+    // 파일을 특정 도메인 부모에 연결
+    void updateParent(@Param("fileId") int fileId,
+                      @Param("parentType") FileParentType parentType,
+                      @Param("parentId") Integer parentId);
+
+    // 부모 연결만 해제 (GCS/파일 row 삭제 없음)
+    void detachByParent(@Param("parentType") FileParentType parentType,
+                        @Param("parentId") int parentId);
+
+    void detach(int fileId);
+
     //GCS 폴더경로 바꾸기
     void updatePath(@Param("fileId") Integer fileId,@Param("uploadPath") String uploadPath);
 
@@ -47,3 +58,4 @@ public interface FileMapper {
     List<FileDTO> findOrphanContractFiles();
     
 }
+

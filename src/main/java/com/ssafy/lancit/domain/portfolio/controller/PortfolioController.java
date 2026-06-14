@@ -17,7 +17,13 @@ import org.springframework.web.bind.annotation.RestController;
 import com.ssafy.lancit.common.page.dto.PageRequest;
 import com.ssafy.lancit.common.page.dto.PageResponse;
 import com.ssafy.lancit.common.response.ApiResponse;
+import com.ssafy.lancit.common.exception.CustomException;
+import com.ssafy.lancit.common.exception.ErrorCode;
+import com.ssafy.lancit.common.util.SecurityUtil;
 import com.ssafy.lancit.domain.portfolio.dto.PortfolioDTO;
+import com.ssafy.lancit.domain.portfolio.dto.PortfolioProfileDTO;
+import com.ssafy.lancit.domain.portfolio.dto.PortfolioProfileUpdateRequest;
+import com.ssafy.lancit.domain.portfolio.dto.PortfolioSearchCondition;
 import com.ssafy.lancit.domain.portfolio.service.PortfolioService;
 
 import lombok.RequiredArgsConstructor;
@@ -34,19 +40,40 @@ public class PortfolioController {
     // PORT-01 내 포트폴리오 목록 조회 (페이지네이션)
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<PortfolioDTO>>> getMyPortfolios(
-            @ModelAttribute PageRequest pageRequest) {
-        // TODO 영은 [1]: String email = SecurityUtil.getCurrentEmail()
-        // TODO 영은 [2]: return ResponseEntity.ok(ApiResponse.ok(portfolioService.getMyList(email, pageRequest)))
-        return ResponseEntity.ok(ApiResponse.ok(null));
+            @ModelAttribute PageRequest pageRequest,
+            @ModelAttribute PortfolioSearchCondition condition) {
+        String email = SecurityUtil.getCurrentEmail();
+        return ResponseEntity.ok(ApiResponse.ok(portfolioService.getMyList(email, pageRequest, condition)));
+    }
+
+    // PORT-PROFILE-01 내 포트폴리오 프로필 카드 조회
+    @GetMapping("/profile")
+    public ResponseEntity<ApiResponse<PortfolioProfileDTO>> getMyProfile() {
+        String email = SecurityUtil.getCurrentEmail();
+        if (!"USER".equals(SecurityUtil.getCurrentRole())) {
+            throw new CustomException(ErrorCode.FREELANCER_ONLY);
+        }
+        return ResponseEntity.ok(ApiResponse.ok(portfolioService.getMyProfile(email)));
+    }
+
+    // PORT-PROFILE-02 내 포트폴리오 프로필 카드 저장
+    @PutMapping("/profile")
+    public ResponseEntity<ApiResponse<PortfolioProfileDTO>> updateMyProfile(
+            @RequestBody PortfolioProfileUpdateRequest request) {
+        String email = SecurityUtil.getCurrentEmail();
+        if (!"USER".equals(SecurityUtil.getCurrentRole())) {
+            throw new CustomException(ErrorCode.FREELANCER_ONLY);
+        }
+        return ResponseEntity.ok(ApiResponse.ok(portfolioService.updateMyProfile(email, request)));
     }
 
     // CLI-SEAR-02 회사가 특정 프리랜서 공개 포트폴리오 조회 (페이지네이션)
     @GetMapping("/public")
     public ResponseEntity<ApiResponse<PageResponse<PortfolioDTO>>> getPublicPortfolios(
             @RequestParam String email,
-            @ModelAttribute PageRequest pageRequest) {
-        // TODO 영은 [1]: return ResponseEntity.ok(ApiResponse.ok(portfolioService.getPublicList(email, pageRequest)))
-        return ResponseEntity.ok(ApiResponse.ok(null));
+            @ModelAttribute PageRequest pageRequest,
+            @ModelAttribute PortfolioSearchCondition condition) {
+        return ResponseEntity.ok(ApiResponse.ok(portfolioService.getPublicList(email, pageRequest, condition)));
     }
 
 	 // PORT-02 / CLI-SEAR-03 포트폴리오 상세 조회
@@ -54,8 +81,7 @@ public class PortfolioController {
 	 // files → 결과물 파일 목록 포함
 	 @GetMapping("/{portfolioId}")
 	 public ResponseEntity<ApiResponse<Map<String, Object>>> getPortfolio(@PathVariable int portfolioId) {
-	     // TODO 영은 [1]: return ResponseEntity.ok(ApiResponse.ok(portfolioService.getOne(portfolioId)))
-	     return ResponseEntity.ok(ApiResponse.ok(null));
+	     return ResponseEntity.ok(ApiResponse.ok(portfolioService.getOne(portfolioId)));
 	 }
 
     // PORT-03 포트폴리오 등록
@@ -64,9 +90,11 @@ public class PortfolioController {
     //   2. dto.bannerFileId 에 담아서 이 API 호출
     @PostMapping
     public ResponseEntity<ApiResponse<Void>> createPortfolio(@RequestBody PortfolioDTO dto) {
-        // TODO 영은 [1]: String email = SecurityUtil.getCurrentEmail()
-        // TODO 영은 [2]: portfolioService.create(dto, email)
-        // TODO 영은 [3]: return ResponseEntity.ok(ApiResponse.ok(null))
+        String email = SecurityUtil.getCurrentEmail();
+        if (!"USER".equals(SecurityUtil.getCurrentRole())) {
+            throw new CustomException(ErrorCode.FREELANCER_ONLY);
+        }
+        portfolioService.create(dto, email);
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
 
@@ -74,8 +102,7 @@ public class PortfolioController {
     @PutMapping("/{portfolioId}")
     public ResponseEntity<ApiResponse<Void>> updatePortfolio(@PathVariable int portfolioId,
                                                               @RequestBody PortfolioDTO dto) {
-        // TODO 영은 [1]: portfolioService.update(portfolioId, dto)
-        // TODO 영은 [2]: return ResponseEntity.ok(ApiResponse.ok(null))
+        portfolioService.update(portfolioId, dto);
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
 
@@ -83,8 +110,7 @@ public class PortfolioController {
     // GCS 파일 + Redis Signed URL 캐시는 PortfolioService 에서 처리
     @DeleteMapping("/{portfolioId}")
     public ResponseEntity<ApiResponse<Void>> deletePortfolio(@PathVariable int portfolioId) {
-        // TODO 영은 [1]: portfolioService.delete(portfolioId)
-        // TODO 영은 [2]: return ResponseEntity.ok(ApiResponse.ok(null))
+        portfolioService.delete(portfolioId);
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
 }

@@ -157,7 +157,7 @@ class UserServiceTest {
  
             userService.update(updateDto);
  
-            verify(fileMapper, times(1)).updateParentType(10, FileParentType.PROFILE);
+            verify(fileService, times(1)).promote(10, FileParentType.PROFILE);
             verify(fileService, never()).delete(anyInt());
             verify(userMapper, times(1)).update(updateDto);
         }
@@ -177,7 +177,7 @@ class UserServiceTest {
             userService.update(updateDto);
  
             verify(fileService, times(1)).delete(5);
-            verify(fileMapper, times(1)).updateParentType(10, FileParentType.PROFILE);
+            verify(fileService, times(1)).promote(10, FileParentType.PROFILE);
             verify(userMapper, times(1)).update(updateDto);
         }
  
@@ -196,7 +196,7 @@ class UserServiceTest {
             userService.update(updateDto);
  
             verify(fileService, times(1)).delete(10);
-            verify(fileMapper, times(1)).updateParentType(10, FileParentType.PROFILE);
+            verify(fileService, times(1)).promote(10, FileParentType.PROFILE);
         }
     }
  
@@ -241,22 +241,27 @@ class UserServiceTest {
         }
  
         @Test
-        @DisplayName("파일 있는 유저 탈퇴 - FileDeleteEvent 발행 + Redis 캐시 제거")
+        @DisplayName("파일 있는 유저 탈퇴 - PROFILE/TEMP만 FileDeleteEvent 발행, 나머지 제외")
         void delete_withFiles() {
-            FileDTO file1 = FileDTO.builder().fileId(1).uploadPath("profile/a.jpg").build();
-            FileDTO file2 = FileDTO.builder().fileId(2).uploadPath("portfolio/b.jpg").build();
- 
+            FileDTO file1 = FileDTO.builder().fileId(1).uploadPath("profile/a.jpg")
+                    .parentType(FileParentType.PROFILE).build();
+            FileDTO file2 = FileDTO.builder().fileId(2).uploadPath("portfolio/b.jpg")
+                    .parentType(FileParentType.PORTFOLIO_FILE).build(); // 제외 대상
+            FileDTO file3 = FileDTO.builder().fileId(3).uploadPath("temp/c.jpg")
+                    .parentType(FileParentType.TEMP).build();
+
             given(userMapper.findByEmail("user@test.com")).willReturn(mockUser);
-            given(fileMapper.findByUserEmail("user@test.com")).willReturn(List.of(file1, file2));
- 
+            given(fileMapper.findByUserEmail("user@test.com"))
+                    .willReturn(List.of(file1, file2, file3));
+
             try (var mock = mockStatic(com.ssafy.lancit.common.util.SecurityUtil.class)) {
                 mock.when(com.ssafy.lancit.common.util.SecurityUtil::getCurrentEmail)
-                    .thenReturn("user@test.com");
- 
+                        .thenReturn("user@test.com");
+
                 userService.delete();
- 
+
+                // file1(PROFILE), file3(TEMP)만 이벤트 발행 - file2(PORTFOLIO_FILE)는 제외
                 verify(eventPublisher, times(2)).publishEvent(any(FileDeleteEvent.class));
-                verify(cache, times(2)).evict(anyInt());
                 verify(userMapper, times(1)).softDelete("user@test.com");
             }
         }

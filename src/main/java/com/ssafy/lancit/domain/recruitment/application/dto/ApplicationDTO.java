@@ -1,7 +1,6 @@
 package com.ssafy.lancit.domain.recruitment.application.dto;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 import com.ssafy.lancit.global.enums.ApplicationStatus;
 
@@ -13,11 +12,15 @@ import lombok.Setter;
  
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class ApplicationDTO {
-    private int applicationId;
-    private int recruitmentId;
+    private Integer applicationId;
+    private Integer recruitmentId;
+    private String recruitmentTitle;
     private String applicantEmail;
+    private String applicantName;
+    private String intro;
     private LocalDateTime appliedAt;
+    private LocalDateTime canceledAt;
+    private LocalDateTime viewedAt;
     private ApplicationStatus status;
-    private boolean isBookmarkedByCompany;
-    private List<Integer> portfolioIds; // 열람 허용 포트폴리오 ID 목록
+    private Boolean bookmarkedByCompany;
 }
