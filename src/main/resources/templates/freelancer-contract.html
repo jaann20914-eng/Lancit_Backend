@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/>
+  <style>
+	
+	@page {
+	  size: A4;
+	  margin: 15mm;
+	}
+
+	* { box-sizing: border-box; margin: 0; padding: 0; }
+
+	body {
+	  font-family: 'NanumGothic', sans-serif;
+	  font-size: 10.5pt;
+	  color: #000;
+	  line-height: 1.5;   /* 1.7 -> 1.5 로 축소, overflow 방지 */
+	}
+
+	.page {
+	  width: 100%;        /* 190mm 고정폭 제거 - @page margin이 폭 담당 */
+	  padding: 0;          /* 15mm 0 제거 - @page margin이 담당 */
+	}
+	
+	
+	
+    /* ── 기본 ── */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+	
+    body {
+      font-family: 'NanumGothic', sans-serif;
+      font-size: 11pt;
+      color: #000;
+      line-height: 1.7;
+    }
+
+    /* ── 페이지 구분 ── */
+    .page {
+      width: 100%;
+      padding: 0;
+    }
+    .page-break {
+      page-break-after: always;
+    }
+
+    /* ── 제목 ── */
+    .doc-title-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 28px;
+    }
+    .logo-area {
+      font-size: 10pt;
+      color: #555;
+      width: 50px;
+    }
+    .doc-title {
+      flex: 1;
+      text-align: center;
+      font-size: 22pt;
+      font-weight: bold;
+      letter-spacing: 6px;
+    }
+
+    /* ── 서두 ── */
+    .preamble {
+      margin: 18px 0 24px 0;
+      line-height: 2;
+    }
+
+    /* ── 밑줄 값 ── */
+    .val {
+      display: inline-block;
+      border-bottom: 1px solid #000;
+      min-width: 40px;
+      padding: 0 3px;
+      text-align: center;
+    }
+    .val-lg  { min-width: 160px; }
+    .val-md  { min-width: 100px; }
+    .val-sm  { min-width: 36px; }
+    .val-xs  { min-width: 24px; }
+
+    /* ── 조항 ── */
+    .article { margin-bottom: 18px; }
+    .article-title {
+      font-weight: bold;
+      font-size: 11.5pt;
+      margin-bottom: 5px;
+    }
+    .clause {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 3px;
+    }
+    .clause-num { min-width: 18px; }
+    .clause-text { flex: 1; }
+
+    /* ── 근무시간 표 ── */
+    .work-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 8px 0;
+    }
+    .work-table th,
+    .work-table td {
+      border: 1px solid #000;
+      padding: 5px 8px;
+      text-align: center;
+    }
+    .work-table th { background: #f0f0f0; font-weight: normal; }
+
+    /* ── 급여 표 ── */
+    .salary-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 14px;
+    }
+    .salary-table th,
+    .salary-table td {
+      border: 1px solid #000;
+      padding: 5px 8px;
+      text-align: center;
+    }
+    .salary-table th { background: #f0f0f0; }
+    .salary-table td.amount { text-align: right; padding-right: 6px; }
+
+    /* ── 해지 목록 ── */
+    .dismissal-list { margin: 6px 0 0 10px; }
+    .dismissal-list li {
+      list-style: none;
+      display: flex;
+      gap: 6px;
+      margin-bottom: 2px;
+    }
+    .dismissal-list li .num { min-width: 28px; }
+
+    /* ── 서명 날짜 ── */
+    .sign-date {
+      text-align: center;
+      font-size: 14pt;
+      letter-spacing: 4px;
+      margin: 22px 0 18px 0;
+    }
+
+    /* ── 서명 테이블 ── */
+    .sig-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 28px;
+    }
+    .sig-table th,
+    .sig-table td {
+      border: 1px solid #000;
+      padding: 6px 10px;
+    }
+    .sig-table th {
+      background: #f0f0f0;
+      font-weight: normal;
+      text-align: center;
+      width: 70px;
+    }
+    .sig-table .label-col { width: 70px; }
+
+    /* ── 구분선 ── */
+    .divider {
+      border: none;
+      border-top: 1px dashed #888;
+      margin: 36px 0;
+    }
+
+    /* ── 교부확인서 ── */
+    .confirm-title {
+      text-align: center;
+      font-size: 17pt;
+      font-weight: bold;
+      letter-spacing: 4px;
+      text-decoration: underline;
+      margin-bottom: 18px;
+    }
+
+    /* ── 서명란 ── */
+    .sig-line {
+      text-align: right;
+      margin-top: 8px;
+      font-size: 11pt;
+    }
+
+    /* ── 개인정보 동의서 ── */
+    .privacy-title {
+      text-align: center;
+      font-size: 18pt;
+      font-weight: bold;
+      letter-spacing: 3px;
+      margin-bottom: 26px;
+    }
+    .privacy-section { margin-bottom: 20px; }
+    .privacy-section-title { font-weight: bold; margin-bottom: 6px; line-height: 1.8; }
+    .privacy-item { margin-left: 6px; line-height: 2; margin-bottom: 3px; }
+    .privacy-item::before { content: "■ "; }
+
+    .consent-row {
+      text-align: right;
+      margin-top: 8px;
+      line-height: 2.2;
+    }
+    .checkbox-label { margin-left: 18px; }
+    /* PDF에서는 실제 체크박스 대신 □/■ 텍스트로 표현 */
+    .cb-checked::before   { content: "■ "; }
+    .cb-unchecked::before { content: "□ "; }
+
+    .privacy-footer {
+      margin-top: 20px;
+      line-height: 2;
+      font-size: 10.5pt;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════
+     PAGE 1 — 프리랜서 근로계약서
+══════════════════════════════════════════════════ -->
+<div class="page page-break">
+
+  <div class="doc-title-row">
+    <div class="logo-area">Logo</div>
+    <div class="doc-title">프리랜서 근로계약서</div>
+    <div style="width:50px"></div>
+  </div>
+
+  <div class="preamble">
+    <span class="val val-lg" th:text="${contractDto.partyA} ?: ''"></span>
+    (이하 '갑'이라 함)와 프리랜서
+    <span class="val val-md" th:text="${contractDto.partyB} ?: ''"></span>
+    (이하 '을'이라 함)는(은) 다음과 같이 근로 계약을 체결하고 이를 성실히 이행할 것을 약정한다.
+  </div>
+
+  <!-- 제1조 -->
+  <div class="article">
+    <div class="article-title">제 1 조 【계약기간】</div>
+    <div class="clause-text">
+      근로계약기간은
+      <span class="val val-md" th:text="${contractDto.contractStartDate != null} ? ${#temporals.format(contractDto.contractStartDate,'yyyy-MM-dd')} : ''"></span>
+      부터
+      <span class="val val-md" th:text="${contractDto.contractEndDate != null} ? ${#temporals.format(contractDto.contractEndDate,'yyyy-MM-dd')} : ''"></span>
+      까지로 한다.
+    </div>
+  </div>
+
+  <!-- 제2조 -->
+  <div class="article">
+    <div class="article-title">제 2 조 【근무 장소 및 업무내용】</div>
+    <div class="clause"><span class="clause-num">①</span>
+      <span class="clause-text">'을'의 근무 장소 : <span class="val val-lg" th:text="${contractDto.workLocation} ?: ''"></span></span>
+    </div>
+    <div class="clause"><span class="clause-num">②</span>
+      <span class="clause-text">'을'의 업무 내용 : <span class="val val-lg" th:text="${contractDto.workDescription} ?: ''"></span></span>
+    </div>
+    <div class="clause"><span class="clause-num">③</span>
+      <span class="clause-text">'갑'은 필요한 경우 '을'의 근무 장소 및 업무의 변경에 대해서 합의를 통해 변경이 가능하다.</span>
+    </div>
+  </div>
+
+  <!-- 제3조 -->
+  <div class="article">
+    <div class="article-title">제 3 조 【근로시간 및 휴게시간】</div>
+    <div class="clause"><span class="clause-num">①</span>
+      <span class="clause-text">근로시간은 하루 최대 8시간에 휴일근무를 포함한 연장근로를 총 12시간까지 허용하여 주52시간제를 원칙으로 하며, 근무시간 및 휴게시간은 다음과 같다.</span>
+    </div>
+    <table class="work-table">
+      <thead>
+        <tr>
+          <th>근무일</th><th>시업시간</th><th>종업시간</th><th>휴게시간</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <span th:if="${contractDto.workDays != null}" th:each="day, iter : ${contractDto.workDays}">
+              <span th:text="${day}"></span><span th:if="${!iter.last}">, </span>
+            </span>
+          </td>
+          <td th:text="${contractDto.workStartTime != null} ? ${#temporals.format(contractDto.workStartTime,'HH:mm')} : ''"></td>
+          <td th:text="${contractDto.workEndTime != null} ? ${#temporals.format(contractDto.workEndTime,'HH:mm')} : ''"></td>
+          <td th:text="${contractDto.breakTime != null} ? ${#temporals.format(contractDto.breakTime,'HH:mm')} : ''"></td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="clause"><span class="clause-num">②</span>
+      <span class="clause-text">휴게시간은 1일 4시간인 경우 30분, 8시간인 경우 1시간의 휴게시간을 부여한다.</span>
+    </div>
+    <div class="clause"><span class="clause-num">③</span>
+      <span class="clause-text">근로시간 및 휴게시간은 업무사정에 따라 합의하에 변경할 수 있다.</span>
+    </div>
+    <div class="clause"><span class="clause-num">④</span>
+      <span class="clause-text">업무수행에 필요하다고 판단되는 경우 '갑'은 '을'과 합의하에 연장근로, 야간근로, 휴일근로를 명할 수 있다.</span>
+    </div>
+  </div>
+
+  <!-- 제4조 -->
+  <div class="article">
+    <div class="article-title">제 4 조 【휴일 및 휴가】</div>
+    <div class="clause"><span class="clause-num">①</span>
+      <span class="clause-text">주휴일은 매주 일요일로 한다. 다만, '갑'은 필요한 경우 주휴일을 다른 날로 대체할 수 있으며, '을'은 이에 동의한다.</span>
+    </div>
+    <div class="clause"><span class="clause-num">②</span>
+      <span class="clause-text">주휴일,「근로자의 날 제정에 관한 법률」에 따른 근로자의 날(5월 1일)은 유급휴일로 한다. 단, 주휴일의 경우는 '을'이 한 주 동안 계약서에 명시 된 근로시간을 개근한 경우에 한하며, 주휴일과 유·무급 휴일이 중복되었을 경우에는 하나의 휴일만 적용한다.</span>
+    </div>
+    <div class="clause"><span class="clause-num">③</span>
+      <span class="clause-text">연차유급휴가는 「근로기준법」에서 정하는 바에 따른다.</span>
+    </div>
+  </div>
+
+  <!-- 제5조 -->
+  <div class="article">
+    <div class="article-title">제 5 조 【계약금액】</div>
+    <div class="clause"><span class="clause-num">①</span>
+      <span class="clause-text">계약금액은 근로계약기간동안 월급제를 원칙으로 하며, 월정급여액
+        <span class="val val-md" th:text="${contractDto.monthlyWage} ?: 0"></span> 원으로 한다.</span>
+    </div>
+    <div class="clause"><span class="clause-num">②</span>
+      <span class="clause-text">월정급여액의 구성 내역은 다음과 같다.</span>
+    </div>
+  </div>
+
+</div><!-- /page 1 -->
+
+
+<!-- ══════════════════════════════════════════════════
+     PAGE 2 — 급여 테이블 + 제6~8조
+══════════════════════════════════════════════════ -->
+<div class="page page-break">
+
+  <table class="salary-table">
+    <thead>
+      <tr>
+        <th>급여항목</th><th>금 액</th><th>산출기준</th><th>비 고</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>기 본 급</td>
+        <td class="amount"><span th:text="${contractDto.basePay} ?: 0"></span> 원</td>
+        <td th:text="${contractDto.basePayBasis != null} ? ${#temporals.format(contractDto.basePayBasis,'HH:mm')} : ''"></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td>연장근로수당</td>
+        <td class="amount"><span th:text="${contractDto.overtimePay} ?: 0"></span> 원</td>
+        <td th:text="${contractDto.overtimePayBasis != null} ? ${#temporals.format(contractDto.overtimePayBasis,'HH:mm')} : ''"></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td>휴일근로수당</td>
+        <td class="amount"><span th:text="${contractDto.holidayPay} ?: 0"></span> 원</td>
+        <td th:text="${contractDto.holidayPayBasis != null} ? ${#temporals.format(contractDto.holidayPayBasis,'HH:mm')} : ''"></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td>식 대</td>
+        <td class="amount"><span th:text="${contractDto.mealAllowance} ?: 0"></span> 원</td>
+        <td></td>
+        <td>비과세</td>
+      </tr>
+      <tr>
+        <td>합 계</td>
+        <td class="amount"><span th:text="${contractDto.totalWage} ?: 0"></span> 원</td>
+        <td></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div style="margin-bottom:14px;">
+    <div class="clause"><span class="clause-num">③</span><span class="clause-text">기본급은 월 소정근로시간에 대한 통상임금으로써 제 수당의 산정기준이 된다.</span></div>
+    <div class="clause"><span class="clause-num">④</span><span class="clause-text">상기 약정한 시간외 근로시간을 초과하는 실제근로를 하는 경우 그 초과한 부분에 대한 별도의 수당을 지급한다.</span></div>
+    <div class="clause"><span class="clause-num">⑤</span><span class="clause-text">식대는 복리후생비로써, '을'의 근무기간이 1월 이상인 경우, 매월 15일 이상 출근한 경우에 지급된다.</span></div>
+    <div class="clause"><span class="clause-num">⑥</span><span class="clause-text">'을'의 귀책사유로 인하여 근무하지 아니한 기간은 일할 산정하여 급여에서 공제하며, 결근, 지각, 외출, 조퇴, 병가 등 근무하지 아니한 시간은 급여에서 당해 시간에 해당하는 금액을 공제한다.</span></div>
+    <div class="clause"><span class="clause-num">⑦</span><span class="clause-text">임금은 월 지급총액에서 4대보험료, 소득세, 지방소득세를 공제한 후 매월 임금 지급일에 지급한다.</span></div>
+    <div class="clause"><span class="clause-num">⑧</span><span class="clause-text">임금계산기간 및 지급일은 별도 협의에 따른다. 다만, 지급일이 토요일 또는 공휴일인 경우에는 그 전날 또는 다음날에 지급한다.</span></div>
+  </div>
+
+  <!-- 제6조 -->
+  <div class="article">
+    <div class="article-title">제 6 조 【퇴직급여】</div>
+    <div>'갑'은 '을'의 퇴직 시에 근로연수 1년에 대하여 평균임금 30일분의 퇴직금을 지급하며, 퇴직금은 퇴사 시 일시금으로 지급되거나 퇴직연금으로 지급된다. 그 외에 퇴직금 지급에 관한 사항은 노동관계법에 정하는 바에 의한다.</div>
+  </div>
+
+  <!-- 제7조 -->
+  <div class="article">
+    <div class="article-title">제 7 조 【근로계약의 해지】</div>
+    <div>다음 각 호에 해당하는 경우, '갑'은 '을'과의 근로계약을 해지할 수 있다.</div>
+    <ul class="dismissal-list">
+      <li><span class="num">1.</span><span>근무 성적 또는 능률이 불량한 자로서 취업이 부당하다고 인정되며, 개선의 가망이 없는 경우</span></li>
+      <li><span class="num">2.</span><span>출근 상황이 불량하여 3회 이상 징계 처분을 받았거나 5일 이상 무단결근한 경우</span></li>
+      <li><span class="num">3.</span><span>신체 또는 정신상 병으로 직무를 감당할 수 없다고 인정되는 경우</span></li>
+      <li><span class="num">4.</span><span>고의 또는 중대한 사유로 회사에 손해를 끼쳤거나 명예를 손상한 경우</span></li>
+      <li><span class="num">5.</span><span>업무의 축소, 폐쇄 및 영업부진 등 경영상 이유에 의하여 감원이 필요하다고 인정되는 경우</span></li>
+      <li><span class="num">6.</span><span>정기 또는 임시 건강진단 결과 취업 부적격자로 판정된 경우</span></li>
+      <li><span class="num">7.</span><span>취업 이후에 채용 결격 사유가 발견된 경우</span></li>
+      <li><span class="num">8.</span><span>학력, 경력의 허위기재 등 부정한 방법으로 채용된 경우</span></li>
+      <li><span class="num">9.</span><span>형사상 유죄판결이 확정된 경우</span></li>
+      <li><span class="num">10.</span><span>직장 내 질서를 문란하게 한 경우</span></li>
+      <li><span class="num">11.</span><span>'회사'의 승낙 없이 다른 직업에 종사하는 경우</span></li>
+      <li><span class="num">12.</span><span>기타 이에 준하는 부득이한 사유가 있는 경우</span></li>
+    </ul>
+  </div>
+
+  <!-- 제8조 -->
+  <div class="article">
+    <div class="article-title">제 8 조 【고지의무】</div>
+    <div>상기 계약기간 만료 전 퇴사할 경우 '을'은 퇴사희망일 1개월 전에 관리자에게 사직서를 제출하여야 하며, 업무 인수인계를 통하여 업무에 지장이 없도록 하여야 한다. 만약, 사전 통보 없이 임의로 퇴사할 경우 '갑'은 이로 인한 관리적 손실에 대하여 '을'에게 손해배상을 청구할 수 있다.</div>
+  </div>
+
+
+  <!-- 제9조 -->
+  <div class="article">
+    <div class="article-title">제 9 조 【비밀유지의무】</div>
+    <div>'을'은 근무 중 알게 된 '갑'의 내부 자료나 정보를 회사의 동의 없이 제3자에게 제공·누설하거나 다른 목적으로 사용하지 않으며, 근로계약 해지 시에는 회사의 지적 자산 및 내부 자료를 즉시 회사에 반납한다. 이와 관련하여 '갑'에게 금전적, 정신적 손해가 발생하였을 경우 전액 배상하고 민·형사상의 책임을 진다.</div>
+  </div>
+
+  <!-- 제10조 -->
+  <div class="article">
+    <div class="article-title">제 10 조 【보칙】</div>
+    <div>이 계약서에서 정하지 아니한 사항은 「근로기준법」등 노동관계법령 또는 취업규칙에서 정하는 바에 따른다.</div>
+  </div>
+
+  <div style="margin: 22px 0; line-height:2;">
+    양 당사자 간 아무런 이의가 없기에 위 근로계약을 체결하며 상기사항을 성실히 준수하기 위하여 본 계약서를 2부 작성, 서명날인한 후 각 1부씩 보관함.
+  </div>
+
+  <!-- 서명 날짜 -->
+  <div class="sign-date">
+    <span th:text="${contractDto.contractWrittenAt != null} ? ${#temporals.format(contractDto.contractWrittenAt,'yyyy년 MM월 dd일')} : ''"></span>
+  </div>
+
+  <!-- 서명 테이블 -->
+  <table class="sig-table">
+    <tbody>
+      <tr>
+        <th rowspan="3">회 사<br/>(갑)</th>
+        <th class="label-col">대 표 자</th>
+        <td><span th:text="${contractDto.representativeName} ?: ''"></span>&#160;&#160;(서명/인)</td>
+      </tr>
+      <tr>
+        <th class="label-col">사업체명</th>
+        <td th:text="${contractDto.partyA} ?: ''"></td>
+      </tr>
+      <tr>
+        <th class="label-col">소 재 지</th>
+        <td th:text="${contractDto.companyAddress} ?: ''"></td>
+      </tr>
+      <tr>
+        <th rowspan="3">프리랜서<br/>(을)</th>
+        <th class="label-col">성 명</th>
+        <td><span th:text="${contractDto.partyB} ?: ''"></span>&#160;&#160;(서명/인)</td>
+      </tr>
+      <tr>
+        <th class="label-col">생년월일</th>
+        <td th:text="${contractDto.freelancerBirthDate != null} ? ${#temporals.format(contractDto.freelancerBirthDate,'yyyy-MM-dd')} : ''"></td>
+      </tr>
+      <tr>
+        <th class="label-col">주 소</th>
+        <td th:text="${contractDto.freelancerAddress} ?: ''"></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <hr class="divider"/>
+
+  <!-- 교부확인서 -->
+  <div class="confirm-title">근로계약서 교부 확인서</div>
+  <div style="line-height:2; margin-bottom:36px;">
+    본인은 근로기준법 제17조 제2항에 따라 본 계약서와 같은 내용의 근로계약서를 받았음을 확인합니다.
+  </div>
+  <div class="sig-line">
+    성명&#160;<span class="val val-md" th:text="${contractDto.partyB} ?: ''"></span>&#160;(서명)
+  </div>
+
+</div><!-- /page 3 -->
+
+
+<!-- ══════════════════════════════════════════════════
+     PAGE 4 — 개인정보 수집·이용·제공 동의서
+     ※ 프론트에서 미체크 시 제출 자체를 막으므로,
+        PDF에서는 항상 "동의" 체크된 상태로 고정 출력
+══════════════════════════════════════════════════ -->
+<div class="page">
+
+  <div class="privacy-title">개인정보 수집·이용·제공 동의서</div>
+
+  <!-- 1항 -->
+  <div class="privacy-section">
+    <div class="privacy-section-title">1. 본인은 회사가 아래와 같이 본인의 개인정보를 수집·이용하는 것에 동의합니다.</div>
+    <div class="privacy-item">목적 : 채용전형, 근로관계에 근거하여 소득세법, 근로기준법, 사회보험법령, 기타 관련 법령에서 부과하는 의무 이행, 인사이동, 상벌, 주요 근로조건 결정, 기타 인적자원관리, 민원처리, 분쟁해결</div>
+    <div class="privacy-item">수집항목 : 성명, 국적, 주소, 이메일, 연락처, 가족사항, 학력, 경력사항, 면허 및 자격증, 회사의 법률상 의무 준수를 위해 필요한 정보, 급여지급관련사항(은행 및 계좌번호), 복리후생지급관련사항 등</div>
+    <div class="privacy-item">보유 이용 기간 : 개별 법령의 규정에 명시된 자료의 보존기간</div>
+    <div class="consent-row">
+      <span class="checkbox-label cb-checked">동의</span>
+      <span class="checkbox-label cb-unchecked">동의하지 않음</span>
+    </div>
+  </div>
+
+  <!-- 2항 -->
+  <div class="privacy-section">
+    <div class="privacy-section-title">2. 본인은 회사가 위 목적으로 다음과 같은 본인의 고유식별정보를 수집·이용하는 것에 동의합니다.</div>
+    <div class="privacy-item">고유식별정보 : 주민등록번호, 운전면허번호, 외국인등록번호, 여권번호</div>
+    <div class="privacy-item">보유 이용 기간 : 상기 개인정보를 보유하는 기간</div>
+    <div class="consent-row">
+      <span class="checkbox-label cb-checked">동의</span>
+      <span class="checkbox-label cb-unchecked">동의하지 않음</span>
+    </div>
+  </div>
+
+  <!-- 3항 -->
+  <div class="privacy-section">
+    <div class="privacy-section-title">3. 본인은 회사가 위 목적으로 다음과 같은 본인의 민감정보를 수집·이용하는 것에 동의합니다.</div>
+    <div class="privacy-item">민감정보 : 건강, 국가보훈대상, 범죄 경력</div>
+    <div class="privacy-item">보유 이용 기간 : 상기 개인정보를 보유하는 기간</div>
+    <div class="consent-row">
+      <span class="checkbox-label cb-checked">동의</span>
+      <span class="checkbox-label cb-unchecked">동의하지 않음</span>
+    </div>
+  </div>
+
+  <!-- 4항 -->
+  <div class="privacy-section">
+    <div class="privacy-section-title">4. 본인은 회사가 아래와 같이 개인정보를 제3자에게 제공하거나 위탁하는 것에 동의합니다.</div>
+    <div class="privacy-item">제공받는 자 : 급여 아웃소싱, 단체 생명·의료비 보장보험 사업자, 복지카드 사업자, 퇴직연금 사업자, 건강검진 시행기관, 여행사, 교육·훈련 기관, 고용노동부, 자문기관, 고객사, 기타 위탁사업자</div>
+    <div class="privacy-item">이용목적 : 급여산정 및 지급, 4대보험 처리, 급여 관련 세무처리, 교육, 보험가입, 고용노동부 훈련비용 지원신청, 퇴직연금 가입, 복지카드 발급, 자문기관, 고객사, 위탁사업자 업무협조, 건강검진, 숙박 예약 등 여행관련</div>
+    <div class="privacy-item">제공할 개인정보 항목 : 개인식별정보, 급여, 교육훈련 내용 및 기간, 부양가족의 고유식별정보</div>
+    <div class="privacy-item">보유 이용 기간 : 목적 달성 때까지</div>
+    <div class="consent-row">
+      <span class="checkbox-label cb-checked">동의</span>
+      <span class="checkbox-label cb-unchecked">동의하지 않음</span>
+      <br/>
+      <span class="checkbox-label cb-checked">고유식별정보 제공에 동의</span>
+      <span class="checkbox-label cb-unchecked">동의하지 않음</span>
+    </div>
+  </div>
+
+  <div class="privacy-footer">
+    위 1~4항의 개인정보의 제공에 관한 동의는 채용심사 및 근로계약의 체결을 위하여 필수적이므로, 위 사항에 동의하셔야만 근로계약의 체결이 가능합니다. 이에 본인은 개인정보의 수집·제공·이용에 대한 동의를 거부할 권리가 있다는 사실 및 동의의 거부 시 개인정보 부정확에 따른 채용, 인사이동, 업무지연 등 불이익을 받을 수 있다는 사실을 숙지하였으며, 그 불이익에 대한 책임은 본인에게 있음을 확인합니다.
+  </div>
+
+  <div class="sig-line" style="margin-top:28px;">
+    성명&#160;<span class="val val-md" th:text="${contractDto.partyB} ?: ''"></span>&#160;(서명)
+  </div>
+
+</div><!-- /page 4 -->
+
+</body>
+</html>

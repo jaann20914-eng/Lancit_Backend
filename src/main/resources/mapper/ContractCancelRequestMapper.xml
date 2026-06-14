@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ssafy.lancit.domain.contract.mapper.ContractCancelRequestMapper">
+
+    <resultMap id="CancelRequestResultMap" type="com.ssafy.lancit.domain.contract.dto.ContractCancelRequestDTO">
+        <result property="contractId"    column="contract_id"/>
+        <result property="requesterEmail" column="requester_email"/>
+        <result property="requestedAt"   column="requested_at"/>
+    </resultMap>
+
+
+    <!-- 파기 요청 존재 여부 -->
+    <select id="existsByContractId" resultType="boolean">
+        SELECT COUNT(*) > 0
+        FROM contract_cancel_request
+        WHERE contract_id = #{contractId}
+    </select>
+
+
+    <!-- 파기 요청 생성 -->
+    <insert id="insert">
+        INSERT INTO contract_cancel_request (contract_id, requester_email, requested_at)
+        VALUES (#{contractId}, #{requesterEmail}, NOW())
+    </insert>
+
+
+    <!-- 파기 요청 조회 -->
+    <select id="findByContractId" resultMap="CancelRequestResultMap">
+        SELECT *
+        FROM contract_cancel_request
+        WHERE contract_id = #{contractId}
+    </select>
+
+
+    <!-- 요청자 이메일 조회 -->
+    <select id="findRequesterEmail" resultType="String">
+        SELECT requester_email
+        FROM contract_cancel_request
+        WHERE contract_id = #{contractId}
+    </select>
+
+
+    <!-- 삭제 -->
+    <delete id="delete">
+        DELETE FROM contract_cancel_request
+        WHERE contract_id = #{contractId}
+    </delete>
+
+</mapper>

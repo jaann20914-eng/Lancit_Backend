@@ -13,6 +13,11 @@ import com.ssafy.lancit.global.enums.RecruitmentStatus;
 
 @Mapper
 public interface RecruitmentMapper {
+	
+	//지원 추가 필요
+	RecruitmentDTO findByIdJiwon(@Param("recruitmentId") int recruitmentId);
+	
+	
     void insertRecruitment(RecruitmentDTO dto);
 
     int updateRecruitment(@Param("recruitmentId") int recruitmentId,
@@ -22,6 +27,8 @@ public interface RecruitmentMapper {
 
     int updateStatus(@Param("recruitmentId") int recruitmentId,
                      @Param("status") RecruitmentStatus status);
+    
+    
 
     RecruitmentDTO findById(@Param("recruitmentId") int recruitmentId);
 

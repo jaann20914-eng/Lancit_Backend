@@ -1,36 +1,167 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
 <mapper namespace="com.ssafy.lancit.domain.contract.mapper.ContractMapper">
 
-    <!-- TODO 지원: 계약서 목록 조회
-         - freelancer_email = #{email} OR company_email = #{email} 조건
-         - status, keyword 는 null 일 수 있으므로 <if test> 로 동적 처리
-         - ORDER BY contract_written_at DESC -->
-    
+<!--    <resultMap id="ContractResultMap" type="com.ssafy.lancit.domain.contract.dto.ContractDTO">
+        <id     property="contractId"     column="contract_id"/>
+        <result property="recruitmentId"  column="recruitment_id"/>
+        <result property="companyEmail"   column="company_email"/>
+        <result property="freelancerEmail" column="freelancer_email"/>
+        <result property="status" column="status" 
+        typeHandler="org.apache.ibatis.type.EnumTypeHandler" 
+        javaType="com.ssafy.lancit.global.enums.ContractStatus"/>
+    </resultMap>-->
 
-    <!-- TODO 지원: 계약서 단건 조회
-         - WHERE contract_id = #{contractId} -->
-    
-
-    <!-- TODO 지원: 계약서 삽입
-         - useGeneratedKeys="true" keyProperty="contractId" 유지할 것
-         - work_days 는 List<Weekday> → 서비스에서 변환된 콤마 구분 문자열로 저장 -->
-    
-
-    <!-- TODO 지원: 계약서 수정
-         - null 인 필드는 업데이트 제외 → <if test="xxx != null"> 사용
-         - WHERE contract_id = #{contractId} -->
-    
-
-    <!-- 진행 중 계약 존재 여부 확인 (IN_PROGRESS / COMPLETED_PENDING) -->
-	<select id="existsActiveContractByEmail" resultType="boolean">
+	
+	<!-- 계약 생성 -->
+	<insert id="insert" useGeneratedKeys="true" keyProperty="contractId">
+	    INSERT INTO contract (recruitment_id, company_email, freelancer_email, status)
+	    VALUES (#{recruitmentId}, #{companyEmail}, #{freelancerEmail}, #{status})
+	</insert>
+	
+	<!-- 동일 공고+프리랜서 간 진행 중 계약 존재 여부 -->
+	<select id="existsActiveContract" resultType="boolean">
 	    SELECT COUNT(*) > 0
 	    FROM contract
-	    WHERE (
-	        freelancer_email = #{email}
-	        OR company_email = #{email}
-	    )
-	    AND status IN ('IN_PROGRESS', 'COMPLETED_PENDING')
+	    WHERE recruitment_id   = #{recruitmentId}
+	      AND freelancer_email = #{freelancerEmail}
+	      AND status NOT IN ('COMPLETED', 'CANCELLED')
 	</select>
+	
+	
+    <!-- 참여자 여부 확인 -->
+    <select id="isParticipant" resultType="boolean">
+        SELECT COUNT(*) > 0
+        FROM contract
+        WHERE contract_id = #{contractId}
+          AND (company_email = #{email} OR freelancer_email = #{email})
+    </select>
+
+
+    <!-- 단건 조회 -->
+    <select id="findById" resultType="ContractDTO">
+        SELECT *
+        FROM contract
+        WHERE contract_id = #{contractId}
+    </select>
+
+
+    <!-- 상태 변경 -->
+    <update id="updateStatus">
+        UPDATE contract
+        SET status = #{status}
+        WHERE contract_id = #{contractId}
+    </update>
+
+
+    <!-- 계약 목록 조회 (상태 필터 + 키워드 검색 + 페이지네이션) -->
+    <select id="searchContracts" resultType="java.util.Map">
+        SELECT c.contract_id,
+               c.status,
+               c.company_email,
+               c.freelancer_email,
+               r.title      AS recruitment_title,
+               r.recruitment_id
+        FROM contract c
+        JOIN recruitment r ON c.recruitment_id = r.recruitment_id
+        WHERE (c.company_email = #{email} OR c.freelancer_email = #{email})
+        <if test="status != null and status != ''">
+            AND c.status = #{status}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            <choose>
+                <when test="keywordType == 'title'">
+                    AND r.title LIKE CONCAT('%', #{keyword}, '%')
+                </when>
+                <when test="keywordType == 'company'">
+                    AND c.company_email LIKE CONCAT('%', #{keyword}, '%')
+                </when>
+                <when test="keywordType == 'freelancer'">
+                    AND c.freelancer_email LIKE CONCAT('%', #{keyword}, '%')
+                </when>
+                <otherwise>
+                    AND (r.title LIKE CONCAT('%', #{keyword}, '%')
+                      OR c.company_email LIKE CONCAT('%', #{keyword}, '%')
+                      OR c.freelancer_email LIKE CONCAT('%', #{keyword}, '%'))
+                </otherwise>
+            </choose>
+        </if>
+        ORDER BY c.contract_id DESC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+
+    <!-- 계약 목록 총 개수 -->
+    <select id="countContracts" resultType="long">
+        SELECT COUNT(*)
+        FROM contract c
+        JOIN recruitment r ON c.recruitment_id = r.recruitment_id
+        WHERE (c.company_email = #{email} OR c.freelancer_email = #{email})
+        <if test="status != null and status != ''">
+            AND c.status = #{status}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            <choose>
+                <when test="keywordType == 'title'">
+                    AND r.title LIKE CONCAT('%', #{keyword}, '%')
+                </when>
+                <when test="keywordType == 'company'">
+                    AND c.company_email LIKE CONCAT('%', #{keyword}, '%')
+                </when>
+                <when test="keywordType == 'freelancer'">
+                    AND c.freelancer_email LIKE CONCAT('%', #{keyword}, '%')
+                </when>
+                <otherwise>
+                    AND (r.title LIKE CONCAT('%', #{keyword}, '%')
+                      OR c.company_email LIKE CONCAT('%', #{keyword}, '%')
+                      OR c.freelancer_email LIKE CONCAT('%', #{keyword}, '%'))
+                </otherwise>
+            </choose>
+        </if>
+    </select>
+
+
+    <!-- 계약 상세 조회 (계약 + 공고 + 채팅방) -->
+    <select id="findContractDetail" resultType="java.util.Map">
+        SELECT c.contract_id,
+               c.recruitment_id,
+               c.company_email,
+               c.freelancer_email,
+               c.status,
+               r.title         AS recruitment_title,
+               cr.chat_room_id
+        FROM contract c
+        JOIN recruitment r  ON c.recruitment_id  = r.recruitment_id
+        LEFT JOIN chat_room cr ON cr.contract_id = c.contract_id
+        WHERE c.contract_id = #{contractId}
+    </select>
+
+
+    <!-- 계약 완전 삭제 -->
+    <delete id="deleteContract">
+        DELETE FROM contract
+        WHERE contract_id = #{contractId}
+    </delete>
+
+
+    <!-- 계약 종료일 경과 대상 조회 (IN_PROGRESS + 종료일 < 오늘) -->
+    <select id="findCompletedPendingTargets" resultType="java.lang.Integer">
+        SELECT cd.contract_id
+        FROM contract_document cd
+        JOIN contract c ON cd.contract_id = c.contract_id
+        WHERE c.status = 'IN_PROGRESS'
+          AND cd.contract_end_date &lt; CURDATE()
+    </select>
+
+
+    <!-- 진행 중인 계약 존재 여부 -->
+    <select id="existsActiveContractByEmail" resultType="boolean">
+        SELECT COUNT(*) > 0
+        FROM contract
+        WHERE (company_email = #{email} OR freelancer_email = #{email})
+          AND status IN ('WAITING','NEGOTIATING_A','NEGOTIATING_B','NEGOTIATING_C','IN_PROGRESS')
+    </select>
+
 </mapper>

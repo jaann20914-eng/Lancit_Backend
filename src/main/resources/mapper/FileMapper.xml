@@ -111,4 +111,19 @@
 	        upload_path = #{uploadPath}
 	    WHERE file_id = #{fileId}
 	</update>
+
+	
+	
+	<!--고아 파일 찾아서 삭제하기-->
+	<select id="findOrphanContractFiles" resultType="FileDTO">
+	    SELECT f.*
+	    FROM file f
+	    LEFT JOIN contract_file cf
+	        ON cf.file_id = f.file_id
+	    WHERE f.parent_type = 'CONTRACT'
+	      AND cf.contract_file_id IS NULL
+	</select>
+	
+	
 </mapper>
+

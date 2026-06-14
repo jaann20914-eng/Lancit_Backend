@@ -3,6 +3,10 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.ssafy.lancit.domain.recruitment.post.mapper.RecruitmentMapper">
 
+    <!-- TODO 영은: SQL 작성 -->
+    
+
+
     <resultMap id="RecruitmentResultMap" type="com.ssafy.lancit.domain.recruitment.post.dto.RecruitmentDTO">
         <id property="recruitmentId" column="recruitment_id"/>
         <result property="companyEmail" column="company_email"/>
@@ -27,6 +31,14 @@
         <result property="deletedAt" column="deleted_at"/>
         <result property="applicantCount" column="applicant_count"/>
     </resultMap>
+
+	<!--지원 필요 작성 : 아이디가지고 공고문 찾기-->
+	 	<select id="findByIdJiwon" resultType="com.ssafy.lancit.domain.recruitment.post.dto.RecruitmentDTO">
+		    SELECT *
+		    FROM recruitment
+		    WHERE recruitment_id = #{recruitmentId}
+		</select>
+
 
     <sql id="RecruitmentColumns">
         r.recruitment_id,
@@ -325,4 +337,5 @@
         WHERE recruitment_id = #{recruitmentId}
           AND is_deleted = 0
     </select>
+
 </mapper>

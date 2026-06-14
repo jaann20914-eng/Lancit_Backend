@@ -1,17 +1,21 @@
 package com.ssafy.lancit.domain.calendar.task.service;
 
-import com.ssafy.lancit.domain.calendar.task.dto.TaskDTO;
-import com.ssafy.lancit.domain.calendar.task.mapper.TaskMapper;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Component;
-
 import java.time.LocalDate;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+
+import com.ssafy.lancit.domain.calendar.task.dto.TaskDTO;
+import com.ssafy.lancit.domain.calendar.task.mapper.TaskMapper;
+import com.ssafy.lancit.domain.notification.dto.NotificationDTO;
+import com.ssafy.lancit.domain.notification.websocket.NotificationStompPublisher;
+import com.ssafy.lancit.global.enums.NotificationType;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component
@@ -19,7 +23,7 @@ import java.util.concurrent.TimeUnit;
 public class TaskScheduler {
 
     private final TaskMapper taskMapper;
-    private final SimpMessagingTemplate messagingTemplate;
+    private final NotificationStompPublisher notificationStompPublisher;
     private final RedisTemplate<String, String> redisTemplate; // ★ String으로 변경
 
     private static final String NOTIFIED_PREFIX = "notified:task:";
@@ -38,21 +42,22 @@ public class TaskScheduler {
 
     private void sendIfNotSent(TaskDTO task, int daysLeft) {
         String key = NOTIFIED_PREFIX + task.getTaskId() + ":" + LocalDate.now();
-
         String alreadySent = redisTemplate.opsForValue().get(key);
         if (alreadySent != null) {
             log.debug("[Scheduler] 이미 발송된 알림 스킵 - taskId: {}", task.getTaskId());
             return;
         }
 
-        String message = buildMessage(task, daysLeft);
-        messagingTemplate.convertAndSend(
-                "/sub/notification/" + task.getEmail(),
-                message
-        );
+        NotificationDTO notification = NotificationDTO.builder()
+                .receiverEmail(task.getEmail())
+                .type(NotificationType.CHAT) // 추후 CALENDAR 타입 추가 시 변경
+                .targetId(task.getTaskId())
+                .message(buildMessage(task, daysLeft)) // 캘린더 전용 메시지
+                .build();
+
+        notificationStompPublisher.publish(notification);
 
         redisTemplate.opsForValue().set(key, "sent", 2, TimeUnit.DAYS);
-
         log.info("[Scheduler] 알림 발송 - taskId: {}, email: {}, D-{}",
                 task.getTaskId(), task.getEmail(), daysLeft);
     }

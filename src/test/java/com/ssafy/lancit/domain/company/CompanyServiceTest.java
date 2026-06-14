@@ -188,11 +188,11 @@ class CompanyServiceTest {
         @DisplayName("프로필 사진 변경 - 기존 사진 없을 때")
         void update_withNewProfile_noExisting() {
             updateDto.setProfileFileId(10);
-            given(companyMapper.findByEmail("company@test.com")).willReturn(mockCompany); // profileFileId=null
- 
+            given(companyMapper.findByEmail("company@test.com")).willReturn(mockCompany);
+
             companyService.update(updateDto);
- 
-            verify(fileMapper, times(1)).updateParentType(10, FileParentType.PROFILE);
+
+            verify(fileService, times(1)).promote(10, FileParentType.PROFILE);
             verify(fileService, never()).delete(anyInt());
             verify(companyMapper, times(1)).update(updateDto);
         }
@@ -212,7 +212,7 @@ class CompanyServiceTest {
             companyService.update(updateDto);
  
             verify(fileService, times(1)).delete(5);
-            verify(fileMapper, times(1)).updateParentType(10, FileParentType.PROFILE);
+            verify(fileService, times(1)).promote(10, FileParentType.PROFILE);
             verify(companyMapper, times(1)).update(updateDto);
         }
  
@@ -231,7 +231,7 @@ class CompanyServiceTest {
             companyService.update(updateDto);
  
             verify(fileService, times(1)).delete(10);
-            verify(fileMapper, times(1)).updateParentType(10, FileParentType.PROFILE);
+            verify(fileService, times(1)).promote(10, FileParentType.PROFILE);
         }
     }
  
@@ -274,21 +274,26 @@ class CompanyServiceTest {
         }
  
         @Test
-        @DisplayName("파일 있는 회사 탈퇴 - FileDeleteEvent 발행 + Redis 캐시 제거")
+        @DisplayName("파일 있는 회사 탈퇴 - PROFILE/TEMP만 FileDeleteEvent 발행, CONTRACT는 제외")
         void delete_withFiles() {
-            FileDTO file1 = FileDTO.builder().fileId(1).uploadPath("profile/a.jpg").build();
-            FileDTO file2 = FileDTO.builder().fileId(2).uploadPath("contract/b.pdf").build();
- 
+            FileDTO file1 = FileDTO.builder().fileId(1).uploadPath("profile/a.jpg")
+                    .parentType(FileParentType.PROFILE).build();
+            FileDTO file2 = FileDTO.builder().fileId(2).uploadPath("contract/b.pdf")
+                    .parentType(FileParentType.CONTRACT).build(); // CONTRACT는 삭제 대상 아님
+            FileDTO file3 = FileDTO.builder().fileId(3).uploadPath("temp/c.jpg")
+                    .parentType(FileParentType.TEMP).build();
+
             given(companyMapper.findByEmail("company@test.com")).willReturn(mockCompany);
-            given(fileMapper.findByCompanyEmail("company@test.com")).willReturn(List.of(file1, file2));
- 
+            given(fileMapper.findByCompanyEmail("company@test.com"))
+                    .willReturn(List.of(file1, file2, file3));
+
             try (var mock = mockStatic(SecurityUtil.class)) {
                 mock.when(SecurityUtil::getCurrentEmail).thenReturn("company@test.com");
- 
+
                 companyService.delete();
- 
+
+                // file1(PROFILE), file3(TEMP)만 이벤트 발행 - file2(CONTRACT)는 제외
                 verify(eventPublisher, times(2)).publishEvent(any(FileDeleteEvent.class));
-                verify(cache, times(2)).evict(anyInt());
                 verify(companyMapper, times(1)).softDelete("company@test.com");
             }
         }

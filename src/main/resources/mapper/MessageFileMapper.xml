@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ssafy.lancit.domain.chat.mapper.MessageFileMapper">
+
+    <!-- 메시지 파일 등록 -->
+    <insert id="insert">
+        INSERT INTO message_file (message_id, file_id, created_at)
+        VALUES (#{messageId}, #{fileId}, NOW())
+    </insert>
+
+
+    <!-- 메시지 ID 로 파일 ID 목록 조회 -->
+    <select id="findFileIdsByMessageId" resultType="java.lang.Integer">
+        SELECT file_id
+        FROM message_file
+        WHERE message_id = #{messageId}
+    </select>
+
+
+    <!-- 메시지 ID 로 전체 삭제 -->
+    <delete id="deleteByMessageId">
+        DELETE FROM message_file
+        WHERE message_id = #{messageId}
+    </delete>
+
+</mapper>

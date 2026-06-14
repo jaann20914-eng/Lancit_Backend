@@ -1,17 +1,54 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.ssafy.lancit.domain.contract.mapper.ChatRoomMapper">
 
-    <!-- TODO 지원： sql작성-->
-    <!--프리랜서 이메일로 참여 채팅방 찾기-->
-	<select id="findChatRoomIdsByFreelancerEmail" resultType="int">
-		SELECT * FROM chat_room WHERE freelancer_email= #{email}
-	</select>
-	
-	<!--회사 이메일로 참여 채팅방 찾기-->
-	<select id="findChatRoomIdsByCompanyEmail" resultType="int">
-		SELECT * FROM chat_room WHERE company_email= #{email}
-	</select>
+<mapper namespace="com.ssafy.lancit.domain.chat.mapper.ChatRoomMapper">
+
+    <resultMap id="ChatRoomResultMap" type="com.ssafy.lancit.domain.chat.dto.ChatRoomDTO">
+        <id     property="chatRoomId"     column="chat_room_id"/>
+        <result property="contractId"     column="contract_id"/>
+        <result property="companyEmail"   column="company_email"/>
+        <result property="freelancerEmail" column="freelancer_email"/>
+        <result property="createdAt"      column="created_at"/>
+    </resultMap>
+
+
+    <!-- 계약으로 채팅방 조회 -->
+    <select id="findByContractId" resultMap="ChatRoomResultMap">
+        SELECT *
+        FROM chat_room
+        WHERE contract_id = #{contractId}
+    </select>
+
+
+    <!-- 채팅방 생성 -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="chatRoomId">
+        INSERT INTO chat_room (contract_id, company_email, freelancer_email, created_at)
+        VALUES (#{contractId}, #{companyEmail}, #{freelancerEmail}, NOW())
+    </insert>
+
+
+    <!-- 채팅방 단건 조회 -->
+    <select id="findById" resultMap="ChatRoomResultMap">
+        SELECT *
+        FROM chat_room
+        WHERE chat_room_id = #{chatRoomId}
+    </select>
+
+
+    <!-- 프리랜서의 채팅방 ID 목록 -->
+    <select id="findChatRoomIdsByFreelancerEmail" resultType="java.lang.Integer">
+        SELECT chat_room_id
+        FROM chat_room
+        WHERE freelancer_email = #{email}
+    </select>
+
+
+    <!-- 회사의 채팅방 ID 목록 -->
+    <select id="findChatRoomIdsByCompanyEmail" resultType="java.lang.Integer">
+        SELECT chat_room_id
+        FROM chat_room
+        WHERE company_email = #{email}
+    </select>
 
 </mapper>
