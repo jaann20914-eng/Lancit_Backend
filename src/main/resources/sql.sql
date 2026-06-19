@@ -1,91 +1,3 @@
-SELECT CURRENT_USER();
-SHOW GRANTS;
--- user 만들기
-CREATE USER 'lancit'@'localhost'
-IDENTIFIED BY 'lancit602!!';
--- 권한 부여
-GRANT ALL PRIVILEGES ON *.* TO 'lancit'@'localhost';
-FLUSH PRIVILEGES;
--- 확인
-SELECT User, Host
-FROM mysql.user;
-
--- 데이터베이스 만들기
-CREATE DATABASE lancit;
-use lancit;
-
-delete from file where file_id=49;
-SELECT * FROM file;
-ALTER TABLE `file`
-MODIFY COLUMN parent_type 
-ENUM('PORTFOLIO','PROFILE','PORTFOLIO_BANNER','PORTFOLIO_FILE','RECRUITMENT_IMAGE','CONTRACT','CHAT','TEMP') NOT NULL;
-
-SELECT * FROM user;
--- test 계정 비번은 test
-ALTER TABLE user ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP;
-INSERT INTO `user` (email, password, name, phone, job_category, pushable, profile_file_id)
-VALUES (
-    'test5@lancit.com',
-    '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LjZAzsuPPmC', -- test1234
-    '테스트유저5',
-    '010-1234-5678',
-    'IT',
-    0,
-    NULL
-);
-UPDATE user
-SET password = '$2a$10$i2FVNHQ6Smfo73oUin6wnOMHCdKxNJHP8PQaA4xsJDaSxpMdXK.8.'
-WHERE email = 'test@lancit.com';
-UPDATE company
-SET password = '$2a$10$i2FVNHQ6Smfo73oUin6wnOMHCdKxNJHP8PQaA4xsJDaSxpMdXK.8.'
-WHERE email = 'company@lancit.com';
-
-SELECT * FROM company;
-INSERT INTO company (email, password, name, company_name, phone, job_category, pushable)
-VALUES ('company@lancit.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LjZAzsuPPmC', '담당자', '테스트회사', '010-9876-5432', 'IT', 0);
--- 비밀번호 : test1234
--- 폴리테루 :polyteru
-
-SELECT * FROM category;
-SELECT * FROM task;
-SELECT * FROM holiday;
-
-SELECT * FROM portfolio;
-INSERT INTO portfolio (email, category, title, summary, content, work_start_at, work_end_at, is_public, banner_file_id)
-VALUES ('test@lancit.com', 'WEB_APP', '테스트 포트폴리오', '테스트 요약', '포트폴리오 내용', '2026-01-01 00:00:00', '2026-06-01 00:00:00', 0, NULL);
-
-SELECT * FROM recruitment;
-<<<<<<< HEAD
-INSERT INTO recruitment (email, title, content, job_category, status)
-VALUES ('company@lancit.com', '테스트 공고', '테스트용 공고 내용', 'IT', 'OPEN');
-
-=======
-SELECT * FROM recruitment_tech_stack;
->>>>>>> origin/master
-SELECT * FROM recruitment_application;
-SELECT * FROM portfolio_permission;
-SELECT * FROM bookmark;
-SELECT * FROM recruitment_bookmark;
-
-SELECT * FROM contract;
-update contract 
-	set status ='COMPLETED_PENDING'
-    where contract_id=4;
-
-SELECT * FROM chat_room;
-
-SELECT * FROM message;
-
-SELECT * FROM proposal;
-SELECT * FROM file_delete_queue;
-SELECT * FROM contract_document;
-
-SELECT * FROM contract_cancel_request;
-SELECT * FROM contract_file;
-SELECT * FROM notification;
-SELECT * FROM message_file;
-
-
 -- ============================================================
 --  LANCIT DDL  최종본 v3
 --  생성 순서대로 실행할 것
@@ -127,6 +39,8 @@ CREATE TABLE `user` (
                                         NOT NULL,
     pushable            TINYINT(1)      NOT NULL    DEFAULT 0       COMMENT '알림 수신 여부',
     profile_file_id     INT             NULL                        COMMENT '프로필 사진 파일 ID',
+    is_deleted          TINYINT(1)      NOT NULL    DEFAULT 0,
+    deleted_at          DATETIME        NULL,
     PRIMARY KEY (email),
     CONSTRAINT fk_user_profile_file
         FOREIGN KEY (profile_file_id) REFERENCES `file` (file_id)
@@ -148,6 +62,8 @@ CREATE TABLE `company` (
     business_number             VARCHAR(20)     NULL,
     business_number_verified    TINYINT(1)      NOT NULL    DEFAULT 0,
     profile_file_id             INT             NULL                    COMMENT '프로필 사진 파일 ID',
+    is_deleted                  TINYINT(1)      NOT NULL    DEFAULT 0,
+    deleted_at                  DATETIME        NULL,
     PRIMARY KEY (email),
     CONSTRAINT fk_company_profile_file
         FOREIGN KEY (profile_file_id) REFERENCES `file` (file_id)
@@ -411,123 +327,6 @@ CREATE TABLE `recruitment_bookmark` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='프리랜서가 공고문 찜';
 
 -- ============================================================
---  14. contract (계약서)
--- ============================================================
-CREATE TABLE `contract` (
-    contract_id                 INT             NOT NULL    AUTO_INCREMENT,
-    company_email               VARCHAR(255)    NOT NULL,
-    freelancer_email            VARCHAR(255)    NOT NULL,
-    status                      ENUM('NEGOTIATING_A','NEGOTIATING_B','NEGOTIATING_C',
-                                     'IN_PROGRESS','COMPLETED_PENDING','COMPLETED','CANCELLED')
-                                                NOT NULL    DEFAULT 'NEGOTIATING_A',
-    party_a                     VARCHAR(255)    NULL                    COMMENT '갑 (회사명)',
-    party_b                     VARCHAR(100)    NULL                    COMMENT '을 (프리랜서 이름)',
-    contract_start_at           DATETIME        NULL,
-    contract_end_at             DATETIME        NULL,
-    work_location               VARCHAR(255)    NULL,
-    work_description            TEXT            NULL,
-    work_days                   VARCHAR(100)    NULL                    COMMENT '콤마 구분 (MON,TUE,...)',
-    work_start_time             TIME            NULL,
-    work_end_time               TIME            NULL,
-    break_time                  TIME            NULL,
-    monthly_wage                INT             NOT NULL    DEFAULT 0,
-    base_pay                    INT             NOT NULL    DEFAULT 0,
-    base_pay_basis              TIME            NULL,
-    overtime_pay                INT             NOT NULL    DEFAULT 0,
-    overtime_pay_basis          TIME            NULL,
-    holiday_pay                 INT             NOT NULL    DEFAULT 0,
-    holiday_pay_basis           TIME            NULL,
-    meal_allowance              INT             NOT NULL    DEFAULT 0,
-    total_wage                  INT             NOT NULL    DEFAULT 0,
-    contract_written_at         DATETIME        NULL,
-    representative_name         VARCHAR(100)    NULL,
-    company_address             VARCHAR(500)    NULL,
-    representative_sign_file_id INT             NULL,
-    freelancer_sign_file_id     INT             NULL,
-    freelancer_birth_date       DATE            NULL,
-    freelancer_address          VARCHAR(500)    NULL,
-    confirm_sign_file_id        INT             NULL,
-    PRIMARY KEY (contract_id),
-    CONSTRAINT fk_contract_company
-        FOREIGN KEY (company_email) REFERENCES `company` (email)
-        ON DELETE RESTRICT,
-    CONSTRAINT fk_contract_user
-        FOREIGN KEY (freelancer_email) REFERENCES `user` (email)
-        ON DELETE RESTRICT,
-    CONSTRAINT fk_contract_rep_sign
-        FOREIGN KEY (representative_sign_file_id) REFERENCES `file` (file_id)
-        ON DELETE SET NULL,
-    CONSTRAINT fk_contract_free_sign
-        FOREIGN KEY (freelancer_sign_file_id) REFERENCES `file` (file_id)
-        ON DELETE SET NULL,
-    CONSTRAINT fk_contract_confirm_sign
-        FOREIGN KEY (confirm_sign_file_id) REFERENCES `file` (file_id)
-        ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='계약서';
-
--- ============================================================
---  15. chat_room (계약서 협의 채팅방)
--- ============================================================
-CREATE TABLE `chat_room` (
-    chat_room_id        INT             NOT NULL    AUTO_INCREMENT,
-    contract_id         INT             NOT NULL,
-    freelancer_email    VARCHAR(255)    NOT NULL,
-    company_email       VARCHAR(255)    NOT NULL,
-    PRIMARY KEY (chat_room_id),
-    CONSTRAINT fk_chatroom_contract
-        FOREIGN KEY (contract_id) REFERENCES `contract` (contract_id)
-        ON DELETE CASCADE,
-    CONSTRAINT fk_chatroom_user
-        FOREIGN KEY (freelancer_email) REFERENCES `user` (email)
-        ON DELETE CASCADE,
-    CONSTRAINT fk_chatroom_company
-        FOREIGN KEY (company_email) REFERENCES `company` (email)
-        ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='협의 채팅방';
-
--- ============================================================
---  16. message (채팅 메시지)
--- ============================================================
-CREATE TABLE `message` (
-    message_id      INT             NOT NULL    AUTO_INCREMENT,
-    chat_room_id    INT             NOT NULL,
-    email           VARCHAR(255)    NOT NULL                    COMMENT '발신자 이메일',
-    message         TEXT            NOT NULL,
-    message_type    ENUM('TEXT','FILE','IMAGE')
-                                    NOT NULL    DEFAULT 'TEXT',
-    is_read         TINYINT(1)      NOT NULL    DEFAULT 0,
-    is_deleted      TINYINT(1)      NOT NULL    DEFAULT 0       COMMENT 'soft delete',
-    is_updated      TINYINT(1)      NOT NULL    DEFAULT 0,
-    created_at      DATETIME        NOT NULL    DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (message_id),
-    CONSTRAINT fk_message_chatroom
-        FOREIGN KEY (chat_room_id) REFERENCES `chat_room` (chat_room_id)
-        ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='협의 채팅 메시지';
-
--- ============================================================
---  17. proposal (제안서 - 회사가 프리랜서에게 발송)
--- ============================================================
-CREATE TABLE `proposal` (
-    proposal_id         INT             NOT NULL    AUTO_INCREMENT,
-    company_email       VARCHAR(255)    NOT NULL,
-    freelancer_email    VARCHAR(255)    NOT NULL,
-    title               VARCHAR(255)    NOT NULL,
-    content             TEXT            NULL,
-    status              ENUM('PENDING','ACCEPTED','REJECTED')
-                                        NOT NULL    DEFAULT 'PENDING',
-    sent_at             DATETIME        NOT NULL    DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (proposal_id),
-    CONSTRAINT fk_proposal_company
-        FOREIGN KEY (company_email) REFERENCES `company` (email)
-        ON DELETE CASCADE,
-    CONSTRAINT fk_proposal_user
-        FOREIGN KEY (freelancer_email) REFERENCES `user` (email)
-        ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='제안서';
-
-
--- ============================================================
 --  18. 삭제 실패한 파일 목록 저장해 놓는 곳
 -- ============================================================
 CREATE TABLE file_delete_queue (
@@ -536,73 +335,6 @@ CREATE TABLE file_delete_queue (
     retry_count INT DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
-
-
-
-
--- ============================================================
---  테이블 생성 순서 요약
--- ============================================================
---   1.  file
---   2.  user             (→ file)
---   3.  company          (→ file)
---   ALTER file           (→ user, → company)
---   4.  category
---   5.  task             (→ category)
---   6.  holiday
---   7.  portfolio        (→ user, → file)
---   7-1. portfolio_profile             (→ user)
---   7-2. portfolio_profile_tech_stack  (→ user)
---   8.  recruitment      (→ company)
-<<<<<<< HEAD
---   9.  recruitment_application   (→ recruitment, → user)
---  10.  portfolio_permission      (→ recruitment_application, → portfolio)
---  11.  bookmark                  (→ company, → user, → recruitment_application)
---  12.  recruitment_bookmark      (→ user, → recruitment)
---  13.  contract         (→ company, → user, → file×3)
---  14.  chat_room        (→ contract, → user, → company)
---  15.  message          (→ chat_room)
---  16.  proposal         (→ company, → user)
---  17.  file_delete_queue
--- ==========================================================
-
--- ========================================================== 영은 추가 요청
-ALTER TABLE task
-ADD COLUMN memo TEXT NULL COMMENT '장소, 링크, 준비물 등 부가 정보' AFTER content;
-
-
-
--- ====================================================260612 지원 추가
-=======
---   9.  recruitment_tech_stack    (→ recruitment)
---  10.  recruitment_application   (→ recruitment, → user)
---  11.  portfolio_permission      (→ recruitment_application, → portfolio)
---  12.  bookmark                  (→ company, → user, → recruitment_application)
---  13.  recruitment_bookmark      (→ user, → recruitment)
---  14.  contract         (→ company, → user, → file×3)
---  15.  chat_room        (→ contract, → user, → company)
---  16.  message          (→ chat_room)
---  17.  proposal         (→ company, → user)
---  18.  file_delete_queue
->>>>>>> origin/master
--- ============================================================
--- CONTRACT / CHAT / MESSAGE / PROPOSAL 구조 변경
--- 기존 데이터 삭제 후 재생성
--- ============================================================
-
-SET FOREIGN_KEY_CHECKS = 0;
-
-DROP TABLE IF EXISTS message_file;
-DROP TABLE IF EXISTS notification;
-DROP TABLE IF EXISTS contract_file;
-DROP TABLE IF EXISTS contract_document;
-
-DROP TABLE IF EXISTS message;
-DROP TABLE IF EXISTS chat_room;
-DROP TABLE IF EXISTS proposal;
-DROP TABLE IF EXISTS contract;
-
-SET FOREIGN_KEY_CHECKS = 1;
 
 -- ============================================================
 -- CONTRACT
@@ -761,6 +493,7 @@ company_email       VARCHAR(255) NOT NULL,
 created_at          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
 PRIMARY KEY (chat_room_id),
+UNIQUE KEY uk_chatroom_contract (contract_id),
 
 CONSTRAINT fk_chatroom_contract
     FOREIGN KEY (contract_id)
@@ -778,8 +511,7 @@ CONSTRAINT fk_chatroom_company
     ON DELETE CASCADE
 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='채팅방';
-ALTER TABLE chat_room
-ADD UNIQUE KEY uk_chatroom_contract (contract_id);
+
 -- ============================================================
 -- MESSAGE
 -- ============================================================
