@@ -665,3 +665,14 @@ CREATE TABLE contract_cancel_request (
         REFERENCES contract(contract_id)
         ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='계약 파기 요청';
+
+-- -----------------------------------------------------
+-- Frontend test accounts
+-- password: test1234
+-- -----------------------------------------------------
+
+-- freelancer: user@lancit.com / test1234
+INSERT IGNORE INTO `user` VALUES ('user@lancit.com','$2y$10$KkhYp.cXbmxjoNdT4cAb4uc2twUU04Y27qrzN/zJR/PS92qIFB20O','테스트 프리랜서','010-4000-4000','IT',0,NULL,0,NULL);
+
+-- company: company@lancit.com / test1234
+INSERT IGNORE INTO `company` VALUES ('company@lancit.com','$2y$10$KkhYp.cXbmxjoNdT4cAb4uc2twUU04Y27qrzN/zJR/PS92qIFB20O','스모크 담당자','테스트 회사','010-1000-1000','IT',0,NULL,0,NULL,0,NULL);
