@@ -6,6 +6,7 @@
     <resultMap id="ApplicationResultMap" type="com.ssafy.lancit.domain.recruitment.application.dto.ApplicationDTO">
         <id property="applicationId" column="application_id"/>
         <result property="recruitmentId" column="recruitment_id"/>
+        <result property="contractId" column="contract_id"/>
         <result property="recruitmentTitle" column="recruitment_title"/>
         <result property="applicantEmail" column="applicant_email"/>
         <result property="applicantName" column="applicant_name"/>
@@ -20,6 +21,7 @@
     <sql id="ApplicationColumns">
         ra.application_id,
         ra.recruitment_id,
+        ra.contract_id,
         r.title AS recruitment_title,
         ra.applicant_email,
         u.name AS applicant_name,
@@ -129,6 +131,20 @@
         WHERE application_id = #{applicationId}
           AND status = 'PENDING'
           AND viewed_at IS NULL
+    </update>
+
+    <update id="updateStatusIfPending">
+        UPDATE recruitment_application
+        SET status = #{status}
+        WHERE application_id = #{applicationId}
+          AND status = 'PENDING'
+    </update>
+
+    <update id="attachContract">
+        UPDATE recruitment_application
+        SET contract_id = #{contractId}
+        WHERE application_id = #{applicationId}
+          AND contract_id IS NULL
     </update>
 
 </mapper>

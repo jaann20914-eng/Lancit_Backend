@@ -251,6 +251,7 @@ CREATE TABLE `recruitment_tech_stack` (
 CREATE TABLE `recruitment_application` (
     application_id              INT             NOT NULL    AUTO_INCREMENT,
     recruitment_id              INT             NOT NULL,
+    contract_id                 INT             NULL,
     applicant_email             VARCHAR(255)    NOT NULL,
     intro                       TEXT            NULL                        COMMENT '지원 소개',
     applied_at                  DATETIME        NOT NULL    DEFAULT CURRENT_TIMESTAMP,
@@ -261,6 +262,7 @@ CREATE TABLE `recruitment_application` (
     viewed_at                   DATETIME        NULL,
     PRIMARY KEY (application_id),
     UNIQUE KEY uk_application_recruitment_applicant (recruitment_id, applicant_email),
+    UNIQUE KEY uk_application_contract (contract_id),
     CONSTRAINT fk_application_recruitment
         FOREIGN KEY (recruitment_id) REFERENCES `recruitment` (recruitment_id)
         ON DELETE CASCADE,
@@ -377,6 +379,11 @@ CONSTRAINT fk_contract_user
 
 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='계약';
+
+ALTER TABLE recruitment_application
+    ADD CONSTRAINT fk_application_contract
+        FOREIGN KEY (contract_id) REFERENCES contract(contract_id)
+        ON DELETE SET NULL;
 
 -- ============================================================
 -- CONTRACT_DOCUMENT
@@ -589,7 +596,14 @@ recruitment_id      INT NOT NULL,
 contract_id         INT NULL,
 chat_room_id        INT NULL,
 
+status              ENUM('PENDING', 'ACCEPTED', 'REJECTED')
+                    NOT NULL DEFAULT 'PENDING',
+sent_at             DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
 PRIMARY KEY (proposal_id),
+UNIQUE KEY uk_proposal_contract (contract_id),
+INDEX idx_proposal_freelancer_sent (freelancer_email, sent_at),
+INDEX idx_proposal_company_sent (company_email, sent_at),
 
 CONSTRAINT fk_proposal_company
     FOREIGN KEY (company_email)

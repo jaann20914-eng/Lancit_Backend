@@ -4,6 +4,8 @@ import com.ssafy.lancit.common.exception.CustomException;
 import com.ssafy.lancit.common.exception.ErrorCode;
 import com.ssafy.lancit.common.page.dto.PageRequest;
 import com.ssafy.lancit.common.page.dto.PageResponse;
+import com.ssafy.lancit.domain.contract.dto.ContractDTO;
+import com.ssafy.lancit.domain.contract.mapper.ContractMapper;
 import com.ssafy.lancit.domain.portfolio.dto.PortfolioProfileDTO;
 import com.ssafy.lancit.domain.portfolio.mapper.PortfolioMapper;
 import com.ssafy.lancit.domain.portfolio.mapper.PortfolioProfileMapper;
@@ -11,11 +13,13 @@ import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationDTO;
 import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationDetailResponse;
 import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationPortfolioSummaryResponse;
 import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationRequest;
+import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationStatusUpdateRequest;
 import com.ssafy.lancit.domain.recruitment.application.mapper.ApplicationMapper;
 import com.ssafy.lancit.domain.recruitment.application.mapper.PortfolioPermissionMapper;
 import com.ssafy.lancit.domain.recruitment.post.dto.RecruitmentDTO;
 import com.ssafy.lancit.domain.recruitment.post.mapper.RecruitmentMapper;
 import com.ssafy.lancit.global.enums.ApplicationStatus;
+import com.ssafy.lancit.global.enums.ContractStatus;
 import com.ssafy.lancit.global.enums.RecruitmentStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DuplicateKeyException;
@@ -26,6 +30,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
@@ -40,6 +45,7 @@ public class ApplicationService {
     private final PortfolioMapper portfolioMapper;
     private final PortfolioProfileMapper portfolioProfileMapper;
     private final RecruitmentMapper recruitmentMapper;
+    private final ContractMapper contractMapper;
 
     public PageResponse<ApplicationDetailResponse> getCompanyApplications(int recruitmentId,
                                                                           String companyEmail,
@@ -141,6 +147,45 @@ public class ApplicationService {
         // 취소 후에도 회사가 과거 지원 이력을 확인할 수 있도록 포트폴리오 연결은 유지한다.
     }
 
+    @Transactional
+    public ApplicationDetailResponse updateStatus(int recruitmentId,
+                                                  int applicationId,
+                                                  ApplicationStatusUpdateRequest request,
+                                                  String companyEmail,
+                                                  String role) {
+        requireCompany(role);
+        ApplicationStatus targetStatus = parseTargetStatus(request);
+        RecruitmentDTO recruitment = verifyRecruitmentOwner(recruitmentId, companyEmail);
+        ApplicationDTO application = findCompanyApplication(recruitmentId, applicationId);
+        if (!ApplicationStatus.PENDING.equals(application.getStatus())) {
+            throw new CustomException(ErrorCode.INVALID_APPLICATION_STATUS_CHANGE);
+        }
+        if (ApplicationStatus.ACCEPTED.equals(targetStatus)
+                && contractMapper.existsActiveContract(recruitmentId, application.getApplicantEmail())) {
+            throw new CustomException(ErrorCode.CONTRACT_ALREADY_EXISTS);
+        }
+
+        int updated = applicationMapper.updateStatusIfPending(applicationId, targetStatus);
+        if (updated == 0) {
+            throw new CustomException(ErrorCode.INVALID_APPLICATION_STATUS_CHANGE);
+        }
+
+        if (ApplicationStatus.ACCEPTED.equals(targetStatus)) {
+            ContractDTO contract = ContractDTO.builder()
+                    .recruitmentId(recruitmentId)
+                    .companyEmail(recruitment.getCompanyEmail())
+                    .freelancerEmail(application.getApplicantEmail())
+                    .status(ContractStatus.WAITING)
+                    .build();
+            contractMapper.insert(contract);
+            if (applicationMapper.attachContract(applicationId, contract.getContractId()) == 0) {
+                throw new CustomException(ErrorCode.INVALID_APPLICATION_STATUS_CHANGE);
+            }
+        }
+
+        return toDetailResponse(findCompanyApplication(recruitmentId, applicationId), false);
+    }
+
     private void requireUser(String role) {
         if (!ROLE_USER.equals(role)) {
             throw new CustomException(ErrorCode.FREELANCER_ONLY);
@@ -214,6 +259,22 @@ public class ApplicationService {
         }
     }
 
+    private ApplicationStatus parseTargetStatus(ApplicationStatusUpdateRequest request) {
+        if (request == null || request.getStatus() == null || request.getStatus().isBlank()) {
+            throw new CustomException(ErrorCode.INVALID_APPLICATION_STATUS_VALUE);
+        }
+        try {
+            ApplicationStatus status =
+                    ApplicationStatus.valueOf(request.getStatus().trim().toUpperCase(Locale.ROOT));
+            if (!ApplicationStatus.ACCEPTED.equals(status) && !ApplicationStatus.REJECTED.equals(status)) {
+                throw new CustomException(ErrorCode.INVALID_APPLICATION_STATUS_VALUE);
+            }
+            return status;
+        } catch (IllegalArgumentException e) {
+            throw new CustomException(ErrorCode.INVALID_APPLICATION_STATUS_VALUE);
+        }
+    }
+
     private List<Integer> validatePortfolioIds(ApplicationRequest request, String freelancerEmail) {
         if (request == null || request.getPortfolioIds() == null || request.getPortfolioIds().isEmpty()) {
             throw new CustomException(ErrorCode.INVALID_APPLICATION_PORTFOLIO);
@@ -263,6 +324,7 @@ public class ApplicationService {
         return ApplicationDetailResponse.builder()
                 .applicationId(application.getApplicationId())
                 .recruitmentId(application.getRecruitmentId())
+                .contractId(application.getContractId())
                 .recruitmentTitle(application.getRecruitmentTitle())
                 .applicantEmail(application.getApplicantEmail())
                 .applicantName(application.getApplicantName())

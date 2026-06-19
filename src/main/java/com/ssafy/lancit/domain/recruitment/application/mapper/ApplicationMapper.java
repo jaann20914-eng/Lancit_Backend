@@ -7,6 +7,7 @@ import org.apache.ibatis.annotations.Param;
 
 import com.ssafy.lancit.common.page.dto.PageRequest;
 import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationDTO;
+import com.ssafy.lancit.global.enums.ApplicationStatus;
 
 @Mapper
 public interface ApplicationMapper {
@@ -34,4 +35,10 @@ public interface ApplicationMapper {
                     @Param("intro") String intro);
 
     int cancel(@Param("applicationId") int applicationId);
+
+    int updateStatusIfPending(@Param("applicationId") int applicationId,
+                              @Param("status") ApplicationStatus status);
+
+    int attachContract(@Param("applicationId") int applicationId,
+                       @Param("contractId") int contractId);
 }
