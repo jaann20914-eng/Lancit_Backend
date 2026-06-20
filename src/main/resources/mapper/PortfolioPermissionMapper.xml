@@ -63,4 +63,17 @@
         ORDER BY permission_id ASC
     </select>
 
+    <select id="existsCompanyPermission" resultType="boolean">
+        SELECT COUNT(*) &gt; 0
+        FROM portfolio_permission pp
+        INNER JOIN recruitment_application ra
+            ON ra.application_id = pp.application_id
+        INNER JOIN recruitment r
+            ON r.recruitment_id = ra.recruitment_id
+        WHERE pp.application_id = #{applicationId}
+          AND pp.portfolio_id = #{portfolioId}
+          AND ra.recruitment_id = #{recruitmentId}
+          AND r.company_email = #{companyEmail}
+    </select>
+
 </mapper>

@@ -55,6 +55,8 @@ public class FileController {
     // 프론트에서 이미지/파일 렌더링 시 이 API 호출
     @GetMapping("/{fileId}/url")
     public ResponseEntity<ApiResponse<String>> getSignedUrl(@PathVariable int fileId) {
+        String email = SecurityUtil.getCurrentEmail();
+        fileService.validateReadAccess(fileId, email);
         String url = fileService.getSignedUrl(fileId);
         return ResponseEntity.ok(ApiResponse.ok(url));
     }
@@ -74,8 +76,10 @@ public class FileController {
     // 파일 다운로드 - Signed URL 반환 (프론트가 직접 GCS 에서 다운로드)
     @GetMapping("/{fileId}/download")
     public ResponseEntity<ApiResponse<String>> download(@PathVariable int fileId) {
-    	String url = fileService.getDownloadUrl(fileId);
-    	return ResponseEntity.ok(ApiResponse.ok(url));
+        String email = SecurityUtil.getCurrentEmail();
+        fileService.validateReadAccess(fileId, email);
+        String url = fileService.getDownloadUrl(fileId);
+        return ResponseEntity.ok(ApiResponse.ok(url));
     }
     
     

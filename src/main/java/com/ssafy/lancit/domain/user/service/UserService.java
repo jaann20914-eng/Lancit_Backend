@@ -18,6 +18,8 @@ import com.ssafy.lancit.domain.file.dto.FileDTO;
 import com.ssafy.lancit.domain.file.event.FileDeleteEvent;
 import com.ssafy.lancit.domain.file.mapper.FileMapper;
 import com.ssafy.lancit.domain.file.service.FileService;
+import com.ssafy.lancit.domain.portfolio.mapper.PortfolioProfileMapper;
+import com.ssafy.lancit.domain.recruitment.application.mapper.ApplicationProfileSnapshotMapper;
 import com.ssafy.lancit.domain.user.dto.UserDTO;
 import com.ssafy.lancit.domain.user.mapper.UserMapper;
 import com.ssafy.lancit.global.enums.FileParentType;
@@ -36,6 +38,8 @@ public class UserService {
     private final TaskMapper taskMapper;
     private final FileMapper fileMapper;
     private final FileService fileService;   // 탈퇴 시 GCS + Redis 먼저 정리해야함
+    private final PortfolioProfileMapper portfolioProfileMapper;
+    private final ApplicationProfileSnapshotMapper applicationProfileSnapshotMapper;
     private final PasswordEncoder passwordEncoder;
     private final ApplicationEventPublisher eventPublisher;
     private final CacheManager cacheManager;
@@ -60,7 +64,9 @@ public class UserService {
             // 기존 PROFILE 삭제 (FileDeleteEvent → 커밋 후 GCS 삭제)
             if (existing.getProfileFileId() != null) {
                 FileDTO oldFile = fileMapper.findById(existing.getProfileFileId());
-                if (oldFile != null) {
+                if (oldFile != null
+                        && !portfolioProfileMapper.isProfileFileReferenced(oldFile.getFileId())
+                        && !applicationProfileSnapshotMapper.isProfileFileReferenced(oldFile.getFileId())) {
                     fileService.delete(oldFile.getFileId());
                 }
             }

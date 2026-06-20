@@ -20,9 +20,14 @@ DROP TABLE IF EXISTS contract_document;
 DROP TABLE IF EXISTS contract;
 DROP TABLE IF EXISTS recruitment_bookmark;
 DROP TABLE IF EXISTS bookmark;
+DROP TABLE IF EXISTS recruitment_application_profile_snapshot_tech_stack;
+DROP TABLE IF EXISTS recruitment_application_profile_snapshot;
 DROP TABLE IF EXISTS portfolio_permission;
 DROP TABLE IF EXISTS recruitment_application;
+DROP TABLE IF EXISTS recruitment_tech_stack;
 DROP TABLE IF EXISTS recruitment;
+DROP TABLE IF EXISTS portfolio_profile_tech_stack;
+DROP TABLE IF EXISTS portfolio_profile;
 DROP TABLE IF EXISTS portfolio;
 DROP TABLE IF EXISTS holiday;
 DROP TABLE IF EXISTS task;
@@ -58,6 +63,11 @@ CREATE TABLE `file` (
             (user_email IS NULL AND company_email IS NOT NULL)
         )
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='파일';
+
+ALTER TABLE `file`
+    MODIFY COLUMN parent_type
+        ENUM('PROFILE','PORTFOLIO_PROFILE','PORTFOLIO_BANNER','PORTFOLIO_FILE','RECRUITMENT_IMAGE','CONTRACT','CHAT','TEMP')
+        NOT NULL COMMENT '부모 타입';
 
 -- ============================================================
 --  2. user (프리랜서)
@@ -171,12 +181,19 @@ CREATE TABLE `holiday` (
 CREATE TABLE `portfolio` (
     portfolio_id    INT             NOT NULL    AUTO_INCREMENT,
     email           VARCHAR(255)    NOT NULL,
+    category        ENUM('WEB_APP','DESIGN','BRANDING','MARKETING','PLANNING')
+                                    NOT NULL    DEFAULT 'WEB_APP',
     title           VARCHAR(255)    NOT NULL,
+    summary         VARCHAR(30)     NOT NULL    DEFAULT ''       COMMENT '한줄 소개',
     content         TEXT            NULL,
     work_start_at   DATETIME        NULL,
     work_end_at     DATETIME        NULL,
     is_public       TINYINT(1)      NOT NULL    DEFAULT 0,
     banner_file_id  INT             NULL,
+    created_at      DATETIME        NOT NULL    DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME        NOT NULL    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    is_deleted      TINYINT(1)      NOT NULL    DEFAULT 0       COMMENT 'soft delete',
+    deleted_at      DATETIME        NULL,
     PRIMARY KEY (portfolio_id),
     CONSTRAINT fk_portfolio_user
         FOREIGN KEY (email) REFERENCES `user` (email)
@@ -187,26 +204,100 @@ CREATE TABLE `portfolio` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='포트폴리오';
 
 -- ============================================================
+--  7-1. portfolio_profile
+-- ============================================================
+CREATE TABLE `portfolio_profile` (
+    freelancer_email       VARCHAR(255)    NOT NULL,
+    display_name           VARCHAR(100)    NOT NULL,
+    job_category           ENUM('DESIGN','IT','MUSIC','EDUCATION','VIDEO','MARKETING','WRITING','ETC')
+                                           NOT NULL,
+    profile_file_id        INT             NULL,
+    is_portfolio_public    TINYINT(1)      NOT NULL    DEFAULT 0,
+    short_intro            VARCHAR(30)     NOT NULL    DEFAULT '',
+    description            VARCHAR(200)    NOT NULL    DEFAULT '',
+    created_at             DATETIME        NOT NULL    DEFAULT CURRENT_TIMESTAMP,
+    updated_at             DATETIME        NOT NULL    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (freelancer_email),
+    CONSTRAINT fk_portfolio_profile_user
+        FOREIGN KEY (freelancer_email) REFERENCES `user` (email)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_portfolio_profile_file
+        FOREIGN KEY (profile_file_id) REFERENCES `file` (file_id)
+        ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='포트폴리오 프로필 카드';
+
+-- ============================================================
+--  7-2. portfolio_profile_tech_stack
+-- ============================================================
+CREATE TABLE `portfolio_profile_tech_stack` (
+    id                 BIGINT          NOT NULL    AUTO_INCREMENT,
+    freelancer_email   VARCHAR(255)    NOT NULL,
+    tech_stack         VARCHAR(100)    NOT NULL,
+    created_at         DATETIME        NOT NULL    DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_portfolio_profile_tech_stack (freelancer_email, tech_stack),
+    CONSTRAINT fk_profile_tech_stack_user
+        FOREIGN KEY (freelancer_email) REFERENCES `user` (email)
+        ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='포트폴리오 프로필 기술 스택';
+
+-- ============================================================
 --  8. recruitment
 -- ============================================================
 CREATE TABLE `recruitment` (
     recruitment_id      INT             NOT NULL    AUTO_INCREMENT,
     email               VARCHAR(255)    NOT NULL                    COMMENT '회사 이메일',
+    company_email       VARCHAR(255)    NULL                        COMMENT '현재 Mapper용 회사 이메일',
     title               VARCHAR(255)    NOT NULL,
+    summary             VARCHAR(100)    NOT NULL    DEFAULT ''      COMMENT '한줄 소개',
     content             TEXT            NULL,
+    requirements        TEXT            NULL,
     job_category        ENUM('DESIGN','IT','MUSIC','EDUCATION','VIDEO','MARKETING','WRITING','ETC')
                                         NOT NULL,
+    recruitment_category ENUM('WEB_APP','DESIGN','BRANDING','MARKETING','PLANNING')
+                                         NOT NULL    DEFAULT 'WEB_APP',
     status              ENUM('OPEN','CLOSED','CANCELLED')
                                         NOT NULL    DEFAULT 'OPEN',
+    work_location       VARCHAR(255)    NULL,
     created_at          DATETIME        NOT NULL    DEFAULT CURRENT_TIMESTAMP,
+    updated_at          DATETIME        NOT NULL    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     contract_start_at   DATETIME        NULL,
     contract_end_at     DATETIME        NULL,
+    recruitment_start_at DATETIME       NOT NULL    DEFAULT CURRENT_TIMESTAMP,
+    recruitment_end_at  DATETIME        NULL,
     budget              INT             NOT NULL    DEFAULT 0,
+    image_file_id       INT             NULL,
+    is_deleted          TINYINT(1)      NOT NULL    DEFAULT 0,
+    deleted_at          DATETIME        NULL,
     PRIMARY KEY (recruitment_id),
+    INDEX idx_recruitment_list (is_deleted, status, recruitment_end_at, created_at),
+    INDEX idx_recruitment_company (company_email, is_deleted, created_at),
     CONSTRAINT fk_recruitment_company
         FOREIGN KEY (email) REFERENCES `company` (email)
         ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='공고문';
+
+ALTER TABLE `recruitment`
+    MODIFY COLUMN email VARCHAR(255) NULL COMMENT '기존 회사 이메일 호환 컬럼',
+    ADD CONSTRAINT fk_recruitment_company_email
+        FOREIGN KEY (company_email) REFERENCES `company` (email)
+        ON DELETE CASCADE,
+    ADD CONSTRAINT fk_recruitment_image_file
+        FOREIGN KEY (image_file_id) REFERENCES `file` (file_id)
+        ON DELETE SET NULL;
+
+-- ============================================================
+--  8-1. recruitment_tech_stack
+-- ============================================================
+CREATE TABLE `recruitment_tech_stack` (
+    recruitment_id  INT             NOT NULL,
+    tag_name        VARCHAR(50)     NOT NULL,
+    created_at      DATETIME        NOT NULL    DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (recruitment_id, tag_name),
+    CONSTRAINT fk_recruitment_tech_stack_recruitment
+        FOREIGN KEY (recruitment_id) REFERENCES `recruitment` (recruitment_id)
+        ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='공고 기술 스택';
 
 -- ============================================================
 --  9. recruitment_application
@@ -214,12 +305,18 @@ CREATE TABLE `recruitment` (
 CREATE TABLE `recruitment_application` (
     application_id              INT             NOT NULL    AUTO_INCREMENT,
     recruitment_id              INT             NOT NULL,
+    contract_id                 INT             NULL,
     applicant_email             VARCHAR(255)    NOT NULL,
+    intro                       TEXT            NULL                        COMMENT '지원 소개',
     applied_at                  DATETIME        NOT NULL    DEFAULT CURRENT_TIMESTAMP,
+    canceled_at                 DATETIME        NULL,
     status                      ENUM('PENDING','ACCEPTED','REJECTED')
                                                 NOT NULL    DEFAULT 'PENDING',
     is_bookmarked_by_company    TINYINT(1)      NOT NULL    DEFAULT 0,
+    viewed_at                   DATETIME        NULL,
     PRIMARY KEY (application_id),
+    UNIQUE KEY uk_application_recruitment_applicant (recruitment_id, applicant_email),
+    UNIQUE KEY uk_application_contract (contract_id),
     CONSTRAINT fk_application_recruitment
         FOREIGN KEY (recruitment_id) REFERENCES `recruitment` (recruitment_id)
         ON DELETE CASCADE,
@@ -227,6 +324,47 @@ CREATE TABLE `recruitment_application` (
         FOREIGN KEY (applicant_email) REFERENCES `user` (email)
         ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='공고문 지원';
+
+ALTER TABLE `recruitment_application`
+    MODIFY COLUMN status ENUM('PENDING','ACCEPTED','REJECTED','CANCELLED')
+        NOT NULL DEFAULT 'PENDING';
+
+-- ============================================================
+--  9-1. recruitment_application_profile_snapshot
+-- ============================================================
+CREATE TABLE `recruitment_application_profile_snapshot` (
+    application_id             INT             NOT NULL,
+    display_name               VARCHAR(100)    NOT NULL,
+    job_category               ENUM('DESIGN','IT','MUSIC','EDUCATION','VIDEO','MARKETING','WRITING','ETC')
+                                                NOT NULL,
+    profile_file_id            INT             NULL,
+    short_intro                VARCHAR(30)     NOT NULL    DEFAULT '',
+    description                VARCHAR(200)    NOT NULL    DEFAULT '',
+    is_portfolio_public        TINYINT(1)      NOT NULL    DEFAULT 0,
+    source_profile_updated_at  DATETIME        NULL,
+    created_at                 DATETIME        NOT NULL    DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (application_id),
+    CONSTRAINT fk_application_profile_snapshot_application
+        FOREIGN KEY (application_id) REFERENCES `recruitment_application` (application_id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_application_profile_snapshot_file
+        FOREIGN KEY (profile_file_id) REFERENCES `file` (file_id)
+        ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='지원 당시 포트폴리오 프로필 카드';
+
+-- ============================================================
+--  9-2. recruitment_application_profile_snapshot_tech_stack
+-- ============================================================
+CREATE TABLE `recruitment_application_profile_snapshot_tech_stack` (
+    application_id   INT             NOT NULL,
+    tech_stack       VARCHAR(100)    NOT NULL,
+    sort_order       INT             NOT NULL,
+    PRIMARY KEY (application_id, tech_stack),
+    UNIQUE KEY uk_application_profile_snapshot_tech_order (application_id, sort_order),
+    CONSTRAINT fk_application_profile_snapshot_tech_application
+        FOREIGN KEY (application_id) REFERENCES `recruitment_application` (application_id)
+        ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='지원 당시 프로필 기술 스택';
 
 -- ============================================================
 --  10. portfolio_permission
@@ -237,6 +375,7 @@ CREATE TABLE `portfolio_permission` (
     portfolio_id    INT         NOT NULL,
     is_public       TINYINT(1)  NOT NULL    DEFAULT 0,
     PRIMARY KEY (permission_id),
+    UNIQUE KEY uk_permission_application_portfolio (application_id, portfolio_id),
     CONSTRAINT fk_permission_application
         FOREIGN KEY (application_id) REFERENCES `recruitment_application` (application_id)
         ON DELETE CASCADE,
@@ -313,6 +452,11 @@ CREATE TABLE `contract` (
         FOREIGN KEY (freelancer_email) REFERENCES `user` (email)
         ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='계약';
+
+ALTER TABLE `recruitment_application`
+    ADD CONSTRAINT fk_application_contract
+        FOREIGN KEY (contract_id) REFERENCES `contract` (contract_id)
+        ON DELETE SET NULL;
 
 -- ============================================================
 --  14. contract_document (계약서 본문)
@@ -531,8 +675,13 @@ CREATE TABLE `file_delete_queue` (
 --  5. task             (-> category)
 --  6. holiday
 --  7. portfolio        (-> user, file)
+--  7-1. portfolio_profile (-> user, file)
+--  7-2. portfolio_profile_tech_stack (-> user)
 --  8. recruitment      (-> company)
+--  8-1. recruitment_tech_stack (-> recruitment)
 --  9. recruitment_application (-> recruitment, user)
+--  9-1. recruitment_application_profile_snapshot (-> recruitment_application, file)
+--  9-2. recruitment_application_profile_snapshot_tech_stack (-> recruitment_application)
 -- 10. portfolio_permission    (-> recruitment_application, portfolio)
 -- 11. bookmark                (-> company, user, recruitment_application)
 -- 12. recruitment_bookmark    (-> user, recruitment)
@@ -586,6 +735,13 @@ INSERT INTO `recruitment` (email, title, content, job_category, status, contract
 ('company@lancit.com', '백엔드 개발자 모집',  'Spring Boot 기반 서비스 개발 프리랜서 모집', 'IT',        'OPEN', '2026-07-01 00:00:00', '2026-12-31 00:00:00', 3000000),
 ('company@lancit.com', '디자이너 모집',       'UI/UX 디자이너 단기 프로젝트',              'DESIGN',    'OPEN', '2026-07-01 00:00:00', '2026-09-30 00:00:00', 2000000),
 ('polyteru@polyteru.com', '영상 편집자 모집', '유튜브 영상 편집 프리랜서 모집',            'VIDEO',     'OPEN', '2026-07-01 00:00:00', '2026-10-31 00:00:00', 1500000);
+
+UPDATE `recruitment`
+SET company_email = email
+WHERE company_email IS NULL;
+
+ALTER TABLE `recruitment`
+    MODIFY COLUMN company_email VARCHAR(255) NOT NULL COMMENT '현재 Mapper용 회사 이메일';
 
 -- ── 7. recruitment_application ─────────────────────────────
 INSERT INTO `recruitment_application` (recruitment_id, applicant_email, status, is_bookmarked_by_company) VALUES

@@ -19,5 +19,10 @@ public interface PortfolioPermissionMapper {
     List<PortfolioPermissionDTO> findByApplication(int applicationId);
 
     List<Integer> findPortfolioIdsByApplicationId(@Param("applicationId") int applicationId);
+
+    boolean existsCompanyPermission(@Param("applicationId") int applicationId,
+                                    @Param("portfolioId") int portfolioId,
+                                    @Param("recruitmentId") int recruitmentId,
+                                    @Param("companyEmail") String companyEmail);
 }
  

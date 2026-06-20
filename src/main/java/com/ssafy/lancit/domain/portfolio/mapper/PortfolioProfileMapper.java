@@ -12,9 +12,7 @@ public interface PortfolioProfileMapper {
 
     PortfolioProfileDTO findByFreelancerEmail(@Param("freelancerEmail") String freelancerEmail);
 
-    boolean existsProfile(@Param("freelancerEmail") String freelancerEmail);
-
-    void insertProfile(PortfolioProfileDTO dto);
+    int insertProfileFromUser(@Param("freelancerEmail") String freelancerEmail);
 
     int updateProfile(PortfolioProfileDTO dto);
 
@@ -24,4 +22,6 @@ public interface PortfolioProfileMapper {
 
     void insertTechStack(@Param("freelancerEmail") String freelancerEmail,
                          @Param("techStack") String techStack);
+
+    boolean isProfileFileReferenced(@Param("fileId") int fileId);
 }

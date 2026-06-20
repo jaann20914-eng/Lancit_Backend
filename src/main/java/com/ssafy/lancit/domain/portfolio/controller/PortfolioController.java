@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import jakarta.validation.Valid;
+
 import com.ssafy.lancit.common.page.dto.PageRequest;
 import com.ssafy.lancit.common.page.dto.PageResponse;
 import com.ssafy.lancit.common.response.ApiResponse;
@@ -59,7 +61,7 @@ public class PortfolioController {
     // PORT-PROFILE-02 내 포트폴리오 프로필 카드 저장
     @PutMapping("/profile")
     public ResponseEntity<ApiResponse<PortfolioProfileDTO>> updateMyProfile(
-            @RequestBody PortfolioProfileUpdateRequest request) {
+            @Valid @RequestBody PortfolioProfileUpdateRequest request) {
         String email = SecurityUtil.getCurrentEmail();
         if (!"USER".equals(SecurityUtil.getCurrentRole())) {
             throw new CustomException(ErrorCode.FREELANCER_ONLY);
@@ -80,9 +82,10 @@ public class PortfolioController {
 	 // bannerFileId → 프론트가 /api/files/{bannerFileId}/url 로 Signed URL 별도 조회
 	 // files → 결과물 파일 목록 포함
 	 @GetMapping("/{portfolioId}")
-	 public ResponseEntity<ApiResponse<Map<String, Object>>> getPortfolio(@PathVariable int portfolioId) {
-	     return ResponseEntity.ok(ApiResponse.ok(portfolioService.getOne(portfolioId)));
-	 }
+		 public ResponseEntity<ApiResponse<Map<String, Object>>> getPortfolio(@PathVariable int portfolioId) {
+		     String email = SecurityUtil.getCurrentEmail();
+		     return ResponseEntity.ok(ApiResponse.ok(portfolioService.getOneForViewer(portfolioId, email)));
+		 }
 
     // PORT-03 포트폴리오 등록
     // 배너 이미지 업로드 흐름:

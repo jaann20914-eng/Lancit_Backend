@@ -7,11 +7,13 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 import com.ssafy.lancit.common.exception.CustomException;
 import com.ssafy.lancit.common.exception.ErrorCode;
@@ -19,15 +21,18 @@ import com.ssafy.lancit.common.page.dto.PageRequest;
 import com.ssafy.lancit.common.page.dto.PageResponse;
 import com.ssafy.lancit.domain.contract.dto.ContractDTO;
 import com.ssafy.lancit.domain.contract.mapper.ContractMapper;
+import com.ssafy.lancit.domain.file.service.FileService;
 import com.ssafy.lancit.domain.portfolio.dto.PortfolioProfileDTO;
 import com.ssafy.lancit.domain.portfolio.mapper.PortfolioMapper;
-import com.ssafy.lancit.domain.portfolio.mapper.PortfolioProfileMapper;
+import com.ssafy.lancit.domain.portfolio.service.PortfolioService;
 import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationDTO;
 import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationDetailResponse;
 import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationPortfolioSummaryResponse;
+import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationProfileSnapshotDTO;
 import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationRequest;
 import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationStatusUpdateRequest;
 import com.ssafy.lancit.domain.recruitment.application.mapper.ApplicationMapper;
+import com.ssafy.lancit.domain.recruitment.application.mapper.ApplicationProfileSnapshotMapper;
 import com.ssafy.lancit.domain.recruitment.application.mapper.PortfolioPermissionMapper;
 import com.ssafy.lancit.domain.recruitment.application.service.ApplicationService;
 import com.ssafy.lancit.domain.recruitment.post.dto.RecruitmentDTO;
@@ -67,7 +72,13 @@ class ApplicationServiceTest {
     private PortfolioMapper portfolioMapper;
 
     @Mock
-    private PortfolioProfileMapper portfolioProfileMapper;
+    private PortfolioService portfolioService;
+
+    @Mock
+    private ApplicationProfileSnapshotMapper applicationProfileSnapshotMapper;
+
+    @Mock
+    private FileService fileService;
 
     @Mock
     private RecruitmentMapper recruitmentMapper;
@@ -112,8 +123,44 @@ class ApplicationServiceTest {
 
         assertThat(result.getViewedAt()).isEqualTo(LocalDateTime.of(2026, 6, 13, 20, 30));
         assertThat(result.getPortfolioProfile()).isNotNull();
+        assertThat(result.getApplicantName()).isEqualTo("지원 홍길동");
         assertThat(result.getPortfolioProfile().getTechStacks()).containsExactly("Java", "Spring");
         verify(applicationMapper).markViewedIfAbsent(1);
+        verify(portfolioService, never()).getMyProfile(any());
+    }
+
+    @Test
+    @DisplayName("공고 작성 회사가 지원서에 선택된 비공개 프로젝트 상세 조회 성공")
+    void getCompanyApplicationPortfolio_permitted_success() {
+        given(recruitmentMapper.findById(10)).willReturn(openRecruitment());
+        given(applicationMapper.findCompanyDetail(10, 1))
+                .willReturn(application(ApplicationStatus.PENDING, null, null));
+        given(portfolioPermissionMapper.existsCompanyPermission(1, 3, 10, COMPANY_EMAIL))
+                .willReturn(true);
+        given(portfolioService.getOne(3)).willReturn(Map.of("portfolio", "selected"));
+
+        Map<String, Object> result = applicationService.getCompanyApplicationPortfolio(
+                10, 1, 3, COMPANY_EMAIL, ROLE_COMPANY);
+
+        assertThat(result).containsEntry("portfolio", "selected");
+        verify(portfolioService).getOne(3);
+    }
+
+    @Test
+    @DisplayName("선택하지 않은 프로젝트는 공고 작성 회사도 상세 조회 실패")
+    void getCompanyApplicationPortfolio_notSelected_fail() {
+        given(recruitmentMapper.findById(10)).willReturn(openRecruitment());
+        given(applicationMapper.findCompanyDetail(10, 1))
+                .willReturn(application(ApplicationStatus.PENDING, null, null));
+        given(portfolioPermissionMapper.existsCompanyPermission(1, 99, 10, COMPANY_EMAIL))
+                .willReturn(false);
+
+        assertCustomException(
+                () -> applicationService.getCompanyApplicationPortfolio(
+                        10, 1, 99, COMPANY_EMAIL, ROLE_COMPANY),
+                ErrorCode.FORBIDDEN);
+
+        verify(portfolioService, never()).getOne(99);
     }
 
     @Test
@@ -213,6 +260,7 @@ class ApplicationServiceTest {
             dto.setApplicationId(1);
             return null;
         }).when(applicationMapper).insert(any(ApplicationDTO.class));
+        stubCurrentPortfolioProfile();
         stubDetail(application(ApplicationStatus.PENDING, null, null), List.of(1, 3));
 
         ApplicationDetailResponse result = applicationService.apply(10, request, USER_EMAIL, ROLE_USER);
@@ -222,6 +270,47 @@ class ApplicationServiceTest {
         assertThat(result.getPortfolios()).hasSize(2);
         verify(applicationMapper).insert(any(ApplicationDTO.class));
         verify(portfolioPermissionMapper).insertAll(1, List.of(1, 3));
+        verify(applicationProfileSnapshotMapper).insert(any(ApplicationProfileSnapshotDTO.class));
+        verify(applicationProfileSnapshotMapper).insertTechStack(1, "Java", 0);
+        verify(applicationProfileSnapshotMapper).insertTechStack(1, "Spring", 1);
+    }
+
+    @Test
+    @DisplayName("프로필 스냅샷 저장 실패를 전파해 지원 트랜잭션 롤백")
+    void apply_profileSnapshotFailure_propagates() {
+        ApplicationRequest request = request("지원 소개", List.of(1));
+        given(recruitmentMapper.findById(10)).willReturn(openRecruitment());
+        given(applicationMapper.existsByRecruitmentAndApplicant(10, USER_EMAIL)).willReturn(false);
+        given(portfolioMapper.countOwnedActiveByIds(USER_EMAIL, List.of(1))).willReturn(1);
+        doAnswer(invocation -> {
+            ApplicationDTO dto = invocation.getArgument(0);
+            dto.setApplicationId(1);
+            return null;
+        }).when(applicationMapper).insert(any(ApplicationDTO.class));
+        stubCurrentPortfolioProfile();
+        doThrow(new IllegalStateException("snapshot insert failed"))
+                .when(applicationProfileSnapshotMapper).insert(any(ApplicationProfileSnapshotDTO.class));
+
+        assertThatThrownBy(() -> applicationService.apply(10, request, USER_EMAIL, ROLE_USER))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("snapshot insert failed");
+
+        verify(applicationMapper).insert(any(ApplicationDTO.class));
+        verify(portfolioPermissionMapper).insertAll(1, List.of(1));
+    }
+
+    @Test
+    @DisplayName("다른 회사는 선택된 프로젝트 상세도 조회 실패")
+    void getCompanyApplicationPortfolio_otherCompany_fail() {
+        given(recruitmentMapper.findById(10)).willReturn(openRecruitment());
+
+        assertCustomException(
+                () -> applicationService.getCompanyApplicationPortfolio(
+                        10, 1, 3, OTHER_COMPANY_EMAIL, ROLE_COMPANY),
+                ErrorCode.RECRUITMENT_FORBIDDEN);
+
+        verify(portfolioPermissionMapper, never())
+                .existsCompanyPermission(anyInt(), anyInt(), anyInt(), any());
     }
 
     @Test
@@ -531,15 +620,32 @@ class ApplicationServiceTest {
     }
 
     private void stubPortfolioProfile() {
-        given(portfolioProfileMapper.findByFreelancerEmail(USER_EMAIL)).willReturn(PortfolioProfileDTO.builder()
-                .freelancerEmail(USER_EMAIL)
-                .name("홍길동")
+        given(applicationProfileSnapshotMapper.findByApplicationId(1))
+                .willReturn(ApplicationProfileSnapshotDTO.builder()
+                .applicationId(1)
+                .displayName("지원 홍길동")
                 .jobCategory(JobCategory.IT)
                 .profileFileId(11)
                 .isPortfolioPublic(false)
                 .intro("백엔드 개발자")
+                .description("지원 당시 상세 소개")
                 .build());
-        given(portfolioProfileMapper.findTechStacks(USER_EMAIL)).willReturn(List.of("Java", "Spring"));
+        given(applicationProfileSnapshotMapper.findTechStacksByApplicationId(1))
+                .willReturn(List.of("Java", "Spring"));
+    }
+
+    private void stubCurrentPortfolioProfile() {
+        given(portfolioService.getMyProfile(USER_EMAIL)).willReturn(PortfolioProfileDTO.builder()
+                .freelancerEmail(USER_EMAIL)
+                .displayName("지원 홍길동")
+                .jobCategory(JobCategory.IT)
+                .profileFileId(11)
+                .isPortfolioPublic(false)
+                .intro("백엔드 개발자")
+                .description("지원 당시 상세 소개")
+                .techStacks(List.of("Java", "Spring"))
+                .updatedAt(LocalDateTime.of(2026, 6, 1, 0, 0))
+                .build());
     }
 
     private ApplicationRequest request(String intro, List<Integer> portfolioIds) {

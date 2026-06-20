@@ -5,58 +5,66 @@
 
     <resultMap id="PortfolioProfileResultMap" type="com.ssafy.lancit.domain.portfolio.dto.PortfolioProfileDTO">
         <id property="freelancerEmail" column="freelancer_email"/>
-        <result property="name" column="name"/>
+        <result property="displayName" column="display_name"/>
         <result property="jobCategory" column="job_category"/>
         <result property="profileFileId" column="profile_file_id"/>
         <result property="isPortfolioPublic" column="is_portfolio_public"/>
         <result property="intro" column="intro"/>
+        <result property="description" column="description"/>
         <result property="createdAt" column="created_at"/>
         <result property="updatedAt" column="updated_at"/>
     </resultMap>
 
     <select id="findByFreelancerEmail" resultMap="PortfolioProfileResultMap">
         SELECT
-            u.email AS freelancer_email,
+            p.freelancer_email,
+            p.display_name,
+            p.job_category,
+            p.profile_file_id,
+            p.is_portfolio_public,
+            p.short_intro AS intro,
+            p.description,
+            p.created_at,
+            p.updated_at
+        FROM portfolio_profile p
+        WHERE p.freelancer_email = #{freelancerEmail}
+    </select>
+
+    <insert id="insertProfileFromUser">
+        INSERT INTO portfolio_profile (
+            freelancer_email,
+            display_name,
+            job_category,
+            profile_file_id,
+            is_portfolio_public,
+            short_intro,
+            description,
+            created_at,
+            updated_at
+        )
+        SELECT
+            u.email,
             u.name,
             u.job_category,
             u.profile_file_id,
-            COALESCE(p.is_portfolio_public, 0) AS is_portfolio_public,
-            COALESCE(p.short_intro, '') AS intro,
-            p.created_at,
-            p.updated_at
-        FROM user u
-        LEFT JOIN portfolio_profile p
-            ON p.freelancer_email = u.email
-        WHERE u.email = #{freelancerEmail}
-    </select>
-
-    <select id="existsProfile" resultType="boolean">
-        SELECT COUNT(*) > 0
-        FROM portfolio_profile
-        WHERE freelancer_email = #{freelancerEmail}
-    </select>
-
-    <insert id="insertProfile">
-        INSERT INTO portfolio_profile (
-            freelancer_email,
-            is_portfolio_public,
-            short_intro,
-            created_at,
-            updated_at
-        ) VALUES (
-            #{freelancerEmail},
-            #{isPortfolioPublic},
-            #{intro},
+            0,
+            '',
+            '',
             NOW(),
             NOW()
-        )
+        FROM user u
+        WHERE u.email = #{freelancerEmail}
     </insert>
 
     <update id="updateProfile">
         UPDATE portfolio_profile
         SET
+            display_name = #{displayName},
+            job_category = #{jobCategory},
+            profile_file_id = #{profileFileId},
             is_portfolio_public = #{isPortfolioPublic},
             short_intro = #{intro},
+            description = #{description},
             updated_at = NOW()
         WHERE freelancer_email = #{freelancerEmail}
     </update>
@@ -84,4 +92,10 @@
             NOW()
         )
     </insert>
+
+    <select id="isProfileFileReferenced" resultType="boolean">
+        SELECT COUNT(*) &gt; 0
+        FROM portfolio_profile
+        WHERE profile_file_id = #{fileId}
+    </select>
 </mapper>

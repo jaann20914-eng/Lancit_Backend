@@ -34,6 +34,7 @@ public class GcsService {
     private String getFolder(FileParentType parentType) {
         return switch (parentType) {
             case PROFILE           -> "profile/";
+            case PORTFOLIO_PROFILE -> "portfolio/profile/";
             case PORTFOLIO_BANNER  -> "portfolio/banner/";
             case PORTFOLIO_FILE    -> "portfolio/file/";
             case RECRUITMENT_IMAGE -> "recruitment/image/";
