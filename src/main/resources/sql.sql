@@ -641,14 +641,7 @@ recruitment_id      INT NOT NULL,
 contract_id         INT NULL,
 chat_room_id        INT NULL,
 
-status              ENUM('PENDING', 'ACCEPTED', 'REJECTED')
-                    NOT NULL DEFAULT 'PENDING',
-sent_at             DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
 PRIMARY KEY (proposal_id),
-UNIQUE KEY uk_proposal_contract (contract_id),
-INDEX idx_proposal_freelancer_sent (freelancer_email, sent_at),
-INDEX idx_proposal_company_sent (company_email, sent_at),
 
 CONSTRAINT fk_proposal_company
     FOREIGN KEY (company_email)

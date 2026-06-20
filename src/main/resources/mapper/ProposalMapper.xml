@@ -3,109 +3,38 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.ssafy.lancit.domain.proposal.mapper.ProposalMapper">
 
-    <resultMap id="ProposalResultMap" type="com.ssafy.lancit.domain.proposal.dto.ProposalDTO">
-        <id property="proposalId" column="proposal_id"/>
-        <result property="companyEmail" column="company_email"/>
-        <result property="freelancerEmail" column="freelancer_email"/>
-        <result property="recruitmentId" column="recruitment_id"/>
-        <result property="recruitmentTitle" column="recruitment_title"/>
-        <result property="budget" column="budget"/>
-        <result property="workLocation" column="work_location"/>
-        <result property="contractStartAt" column="contract_start_at"/>
-        <result property="contractEndAt" column="contract_end_at"/>
-        <result property="status" column="status"/>
-        <result property="sentAt" column="sent_at"/>
-        <result property="contractId" column="contract_id"/>
-        <result property="chatRoomId" column="chat_room_id"/>
-    </resultMap>
+    <!-- TODO 지원: 프리랜서가 받은 제안서 목록 조회
+         - WHERE freelancer_email = #{email}
+         - ORDER BY sent_at DESC -->
+    <select id="findByFreelancer" resultType="com.ssafy.lancit.domain.proposal.dto.ProposalDTO">
 
-    <sql id="ProposalColumns">
-        p.proposal_id,
-        p.company_email,
-        p.freelancer_email,
-        p.recruitment_id,
-        r.title AS recruitment_title,
-        r.budget,
-        r.work_location,
-        r.contract_start_at,
-        r.contract_end_at,
-        p.status,
-        p.sent_at,
-        p.contract_id,
-        p.chat_room_id
-    </sql>
-
-    <sql id="Pagination">
-        <bind name="limit" value="pageRequest.size &lt;= 0 ? 10 : pageRequest.size"/>
-        <bind name="offset" value="pageRequest.offset &lt; 0 ? 0 : pageRequest.offset"/>
-        LIMIT #{limit} OFFSET #{offset}
-    </sql>
-
-    <select id="findByFreelancer" resultMap="ProposalResultMap">
-        SELECT <include refid="ProposalColumns"/>
-        FROM proposal p
-        INNER JOIN recruitment r ON r.recruitment_id = p.recruitment_id
-        WHERE p.freelancer_email = #{email}
-        ORDER BY p.sent_at DESC, p.proposal_id DESC
-        <include refid="Pagination"/>
     </select>
 
-    <select id="countByFreelancer" resultType="long">
-        SELECT COUNT(*)
-        FROM proposal
-        WHERE freelancer_email = #{email}
+    <!-- TODO 지원: 회사가 보낸 제안서 목록 조회
+         - WHERE company_email = #{email}
+         - ORDER BY sent_at DESC -->
+    <select id="findByCompany" resultType="com.ssafy.lancit.domain.proposal.dto.ProposalDTO">
+
     </select>
 
-    <select id="findByCompany" resultMap="ProposalResultMap">
-        SELECT <include refid="ProposalColumns"/>
-        FROM proposal p
-        INNER JOIN recruitment r ON r.recruitment_id = p.recruitment_id
-        WHERE p.company_email = #{email}
-        ORDER BY p.sent_at DESC, p.proposal_id DESC
-        <include refid="Pagination"/>
+    <!-- TODO 지원: 제안서 단건 조회
+         - WHERE proposal_id = #{proposalId} -->
+    <select id="findById" resultType="com.ssafy.lancit.domain.proposal.dto.ProposalDTO">
+
     </select>
 
-    <select id="countByCompany" resultType="long">
-        SELECT COUNT(*)
-        FROM proposal
-        WHERE company_email = #{email}
-    </select>
-
-    <select id="findById" resultMap="ProposalResultMap">
-        SELECT <include refid="ProposalColumns"/>
-        FROM proposal p
-        INNER JOIN recruitment r ON r.recruitment_id = p.recruitment_id
-        WHERE p.proposal_id = #{proposalId}
-    </select>
-
+    <!-- TODO 지원: 제안서 삽입
+         - useGeneratedKeys="true" keyProperty="proposalId" 유지할 것
+         - sent_at = NOW() 로 처리 -->
     <insert id="insert" useGeneratedKeys="true" keyProperty="proposalId">
-        INSERT INTO proposal (
-            company_email,
-            freelancer_email,
-            recruitment_id,
-            status,
-            sent_at
-        ) VALUES (
-            #{companyEmail},
-            #{freelancerEmail},
-            #{recruitmentId},
-            #{status},
-            NOW()
-        )
+
     </insert>
 
-    <update id="updateStatusIfPending">
-        UPDATE proposal
-        SET status = #{status}
-        WHERE proposal_id = #{proposalId}
-          AND status = 'PENDING'
-    </update>
+    <!-- TODO 지원: 제안서 상태 변경
+         - UPDATE proposal SET status = #{status}
+         - WHERE proposal_id = #{proposalId} -->
+    <update id="updateStatus">
 
-    <update id="attachContract">
-        UPDATE proposal
-        SET contract_id = #{contractId}
-        WHERE proposal_id = #{proposalId}
-          AND contract_id IS NULL
     </update>
 
 </mapper>
