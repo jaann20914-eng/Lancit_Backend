@@ -36,6 +36,7 @@ public class PortfolioService {
     private static final String DEFAULT_CATEGORY = "WEB_APP";
     private static final int MAX_SUMMARY_LENGTH = 30;
     private static final int MAX_INTRO_LENGTH = 30;
+    private static final int MAX_DESCRIPTION_LENGTH = 200;
 
     private final PortfolioMapper portfolioMapper;
     private final PortfolioProfileMapper portfolioProfileMapper;
@@ -80,15 +81,28 @@ public class PortfolioService {
     // PORT-PROFILE-02 내 포트폴리오 프로필 카드 저장
     @Transactional
     public PortfolioProfileDTO updateMyProfile(String email, PortfolioProfileUpdateRequest request) {
-        ensureMyProfile(email);
+        if (request == null || !hasText(request.getDisplayName()) || request.getJobCategory() == null) {
+            throw new CustomException(ErrorCode.INVALID_INPUT);
+        }
+        PortfolioProfileDTO existing = ensureMyProfile(email);
+
+        if (request.getProfileFileId() != null
+                && !request.getProfileFileId().equals(existing.getProfileFileId())) {
+            fileService.promoteOwned(request.getProfileFileId(), FileParentType.PORTFOLIO_PROFILE, email);
+        }
 
         PortfolioProfileDTO profile = PortfolioProfileDTO.builder()
                 .freelancerEmail(email)
+                .displayName(request.getDisplayName().trim())
+                .jobCategory(request.getJobCategory())
+                .profileFileId(request.getProfileFileId())
                 .isPortfolioPublic(request != null && Boolean.TRUE.equals(request.getIsPortfolioPublic()))
-                .intro(normalizeIntro(request == null ? null : request.getIntro()))
+                .intro(normalizeIntro(request.getIntro()))
+                .description(normalizeDescription(request.getDescription()))
                 .build();
 
         portfolioProfileMapper.updateProfile(profile);
+        // TODO: 이전 사진이 어떤 지원 스냅샷에서도 참조되지 않을 때만 고아 파일을 정리한다.
 
         List<String> techStacks = normalizeTechStacks(request == null ? null : request.getTechStacks());
         portfolioProfileMapper.deleteTechStacks(email);
@@ -111,6 +125,17 @@ public class PortfolioService {
         result.put("portfolio", dto);
         result.put("files", files);
         return result;
+    }
+
+    public Map<String, Object> getOneForViewer(int portfolioId, String viewerEmail) {
+        PortfolioDTO portfolio = portfolioMapper.findById(portfolioId);
+        if (portfolio == null) {
+            throw new CustomException(ErrorCode.PORTFOLIO_NOT_FOUND);
+        }
+        if (!viewerEmail.equals(portfolio.getEmail()) && !Boolean.TRUE.equals(portfolio.getIsPublic())) {
+            throw new CustomException(ErrorCode.FORBIDDEN);
+        }
+        return getOne(portfolioId);
     }
 
     // PORT-03 포트폴리오 등록
@@ -204,15 +229,9 @@ public class PortfolioService {
     private PortfolioProfileDTO ensureMyProfile(String email) {
         PortfolioProfileDTO profile = portfolioProfileMapper.findByFreelancerEmail(email);
         if (profile == null) {
-            throw new CustomException(ErrorCode.NOT_FOUND);
-        }
-
-        if (!portfolioProfileMapper.existsProfile(email)) {
-            portfolioProfileMapper.insertProfile(PortfolioProfileDTO.builder()
-                    .freelancerEmail(email)
-                    .isPortfolioPublic(false)
-                    .intro("")
-                    .build());
+            if (portfolioProfileMapper.insertProfileFromUser(email) == 0) {
+                throw new CustomException(ErrorCode.NOT_FOUND);
+            }
             profile = portfolioProfileMapper.findByFreelancerEmail(email);
         }
 
@@ -230,6 +249,17 @@ public class PortfolioService {
         String normalized = intro.trim();
         if (normalized.length() > MAX_INTRO_LENGTH) {
             throw new CustomException(ErrorCode.PORTFOLIO_PROFILE_INTRO_TOO_LONG);
+        }
+        return normalized;
+    }
+
+    private String normalizeDescription(String description) {
+        if (!hasText(description)) {
+            return "";
+        }
+        String normalized = description.trim();
+        if (normalized.length() > MAX_DESCRIPTION_LENGTH) {
+            throw new CustomException(ErrorCode.INVALID_INPUT);
         }
         return normalized;
     }

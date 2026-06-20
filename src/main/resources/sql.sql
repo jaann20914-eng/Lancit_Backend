@@ -12,7 +12,7 @@ CREATE TABLE `file` (
     company_email   VARCHAR(255)    NULL                        COMMENT '업로더 이메일 (회사)',
     sys_name        VARCHAR(255)    NOT NULL                    COMMENT '시스템 파일명 (UUID)',
     ori_name        VARCHAR(255)    NOT NULL                    COMMENT '원본 파일명',
-    parent_type     ENUM('PORTFOLIO','PROFILE','PORTFOLIO_BANNER','PORTFOLIO_FILE','RECRUITMENT_IMAGE','CONTRACT','CHAT','TEMP')
+    parent_type     ENUM('PORTFOLIO','PROFILE','PORTFOLIO_PROFILE','PORTFOLIO_BANNER','PORTFOLIO_FILE','RECRUITMENT_IMAGE','CONTRACT','CHAT','TEMP')
                                     NOT NULL                    COMMENT '부모 타입',
     parent_id       INT             NULL                        COMMENT '부모 ID (PROFILE은 null)',
     upload_path     VARCHAR(500)    NOT NULL                    COMMENT 'GCS 오브젝트 경로',
@@ -169,14 +169,22 @@ CREATE TABLE `portfolio` (
 -- ============================================================
 CREATE TABLE `portfolio_profile` (
     freelancer_email       VARCHAR(255)    NOT NULL,
+    display_name           VARCHAR(100)    NOT NULL,
+    job_category           ENUM('DESIGN','IT','MUSIC','EDUCATION','VIDEO','MARKETING','WRITING','ETC')
+                                           NOT NULL,
+    profile_file_id        INT             NULL,
     is_portfolio_public    TINYINT(1)      NOT NULL    DEFAULT 0,
     short_intro            VARCHAR(30)     NOT NULL    DEFAULT '',
+    description            VARCHAR(200)    NOT NULL    DEFAULT '',
     created_at             DATETIME        NOT NULL    DEFAULT CURRENT_TIMESTAMP,
     updated_at             DATETIME        NOT NULL    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (freelancer_email),
     CONSTRAINT fk_portfolio_profile_user
         FOREIGN KEY (freelancer_email) REFERENCES `user` (email)
-        ON DELETE CASCADE
+        ON DELETE CASCADE,
+    CONSTRAINT fk_portfolio_profile_file
+        FOREIGN KEY (profile_file_id) REFERENCES `file` (file_id)
+        ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='포트폴리오 프로필 카드';
 
 -- ============================================================
@@ -288,6 +296,43 @@ CREATE TABLE `portfolio_permission` (
         FOREIGN KEY (portfolio_id) REFERENCES `portfolio` (portfolio_id)
         ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='포트폴리오 열람 권한';
+
+-- ============================================================
+--  11-1. recruitment_application_profile_snapshot
+-- ============================================================
+CREATE TABLE `recruitment_application_profile_snapshot` (
+    application_id             INT             NOT NULL,
+    display_name               VARCHAR(100)    NOT NULL,
+    job_category               ENUM('DESIGN','IT','MUSIC','EDUCATION','VIDEO','MARKETING','WRITING','ETC')
+                                                NOT NULL,
+    profile_file_id            INT             NULL,
+    short_intro                VARCHAR(30)     NOT NULL    DEFAULT '',
+    description                VARCHAR(200)    NOT NULL    DEFAULT '',
+    is_portfolio_public        TINYINT(1)      NOT NULL    DEFAULT 0,
+    source_profile_updated_at  DATETIME        NULL,
+    created_at                 DATETIME        NOT NULL    DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (application_id),
+    CONSTRAINT fk_application_profile_snapshot_application
+        FOREIGN KEY (application_id) REFERENCES `recruitment_application` (application_id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_application_profile_snapshot_file
+        FOREIGN KEY (profile_file_id) REFERENCES `file` (file_id)
+        ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='지원 당시 포트폴리오 프로필 카드';
+
+-- ============================================================
+--  11-2. recruitment_application_profile_snapshot_tech_stack
+-- ============================================================
+CREATE TABLE `recruitment_application_profile_snapshot_tech_stack` (
+    application_id   INT             NOT NULL,
+    tech_stack       VARCHAR(100)    NOT NULL,
+    sort_order       INT             NOT NULL,
+    PRIMARY KEY (application_id, tech_stack),
+    UNIQUE KEY uk_application_profile_snapshot_tech_order (application_id, sort_order),
+    CONSTRAINT fk_application_profile_snapshot_tech_application
+        FOREIGN KEY (application_id) REFERENCES `recruitment_application` (application_id)
+        ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='지원 당시 프로필 기술 스택';
 
 -- ============================================================
 --  12. bookmark (회사가 프리랜서 찜 - CompanyBookmark)

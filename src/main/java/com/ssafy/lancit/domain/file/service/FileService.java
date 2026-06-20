@@ -20,6 +20,8 @@ import com.ssafy.lancit.domain.file.dto.FileDTO;
 import com.ssafy.lancit.domain.file.event.FileDeleteEvent;
 import com.ssafy.lancit.domain.file.mapper.FileDeleteQueueMapper;
 import com.ssafy.lancit.domain.file.mapper.FileMapper;
+import com.ssafy.lancit.domain.portfolio.dto.PortfolioDTO;
+import com.ssafy.lancit.domain.portfolio.mapper.PortfolioMapper;
 import com.ssafy.lancit.global.enums.FileParentType;
 
 import lombok.RequiredArgsConstructor;
@@ -36,6 +38,7 @@ public class FileService {
     private final GcsSignedUrlUtil gcsSignedUrlUtil;
     private final ApplicationEventPublisher eventPublisher;
     private final FileDeleteQueueMapper fileDeleteQueueMapper;
+    private final PortfolioMapper portfolioMapper;
     
     @Autowired
     private CacheManager cacheManager;
@@ -131,6 +134,37 @@ public class FileService {
         return gcsSignedUrlUtil.generateForImage(dto.getUploadPath());
     }
 
+    public void validateReadAccess(int fileId, String viewerEmail) {
+        FileDTO file = findById(fileId);
+        if (FileParentType.PROFILE.equals(file.getParentType())
+                || FileParentType.PORTFOLIO_PROFILE.equals(file.getParentType())) {
+            requireFileOwner(file, viewerEmail);
+            return;
+        }
+        if (!FileParentType.PORTFOLIO_BANNER.equals(file.getParentType())
+                && !FileParentType.PORTFOLIO_FILE.equals(file.getParentType())) {
+            return;
+        }
+
+        if (file.getParentId() == null) {
+            throw new CustomException(ErrorCode.FORBIDDEN);
+        }
+        PortfolioDTO portfolio = portfolioMapper.findById(file.getParentId());
+        if (portfolio == null) {
+            throw new CustomException(ErrorCode.PORTFOLIO_NOT_FOUND);
+        }
+        if (!viewerEmail.equals(portfolio.getEmail()) && !Boolean.TRUE.equals(portfolio.getIsPublic())) {
+            throw new CustomException(ErrorCode.FORBIDDEN);
+        }
+    }
+
+    private void requireFileOwner(FileDTO file, String viewerEmail) {
+        String ownerEmail = file.getUserEmail() != null ? file.getUserEmail() : file.getCompanyEmail();
+        if (!viewerEmail.equals(ownerEmail)) {
+            throw new CustomException(ErrorCode.FORBIDDEN);
+        }
+    }
+
     
     // 다운로드 링크 
     // FileService 에 추가
@@ -147,8 +181,9 @@ public class FileService {
     @Transactional // file_db--portfolio_db 등 트랜잭션 처리
     public void delete(int fileId) {
         
-    	FileDTO dto = fileMapper.findById(fileId);
+        FileDTO dto = fileMapper.findById(fileId);
         if(dto == null) return;
+        // TODO: 지원 프로필 스냅샷 참조 파일은 직접 삭제 대신 보존/지연 삭제한다.
         
         eventPublisher.publishEvent(  new FileDeleteEvent(dto.getUploadPath()) ); // 커밋 성공하면 이 파일 삭제 예약
         fileMapper.delete(fileId);
@@ -207,6 +242,25 @@ public class FileService {
                 file.getSysName(),
                 targetType);
 
+        fileMapper.updatePath(fileId, newPath);
+        fileMapper.updateParentType(fileId, targetType);
+    }
+
+    @Transactional
+    public void promoteOwned(Integer fileId, FileParentType targetType, String ownerEmail) {
+        FileDTO file = findById(fileId);
+        String fileOwnerEmail = file.getUserEmail() != null ? file.getUserEmail() : file.getCompanyEmail();
+        if (!ownerEmail.equals(fileOwnerEmail)) {
+            throw new CustomException(ErrorCode.FORBIDDEN);
+        }
+        if (targetType.equals(file.getParentType())) {
+            return;
+        }
+        if (!FileParentType.TEMP.equals(file.getParentType())) {
+            throw new CustomException(ErrorCode.INVALID_INPUT);
+        }
+
+        String newPath = gcsService.move(file.getSysName(), targetType);
         fileMapper.updatePath(fileId, newPath);
         fileMapper.updateParentType(fileId, targetType);
     }

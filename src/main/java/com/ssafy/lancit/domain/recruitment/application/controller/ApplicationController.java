@@ -8,6 +8,7 @@ import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationDetailResp
 import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationRequest;
 import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationStatusUpdateRequest;
 import com.ssafy.lancit.domain.recruitment.application.service.ApplicationService;
+import java.util.Map;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -52,6 +53,60 @@ public class ApplicationController {
         String role = SecurityUtil.getCurrentRole();
         return ResponseEntity.ok(ApiResponse.ok(
                 applicationService.getCompanyApplication(recruitmentId, applicationId, email, role)));
+    }
+
+    @Operation(summary = "지원서에 제출된 프로젝트 상세 조회",
+            description = "공고 작성 회사가 해당 지원서에 선택된 프로젝트만 조회할 수 있습니다.")
+    @GetMapping("/{applicationId}/portfolios/{portfolioId}")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getApplicationPortfolio(
+            @PathVariable int recruitmentId,
+            @PathVariable int applicationId,
+            @PathVariable int portfolioId) {
+        String email = SecurityUtil.getCurrentEmail();
+        String role = SecurityUtil.getCurrentRole();
+        return ResponseEntity.ok(ApiResponse.ok(applicationService.getCompanyApplicationPortfolio(
+                recruitmentId, applicationId, portfolioId, email, role)));
+    }
+
+    @Operation(summary = "지원서 프로젝트 파일 URL 조회",
+            description = "공고 작성 회사가 해당 지원서에 선택된 프로젝트 파일만 조회할 수 있습니다.")
+    @GetMapping("/{applicationId}/portfolios/{portfolioId}/files/{fileId}/url")
+    public ResponseEntity<ApiResponse<String>> getApplicationPortfolioFileUrl(
+            @PathVariable int recruitmentId,
+            @PathVariable int applicationId,
+            @PathVariable int portfolioId,
+            @PathVariable int fileId) {
+        String email = SecurityUtil.getCurrentEmail();
+        String role = SecurityUtil.getCurrentRole();
+        return ResponseEntity.ok(ApiResponse.ok(applicationService.getCompanyApplicationPortfolioFileUrl(
+                recruitmentId, applicationId, portfolioId, fileId, email, role)));
+    }
+
+    @Operation(summary = "지원서 프로젝트 파일 다운로드 URL 조회",
+            description = "공고 작성 회사가 해당 지원서에 선택된 프로젝트 파일만 다운로드할 수 있습니다.")
+    @GetMapping("/{applicationId}/portfolios/{portfolioId}/files/{fileId}/download")
+    public ResponseEntity<ApiResponse<String>> getApplicationPortfolioFileDownloadUrl(
+            @PathVariable int recruitmentId,
+            @PathVariable int applicationId,
+            @PathVariable int portfolioId,
+            @PathVariable int fileId) {
+        String email = SecurityUtil.getCurrentEmail();
+        String role = SecurityUtil.getCurrentRole();
+        return ResponseEntity.ok(ApiResponse.ok(
+                applicationService.getCompanyApplicationPortfolioFileDownloadUrl(
+                        recruitmentId, applicationId, portfolioId, fileId, email, role)));
+    }
+
+    @Operation(summary = "지원 당시 프로필 사진 URL 조회",
+            description = "공고 작성 회사가 지원 당시 프로필 카드의 사진을 조회합니다.")
+    @GetMapping("/{applicationId}/profile/image-url")
+    public ResponseEntity<ApiResponse<String>> getApplicationProfileImageUrl(
+            @PathVariable int recruitmentId,
+            @PathVariable int applicationId) {
+        String email = SecurityUtil.getCurrentEmail();
+        String role = SecurityUtil.getCurrentRole();
+        return ResponseEntity.ok(ApiResponse.ok(applicationService.getCompanyApplicationProfileImageUrl(
+                recruitmentId, applicationId, email, role)));
     }
 
     @Operation(summary = "지원 수락/거절", description = "공고 작성 회사만 PENDING 지원을 처리할 수 있습니다.")

@@ -1,8 +1,6 @@
-package com.ssafy.lancit.domain.portfolio.dto;
+package com.ssafy.lancit.domain.recruitment.application.dto;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 import com.ssafy.lancit.global.enums.JobCategory;
 
@@ -14,25 +12,17 @@ import lombok.Setter;
 
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class PortfolioProfileDTO {
-    private String freelancerEmail;
+public class ApplicationProfileSnapshotDTO {
+    private Integer applicationId;
     private String displayName;
     private JobCategory jobCategory;
     private Integer profileFileId;
-    private Boolean isPortfolioPublic;
     private String intro;
     private String description;
-    private List<String> techStacks;
+    private Boolean isPortfolioPublic;
+    private LocalDateTime sourceProfileUpdatedAt;
     private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
-
-    public List<String> getTechStacks() {
-        if (techStacks == null) {
-            techStacks = new ArrayList<>();
-        }
-        return techStacks;
-    }
 }

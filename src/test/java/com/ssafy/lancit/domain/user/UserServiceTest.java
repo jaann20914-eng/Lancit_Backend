@@ -26,6 +26,8 @@ import com.ssafy.lancit.domain.file.dto.FileDTO;
 import com.ssafy.lancit.domain.file.event.FileDeleteEvent;
 import com.ssafy.lancit.domain.file.mapper.FileMapper;
 import com.ssafy.lancit.domain.file.service.FileService;
+import com.ssafy.lancit.domain.portfolio.mapper.PortfolioProfileMapper;
+import com.ssafy.lancit.domain.recruitment.application.mapper.ApplicationProfileSnapshotMapper;
 import com.ssafy.lancit.domain.user.dto.UserDTO;
 import com.ssafy.lancit.domain.user.mapper.UserMapper;
 import com.ssafy.lancit.domain.user.service.UserService;
@@ -45,6 +47,8 @@ class UserServiceTest {
     @Mock private TaskMapper taskMapper;
     @Mock private FileMapper fileMapper;
     @Mock private FileService fileService;
+    @Mock private PortfolioProfileMapper portfolioProfileMapper;
+    @Mock private ApplicationProfileSnapshotMapper applicationProfileSnapshotMapper;
     @Mock private PasswordEncoder passwordEncoder;
     @Mock private ApplicationEventPublisher eventPublisher;
     @Mock private CacheManager cacheManager;
@@ -179,6 +183,24 @@ class UserServiceTest {
             verify(fileService, times(1)).delete(5);
             verify(fileService, times(1)).promote(10, FileParentType.PROFILE);
             verify(userMapper, times(1)).update(updateDto);
+        }
+
+        @Test
+        @DisplayName("지원용 프로필이 참조하는 기존 기본 사진은 사용자 사진 변경 후에도 보존")
+        void update_existingProfileReferencedByPortfolioProfile_preserved() {
+            mockUser.setProfileFileId(5);
+            updateDto.setProfileFileId(10);
+            FileDTO oldFile = FileDTO.builder()
+                    .fileId(5).uploadPath("profile/shared.jpg").build();
+            given(userMapper.findByEmail("user@test.com")).willReturn(mockUser);
+            given(fileMapper.findById(5)).willReturn(oldFile);
+            given(portfolioProfileMapper.isProfileFileReferenced(5)).willReturn(true);
+
+            userService.update(updateDto);
+
+            verify(fileService, never()).delete(5);
+            verify(fileService).promote(10, FileParentType.PROFILE);
+            verify(userMapper).update(updateDto);
         }
  
         @Test

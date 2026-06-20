@@ -6,20 +6,25 @@ import com.ssafy.lancit.common.page.dto.PageRequest;
 import com.ssafy.lancit.common.page.dto.PageResponse;
 import com.ssafy.lancit.domain.contract.dto.ContractDTO;
 import com.ssafy.lancit.domain.contract.mapper.ContractMapper;
+import com.ssafy.lancit.domain.file.dto.FileDTO;
+import com.ssafy.lancit.domain.file.service.FileService;
 import com.ssafy.lancit.domain.portfolio.dto.PortfolioProfileDTO;
 import com.ssafy.lancit.domain.portfolio.mapper.PortfolioMapper;
-import com.ssafy.lancit.domain.portfolio.mapper.PortfolioProfileMapper;
+import com.ssafy.lancit.domain.portfolio.service.PortfolioService;
 import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationDTO;
 import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationDetailResponse;
 import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationPortfolioSummaryResponse;
+import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationProfileSnapshotDTO;
 import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationRequest;
 import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationStatusUpdateRequest;
 import com.ssafy.lancit.domain.recruitment.application.mapper.ApplicationMapper;
+import com.ssafy.lancit.domain.recruitment.application.mapper.ApplicationProfileSnapshotMapper;
 import com.ssafy.lancit.domain.recruitment.application.mapper.PortfolioPermissionMapper;
 import com.ssafy.lancit.domain.recruitment.post.dto.RecruitmentDTO;
 import com.ssafy.lancit.domain.recruitment.post.mapper.RecruitmentMapper;
 import com.ssafy.lancit.global.enums.ApplicationStatus;
 import com.ssafy.lancit.global.enums.ContractStatus;
+import com.ssafy.lancit.global.enums.FileParentType;
 import com.ssafy.lancit.global.enums.RecruitmentStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DuplicateKeyException;
@@ -31,6 +36,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -43,7 +49,9 @@ public class ApplicationService {
     private final ApplicationMapper applicationMapper;
     private final PortfolioPermissionMapper portfolioPermissionMapper;
     private final PortfolioMapper portfolioMapper;
-    private final PortfolioProfileMapper portfolioProfileMapper;
+    private final PortfolioService portfolioService;
+    private final ApplicationProfileSnapshotMapper applicationProfileSnapshotMapper;
+    private final FileService fileService;
     private final RecruitmentMapper recruitmentMapper;
     private final ContractMapper contractMapper;
 
@@ -104,7 +112,85 @@ public class ApplicationService {
             throw new CustomException(ErrorCode.APPLICATION_ALREADY_EXISTS);
         }
         portfolioPermissionMapper.insertAll(application.getApplicationId(), portfolioIds);
+        createProfileSnapshot(application.getApplicationId(), freelancerEmail);
         return getMine(recruitmentId, freelancerEmail, role);
+    }
+
+    public Map<String, Object> getCompanyApplicationPortfolio(int recruitmentId,
+                                                              int applicationId,
+                                                              int portfolioId,
+                                                              String companyEmail,
+                                                              String role) {
+        requireCompany(role);
+        verifyRecruitmentOwner(recruitmentId, companyEmail);
+        findCompanyApplication(recruitmentId, applicationId);
+        if (!portfolioPermissionMapper.existsCompanyPermission(
+                applicationId, portfolioId, recruitmentId, companyEmail)) {
+            throw new CustomException(ErrorCode.FORBIDDEN);
+        }
+        return portfolioService.getOne(portfolioId);
+    }
+
+    public String getCompanyApplicationPortfolioFileUrl(int recruitmentId,
+                                                        int applicationId,
+                                                        int portfolioId,
+                                                        int fileId,
+                                                        String companyEmail,
+                                                        String role) {
+        verifyCompanyPortfolioPermission(
+                recruitmentId, applicationId, portfolioId, companyEmail, role);
+        verifyApplicationPortfolioFile(portfolioId, fileId);
+        return fileService.getSignedUrl(fileId);
+    }
+
+    public String getCompanyApplicationPortfolioFileDownloadUrl(int recruitmentId,
+                                                                int applicationId,
+                                                                int portfolioId,
+                                                                int fileId,
+                                                                String companyEmail,
+                                                                String role) {
+        verifyCompanyPortfolioPermission(
+                recruitmentId, applicationId, portfolioId, companyEmail, role);
+        verifyApplicationPortfolioFile(portfolioId, fileId);
+        return fileService.getDownloadUrl(fileId);
+    }
+
+    public String getCompanyApplicationProfileImageUrl(int recruitmentId,
+                                                       int applicationId,
+                                                       String companyEmail,
+                                                       String role) {
+        requireCompany(role);
+        verifyRecruitmentOwner(recruitmentId, companyEmail);
+        findCompanyApplication(recruitmentId, applicationId);
+        ApplicationProfileSnapshotDTO snapshot =
+                applicationProfileSnapshotMapper.findByApplicationId(applicationId);
+        if (snapshot == null || snapshot.getProfileFileId() == null) {
+            throw new CustomException(ErrorCode.FILE_NOT_FOUND);
+        }
+        return fileService.getSignedUrl(snapshot.getProfileFileId());
+    }
+
+    private void verifyCompanyPortfolioPermission(int recruitmentId,
+                                                  int applicationId,
+                                                  int portfolioId,
+                                                  String companyEmail,
+                                                  String role) {
+        requireCompany(role);
+        verifyRecruitmentOwner(recruitmentId, companyEmail);
+        findCompanyApplication(recruitmentId, applicationId);
+        if (!portfolioPermissionMapper.existsCompanyPermission(
+                applicationId, portfolioId, recruitmentId, companyEmail)) {
+            throw new CustomException(ErrorCode.FORBIDDEN);
+        }
+    }
+
+    private void verifyApplicationPortfolioFile(int portfolioId, int fileId) {
+        FileDTO file = fileService.findById(fileId);
+        boolean supportedType = FileParentType.PORTFOLIO_BANNER.equals(file.getParentType())
+                || FileParentType.PORTFOLIO_FILE.equals(file.getParentType());
+        if (!supportedType || file.getParentId() == null || file.getParentId() != portfolioId) {
+            throw new CustomException(ErrorCode.FORBIDDEN);
+        }
     }
 
     public ApplicationDetailResponse getMine(int recruitmentId, String freelancerEmail, String role) {
@@ -318,7 +404,7 @@ public class ApplicationService {
                 ? List.of()
                 : portfolioMapper.findApplicationSummariesByIds(portfolioIds);
         PortfolioProfileDTO portfolioProfile = includePortfolioProfile
-                ? findPortfolioProfile(application.getApplicantEmail())
+                ? findProfileSnapshot(application.getApplicationId())
                 : null;
 
         return ApplicationDetailResponse.builder()
@@ -327,7 +413,9 @@ public class ApplicationService {
                 .contractId(application.getContractId())
                 .recruitmentTitle(application.getRecruitmentTitle())
                 .applicantEmail(application.getApplicantEmail())
-                .applicantName(application.getApplicantName())
+                .applicantName(portfolioProfile == null
+                        ? application.getApplicantName()
+                        : portfolioProfile.getDisplayName())
                 .intro(application.getIntro())
                 .status(application.getStatus())
                 .appliedAt(application.getAppliedAt())
@@ -338,11 +426,42 @@ public class ApplicationService {
                 .build();
     }
 
-    private PortfolioProfileDTO findPortfolioProfile(String applicantEmail) {
-        PortfolioProfileDTO profile = portfolioProfileMapper.findByFreelancerEmail(applicantEmail);
-        if (profile != null) {
-            profile.setTechStacks(portfolioProfileMapper.findTechStacks(applicantEmail));
+    private void createProfileSnapshot(int applicationId, String freelancerEmail) {
+        PortfolioProfileDTO profile = portfolioService.getMyProfile(freelancerEmail);
+        ApplicationProfileSnapshotDTO snapshot = ApplicationProfileSnapshotDTO.builder()
+                .applicationId(applicationId)
+                .displayName(profile.getDisplayName())
+                .jobCategory(profile.getJobCategory())
+                .profileFileId(profile.getProfileFileId())
+                .intro(profile.getIntro())
+                .description(profile.getDescription())
+                .isPortfolioPublic(profile.getIsPortfolioPublic())
+                .sourceProfileUpdatedAt(profile.getUpdatedAt())
+                .build();
+        applicationProfileSnapshotMapper.insert(snapshot);
+
+        List<String> techStacks = profile.getTechStacks();
+        for (int index = 0; index < techStacks.size(); index++) {
+            applicationProfileSnapshotMapper.insertTechStack(applicationId, techStacks.get(index), index);
         }
-        return profile;
+    }
+
+    private PortfolioProfileDTO findProfileSnapshot(int applicationId) {
+        ApplicationProfileSnapshotDTO snapshot =
+                applicationProfileSnapshotMapper.findByApplicationId(applicationId);
+        if (snapshot == null) {
+            return null;
+        }
+        return PortfolioProfileDTO.builder()
+                .displayName(snapshot.getDisplayName())
+                .jobCategory(snapshot.getJobCategory())
+                .profileFileId(snapshot.getProfileFileId())
+                .intro(snapshot.getIntro())
+                .description(snapshot.getDescription())
+                .isPortfolioPublic(snapshot.getIsPortfolioPublic())
+                .techStacks(applicationProfileSnapshotMapper.findTechStacksByApplicationId(applicationId))
+                .updatedAt(snapshot.getSourceProfileUpdatedAt())
+                .createdAt(snapshot.getCreatedAt())
+                .build();
     }
 }
