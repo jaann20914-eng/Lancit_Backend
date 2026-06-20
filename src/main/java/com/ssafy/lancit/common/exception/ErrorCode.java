@@ -83,16 +83,7 @@ public enum ErrorCode {
     INVALID_APPLICATION_STATUS(HttpStatus.CONFLICT, "현재 상태에서는 지원을 수정하거나 취소할 수 없습니다."),
     INVALID_APPLICATION_STATUS_CHANGE(HttpStatus.CONFLICT, "현재 상태에서는 지원을 수락하거나 거절할 수 없습니다."),
     INVALID_APPLICATION_STATUS_VALUE(HttpStatus.BAD_REQUEST, "지원 상태는 ACCEPTED 또는 REJECTED만 가능합니다."),
-    INVALID_APPLICATION_PORTFOLIO(HttpStatus.BAD_REQUEST, "지원에 사용할 수 없는 포트폴리오입니다."),
-
-    // 제안
-    PROPOSAL_NOT_FOUND(HttpStatus.NOT_FOUND, "제안을 찾을 수 없습니다."),
-    PROPOSAL_FORBIDDEN(HttpStatus.FORBIDDEN, "제안에 접근할 권한이 없습니다."),
-    PROPOSAL_COMPANY_ONLY(HttpStatus.FORBIDDEN, "회사 계정만 제안을 보낼 수 있습니다."),
-    PROPOSAL_FREELANCER_ONLY(HttpStatus.FORBIDDEN, "프리랜서 계정만 받은 제안을 처리할 수 있습니다."),
-    PROPOSAL_FREELANCER_NOT_FOUND(HttpStatus.NOT_FOUND, "제안을 받을 프리랜서를 찾을 수 없습니다."),
-    INVALID_PROPOSAL_STATUS(HttpStatus.BAD_REQUEST, "제안 상태는 ACCEPTED 또는 REJECTED만 가능합니다."),
-    PROPOSAL_STATUS_CONFLICT(HttpStatus.CONFLICT, "이미 처리된 제안은 상태를 변경할 수 없습니다.");
+    INVALID_APPLICATION_PORTFOLIO(HttpStatus.BAD_REQUEST, "지원에 사용할 수 없는 포트폴리오입니다.");
 	
 	
     // TODO 영은: 기능 구현 중 필요한 에러코드 생기면 여기에 추가

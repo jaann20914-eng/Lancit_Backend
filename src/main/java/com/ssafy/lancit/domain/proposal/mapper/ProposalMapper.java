@@ -13,19 +13,13 @@ import com.ssafy.lancit.global.enums.ProposalStatus;
 public interface ProposalMapper {
     List<ProposalDTO> findByFreelancer(@Param("email") String email,
                                         @Param("pageRequest") PageRequest pageRequest);
-    long countByFreelancer(@Param("email") String email);
+    long countByFreelancer(String email);
 
     List<ProposalDTO> findByCompany(@Param("email") String email,
                                      @Param("pageRequest") PageRequest pageRequest);
-    long countByCompany(@Param("email") String email);
+    long countByCompany(String email);
 
-    ProposalDTO findById(@Param("proposalId") int proposalId);
-
-    int insert(ProposalDTO dto);
-
-    int updateStatusIfPending(@Param("proposalId") int proposalId,
-                              @Param("status") ProposalStatus status);
-
-    int attachContract(@Param("proposalId") int proposalId,
-                       @Param("contractId") int contractId);
+    ProposalDTO findById(int proposalId);
+    void insert(ProposalDTO dto);
+    void updateStatus(@Param("proposalId") int proposalId, @Param("status") ProposalStatus status);
 }
