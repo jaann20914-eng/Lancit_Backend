@@ -33,6 +33,7 @@ public enum ErrorCode {
 
     // 계약
     CONTRACT_IN_PROGRESS(HttpStatus.CONFLICT, "진행 중인 계약이 존재하여 탈퇴할 수 없습니다."),
+    CONTRACT_ALREADY_EXISTS(HttpStatus.CONFLICT, "동일 공고와 프리랜서의 진행 중인 계약이 이미 존재합니다."),
     PDF_GENERATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "게약서 pdf 생성에 실패했습니다"),
 
 
@@ -80,6 +81,8 @@ public enum ErrorCode {
     APPLICATION_ALREADY_CANCELLED(HttpStatus.CONFLICT, "이미 취소된 지원입니다."),
     APPLICATION_ALREADY_VIEWED(HttpStatus.CONFLICT, "회사가 열람한 지원은 수정하거나 취소할 수 없습니다."),
     INVALID_APPLICATION_STATUS(HttpStatus.CONFLICT, "현재 상태에서는 지원을 수정하거나 취소할 수 없습니다."),
+    INVALID_APPLICATION_STATUS_CHANGE(HttpStatus.CONFLICT, "현재 상태에서는 지원을 수락하거나 거절할 수 없습니다."),
+    INVALID_APPLICATION_STATUS_VALUE(HttpStatus.BAD_REQUEST, "지원 상태는 ACCEPTED 또는 REJECTED만 가능합니다."),
     INVALID_APPLICATION_PORTFOLIO(HttpStatus.BAD_REQUEST, "지원에 사용할 수 없는 포트폴리오입니다.");
 	
 	

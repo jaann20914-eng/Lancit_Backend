@@ -425,7 +425,8 @@ class TaskParseServiceTest {
 
     @Test
     void parseMultipleScheduleDatesKeepsFirstAndStoresRestInMemo() {
-        TaskParseResponseDTO result = parse("6월 15일 초안 제출, 6월 18일 피드백 반영, 6월 20일 최종 제출");
+        TaskParseResponseDTO result = parse(
+                "2026년 6월 15일 초안 제출, 2026년 6월 18일 피드백 반영, 2026년 6월 20일 최종 제출");
 
         assertThat(result.getTitle()).isEqualTo("초안 제출");
         assertThat(result.getStartDate()).isEqualTo(LocalDate.of(2026, 6, 15));
@@ -437,10 +438,11 @@ class TaskParseServiceTest {
 
     @Test
     void parseSecondaryDeadlineDateTimeAsMemo() {
-        TaskParseResponseDTO result = parse("오늘 10시 회의하고 6월 12일 18시까지 수정본 전달");
+        TaskParseResponseDTO result = parse(
+                "2026년 6월 10일 10시 회의하고 2026년 6월 12일 18시까지 수정본 전달");
 
         assertThat(result.getTitle()).isEqualTo("회의");
-        assertThat(result.getStartAt()).isEqualTo(LocalDate.now(SEOUL_ZONE).atTime(10, 0));
+        assertThat(result.getStartAt()).isEqualTo(LocalDate.of(2026, 6, 10).atTime(10, 0));
         assertThat(result.getStartPrecision()).isEqualTo(DateTimePrecision.DATE_TIME);
         assertThat(result.getMemo()).contains("수정본 전달 마감: 2026-06-12T18:00:00");
     }

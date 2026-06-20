@@ -6,6 +6,7 @@ import com.ssafy.lancit.common.response.ApiResponse;
 import com.ssafy.lancit.common.util.SecurityUtil;
 import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationDetailResponse;
 import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationRequest;
+import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationStatusUpdateRequest;
 import com.ssafy.lancit.domain.recruitment.application.service.ApplicationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -50,6 +52,18 @@ public class ApplicationController {
         String role = SecurityUtil.getCurrentRole();
         return ResponseEntity.ok(ApiResponse.ok(
                 applicationService.getCompanyApplication(recruitmentId, applicationId, email, role)));
+    }
+
+    @Operation(summary = "지원 수락/거절", description = "공고 작성 회사만 PENDING 지원을 처리할 수 있습니다.")
+    @PatchMapping("/{applicationId}/status")
+    public ResponseEntity<ApiResponse<ApplicationDetailResponse>> updateApplicationStatus(
+            @PathVariable int recruitmentId,
+            @PathVariable int applicationId,
+            @Valid @RequestBody ApplicationStatusUpdateRequest request) {
+        String email = SecurityUtil.getCurrentEmail();
+        String role = SecurityUtil.getCurrentRole();
+        return ResponseEntity.ok(ApiResponse.ok(
+                applicationService.updateStatus(recruitmentId, applicationId, request, email, role)));
     }
 
     @Operation(summary = "공고 지원 등록", description = "프리랜서 토큰이 필요합니다.")

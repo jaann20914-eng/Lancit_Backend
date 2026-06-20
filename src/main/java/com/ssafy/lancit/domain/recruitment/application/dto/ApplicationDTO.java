@@ -14,6 +14,7 @@ import lombok.Setter;
 public class ApplicationDTO {
     private Integer applicationId;
     private Integer recruitmentId;
+    private Integer contractId;
     private String recruitmentTitle;
     private String applicantEmail;
     private String applicantName;

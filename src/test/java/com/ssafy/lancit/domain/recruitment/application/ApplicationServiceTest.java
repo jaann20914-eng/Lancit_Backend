@@ -17,6 +17,8 @@ import com.ssafy.lancit.common.exception.CustomException;
 import com.ssafy.lancit.common.exception.ErrorCode;
 import com.ssafy.lancit.common.page.dto.PageRequest;
 import com.ssafy.lancit.common.page.dto.PageResponse;
+import com.ssafy.lancit.domain.contract.dto.ContractDTO;
+import com.ssafy.lancit.domain.contract.mapper.ContractMapper;
 import com.ssafy.lancit.domain.portfolio.dto.PortfolioProfileDTO;
 import com.ssafy.lancit.domain.portfolio.mapper.PortfolioMapper;
 import com.ssafy.lancit.domain.portfolio.mapper.PortfolioProfileMapper;
@@ -24,12 +26,14 @@ import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationDTO;
 import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationDetailResponse;
 import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationPortfolioSummaryResponse;
 import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationRequest;
+import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationStatusUpdateRequest;
 import com.ssafy.lancit.domain.recruitment.application.mapper.ApplicationMapper;
 import com.ssafy.lancit.domain.recruitment.application.mapper.PortfolioPermissionMapper;
 import com.ssafy.lancit.domain.recruitment.application.service.ApplicationService;
 import com.ssafy.lancit.domain.recruitment.post.dto.RecruitmentDTO;
 import com.ssafy.lancit.domain.recruitment.post.mapper.RecruitmentMapper;
 import com.ssafy.lancit.global.enums.ApplicationStatus;
+import com.ssafy.lancit.global.enums.ContractStatus;
 import com.ssafy.lancit.global.enums.JobCategory;
 import com.ssafy.lancit.global.enums.RecruitmentCategory;
 import com.ssafy.lancit.global.enums.RecruitmentStatus;
@@ -67,6 +71,9 @@ class ApplicationServiceTest {
 
     @Mock
     private RecruitmentMapper recruitmentMapper;
+
+    @Mock
+    private ContractMapper contractMapper;
 
     @Test
     @DisplayName("회사가 자기 공고 지원자 목록 조회 성공")
@@ -393,6 +400,129 @@ class ApplicationServiceTest {
                 ErrorCode.APPLICATION_ALREADY_CANCELLED);
     }
 
+    @Test
+    @DisplayName("공고 작성 회사가 PENDING 지원을 수락하면 WAITING 계약을 생성하고 연결한다")
+    void updateStatus_accept_success() {
+        ApplicationDTO pending = application(ApplicationStatus.PENDING, null, null);
+        ApplicationDTO accepted = application(ApplicationStatus.ACCEPTED, null, null);
+        accepted.setContractId(7);
+        given(recruitmentMapper.findById(10)).willReturn(openRecruitment());
+        given(applicationMapper.findCompanyDetail(10, 1)).willReturn(pending, accepted);
+        given(contractMapper.existsActiveContract(10, USER_EMAIL)).willReturn(false);
+        given(applicationMapper.updateStatusIfPending(1, ApplicationStatus.ACCEPTED)).willReturn(1);
+        doAnswer(invocation -> {
+            ContractDTO contract = invocation.getArgument(0);
+            assertThat(contract.getStatus()).isEqualTo(ContractStatus.WAITING);
+            contract.setContractId(7);
+            return 1;
+        }).when(contractMapper).insert(any(ContractDTO.class));
+        given(applicationMapper.attachContract(1, 7)).willReturn(1);
+
+        ApplicationDetailResponse result = applicationService.updateStatus(
+                10, 1, statusRequest("ACCEPTED"), COMPANY_EMAIL, ROLE_COMPANY);
+
+        assertThat(result.getStatus()).isEqualTo(ApplicationStatus.ACCEPTED);
+        assertThat(result.getContractId()).isEqualTo(7);
+        verify(contractMapper).insert(any(ContractDTO.class));
+        verify(applicationMapper).attachContract(1, 7);
+    }
+
+    @Test
+    @DisplayName("공고 작성 회사가 PENDING 지원을 거절하면 계약을 생성하지 않는다")
+    void updateStatus_reject_success() {
+        given(recruitmentMapper.findById(10)).willReturn(openRecruitment());
+        given(applicationMapper.findCompanyDetail(10, 1)).willReturn(
+                application(ApplicationStatus.PENDING, null, null),
+                application(ApplicationStatus.REJECTED, null, null));
+        given(applicationMapper.updateStatusIfPending(1, ApplicationStatus.REJECTED)).willReturn(1);
+
+        ApplicationDetailResponse result = applicationService.updateStatus(
+                10, 1, statusRequest("REJECTED"), COMPANY_EMAIL, ROLE_COMPANY);
+
+        assertThat(result.getStatus()).isEqualTo(ApplicationStatus.REJECTED);
+        verify(contractMapper, never()).insert(any());
+    }
+
+    @Test
+    @DisplayName("다른 회사는 지원 상태를 변경할 수 없다")
+    void updateStatus_otherCompany_fail() {
+        given(recruitmentMapper.findById(10)).willReturn(openRecruitment());
+
+        assertCustomException(
+                () -> applicationService.updateStatus(
+                        10, 1, statusRequest("ACCEPTED"), OTHER_COMPANY_EMAIL, ROLE_COMPANY),
+                ErrorCode.RECRUITMENT_FORBIDDEN);
+
+        verify(applicationMapper, never()).updateStatusIfPending(anyInt(), any());
+    }
+
+    @Test
+    @DisplayName("프리랜서는 지원 상태를 변경할 수 없다")
+    void updateStatus_userRole_fail() {
+        assertCustomException(
+                () -> applicationService.updateStatus(
+                        10, 1, statusRequest("ACCEPTED"), USER_EMAIL, ROLE_USER),
+                ErrorCode.RECRUITMENT_COMPANY_ONLY);
+
+        verify(recruitmentMapper, never()).findById(10);
+    }
+
+    @Test
+    @DisplayName("CANCELLED 지원은 수락하거나 거절할 수 없다")
+    void updateStatus_cancelled_fail() {
+        given(recruitmentMapper.findById(10)).willReturn(openRecruitment());
+        given(applicationMapper.findCompanyDetail(10, 1))
+                .willReturn(application(ApplicationStatus.CANCELLED, LocalDateTime.now(), null));
+
+        assertStatusConflict("ACCEPTED");
+    }
+
+    @Test
+    @DisplayName("이미 ACCEPTED 된 지원은 재변경할 수 없어 계약도 중복 생성되지 않는다")
+    void updateStatus_accepted_fail() {
+        given(recruitmentMapper.findById(10)).willReturn(openRecruitment());
+        given(applicationMapper.findCompanyDetail(10, 1))
+                .willReturn(application(ApplicationStatus.ACCEPTED, null, null));
+
+        assertStatusConflict("REJECTED");
+        verify(contractMapper, never()).insert(any());
+    }
+
+    @Test
+    @DisplayName("이미 REJECTED 된 지원은 재변경할 수 없다")
+    void updateStatus_rejected_fail() {
+        given(recruitmentMapper.findById(10)).willReturn(openRecruitment());
+        given(applicationMapper.findCompanyDetail(10, 1))
+                .willReturn(application(ApplicationStatus.REJECTED, null, null));
+
+        assertStatusConflict("ACCEPTED");
+    }
+
+    @Test
+    @DisplayName("진행 중인 동일 계약이 있으면 지원 수락 계약을 중복 생성하지 않는다")
+    void updateStatus_activeContractExists_fail() {
+        given(recruitmentMapper.findById(10)).willReturn(openRecruitment());
+        given(applicationMapper.findCompanyDetail(10, 1))
+                .willReturn(application(ApplicationStatus.PENDING, null, null));
+        given(contractMapper.existsActiveContract(10, USER_EMAIL)).willReturn(true);
+
+        assertCustomException(
+                () -> applicationService.updateStatus(
+                        10, 1, statusRequest("ACCEPTED"), COMPANY_EMAIL, ROLE_COMPANY),
+                ErrorCode.CONTRACT_ALREADY_EXISTS);
+
+        verify(applicationMapper, never()).updateStatusIfPending(anyInt(), any());
+        verify(contractMapper, never()).insert(any());
+    }
+
+    private void assertStatusConflict(String status) {
+        assertCustomException(
+                () -> applicationService.updateStatus(
+                        10, 1, statusRequest(status), COMPANY_EMAIL, ROLE_COMPANY),
+                ErrorCode.INVALID_APPLICATION_STATUS_CHANGE);
+        verify(applicationMapper, never()).updateStatusIfPending(anyInt(), any());
+    }
+
     private void stubDetail(ApplicationDTO application, List<Integer> portfolioIds) {
         given(applicationMapper.findByRecruitmentAndApplicant(10, USER_EMAIL)).willReturn(application);
         given(portfolioPermissionMapper.findPortfolioIdsByApplicationId(application.getApplicationId()))
@@ -416,6 +546,12 @@ class ApplicationServiceTest {
         ApplicationRequest request = new ApplicationRequest();
         request.setIntro(intro);
         request.setPortfolioIds(portfolioIds);
+        return request;
+    }
+
+    private ApplicationStatusUpdateRequest statusRequest(String status) {
+        ApplicationStatusUpdateRequest request = new ApplicationStatusUpdateRequest();
+        request.setStatus(status);
         return request;
     }
 
