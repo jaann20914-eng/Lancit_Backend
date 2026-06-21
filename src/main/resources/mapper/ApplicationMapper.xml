@@ -53,13 +53,6 @@
         )
     </insert>
 
-    <select id="existsByRecruitmentAndApplicant" resultType="boolean">
-        SELECT COUNT(*) &gt; 0
-        FROM recruitment_application
-        WHERE recruitment_id = #{recruitmentId}
-          AND applicant_email = #{applicantEmail}
-    </select>
-
     <select id="findByRecruitmentAndApplicant" resultMap="ApplicationResultMap">
         SELECT
         <include refid="ApplicationColumns"/>
@@ -131,6 +124,19 @@
         WHERE application_id = #{applicationId}
           AND status = 'PENDING'
           AND viewed_at IS NULL
+    </update>
+
+    <update id="reactivateCancelled">
+        UPDATE recruitment_application
+        SET
+            status = 'PENDING',
+            intro = #{intro},
+            applied_at = NOW(),
+            canceled_at = NULL,
+            viewed_at = NULL,
+            contract_id = NULL
+        WHERE application_id = #{applicationId}
+          AND status = 'CANCELLED'
     </update>
 
     <update id="updateStatusIfPending">

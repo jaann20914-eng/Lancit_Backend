@@ -6,6 +6,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import com.ssafy.lancit.common.page.dto.PageRequest;
+import com.ssafy.lancit.domain.recruitment.post.dto.MyApplicationSummaryDTO;
 import com.ssafy.lancit.domain.recruitment.post.dto.RecruitmentDTO;
 import com.ssafy.lancit.domain.recruitment.post.dto.RecruitmentSearchCondition;
 import com.ssafy.lancit.domain.recruitment.post.dto.RecruitmentTechStackDTO;
@@ -56,7 +57,7 @@ public interface RecruitmentMapper {
     List<RecruitmentTechStackDTO> findTechStacksByRecruitmentIds(
             @Param("recruitmentIds") List<Integer> recruitmentIds);
 
-    List<Integer> findAppliedRecruitmentIds(
+    List<MyApplicationSummaryDTO> findMyApplicationSummaries(
             @Param("applicantEmail") String applicantEmail,
             @Param("recruitmentIds") List<Integer> recruitmentIds);
 

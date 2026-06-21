@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.ssafy.lancit.global.enums.JobCategory;
+import com.ssafy.lancit.global.enums.ApplicationStatus;
 import com.ssafy.lancit.global.enums.RecruitmentCategory;
 import com.ssafy.lancit.global.enums.RecruitmentStatus;
 import com.ssafy.lancit.global.enums.RecruitmentViewStatus;
@@ -50,6 +51,8 @@ public class RecruitmentDetailResponse {
     private Boolean canChangeStatus;
     private Boolean canApply;
     private Boolean isApplied;
+    private ApplicationStatus myApplicationStatus;
+    private Integer myApplicationId;
     private Boolean isBookmarked;
     private RecruitmentPermissionResponse permission;
 }

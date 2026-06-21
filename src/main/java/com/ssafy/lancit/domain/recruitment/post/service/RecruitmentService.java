@@ -6,6 +6,7 @@ import com.ssafy.lancit.common.page.dto.PageRequest;
 import com.ssafy.lancit.common.page.dto.PageResponse;
 import com.ssafy.lancit.domain.bookmark.freelancer.mapper.FreelancerBookmarkMapper;
 import com.ssafy.lancit.domain.file.service.FileService;
+import com.ssafy.lancit.domain.recruitment.post.dto.MyApplicationSummaryDTO;
 import com.ssafy.lancit.domain.recruitment.post.dto.RecruitmentCreateRequest;
 import com.ssafy.lancit.domain.recruitment.post.dto.RecruitmentDTO;
 import com.ssafy.lancit.domain.recruitment.post.dto.RecruitmentDetailResponse;
@@ -16,6 +17,7 @@ import com.ssafy.lancit.domain.recruitment.post.dto.RecruitmentStatusUpdateReque
 import com.ssafy.lancit.domain.recruitment.post.dto.RecruitmentTechStackDTO;
 import com.ssafy.lancit.domain.recruitment.post.dto.RecruitmentUpdateRequest;
 import com.ssafy.lancit.domain.recruitment.post.mapper.RecruitmentMapper;
+import com.ssafy.lancit.global.enums.ApplicationStatus;
 import com.ssafy.lancit.global.enums.FileParentType;
 import com.ssafy.lancit.global.enums.RecruitmentSortType;
 import com.ssafy.lancit.global.enums.RecruitmentStatus;
@@ -61,7 +63,8 @@ public class RecruitmentService {
         List<RecruitmentDTO> list = recruitmentMapper.findList(normalized, pageRequest);
         long total = recruitmentMapper.countList(normalized);
         Map<Integer, List<String>> techStacks = findTechStacks(list);
-        Set<Integer> appliedRecruitmentIds = findAppliedRecruitmentIds(list, viewerEmail, viewerRole);
+        Map<Integer, MyApplicationSummaryDTO> myApplications =
+                findMyApplicationSummaries(list, viewerEmail, viewerRole);
         Set<Integer> bookmarkedRecruitmentIds = findBookmarkedRecruitmentIds(list, viewerEmail, viewerRole);
         List<RecruitmentListItemResponse> content = list.stream()
                 .map(dto -> toListResponse(
@@ -70,7 +73,7 @@ public class RecruitmentService {
                         viewerEmail,
                         viewerRole,
                         bookmarkedRecruitmentIds.contains(dto.getRecruitmentId()),
-                        appliedRecruitmentIds.contains(dto.getRecruitmentId())))
+                        myApplications.get(dto.getRecruitmentId())))
                 .toList();
         return PageResponse.of(content, total, pageRequest);
     }
@@ -88,7 +91,7 @@ public class RecruitmentService {
         long total = recruitmentMapper.countMyList(companyEmail, normalized);
         Map<Integer, List<String>> techStacks = findTechStacks(list);
         List<RecruitmentListItemResponse> content = list.stream()
-                .map(dto -> toListResponse(dto, techStacks.get(dto.getRecruitmentId()), companyEmail, role, false, false))
+                .map(dto -> toListResponse(dto, techStacks.get(dto.getRecruitmentId()), companyEmail, role, false, null))
                 .toList();
         return PageResponse.of(content, total, pageRequest);
     }
@@ -113,7 +116,7 @@ public class RecruitmentService {
                 viewerEmail,
                 viewerRole,
                 isBookmarked(dto, viewerEmail, viewerRole),
-                isApplied(dto, viewerEmail, viewerRole));
+                findMyApplicationSummary(dto, viewerEmail, viewerRole));
     }
 
     @Transactional
@@ -422,22 +425,25 @@ public class RecruitmentService {
         return new HashSet<>(bookmarkedRecruitmentIds);
     }
 
-    private Set<Integer> findAppliedRecruitmentIds(List<RecruitmentDTO> recruitments,
-                                                   String viewerEmail,
-                                                   String viewerRole) {
+    private Map<Integer, MyApplicationSummaryDTO> findMyApplicationSummaries(
+            List<RecruitmentDTO> recruitments,
+            String viewerEmail,
+            String viewerRole) {
         if (!ROLE_USER.equals(viewerRole) || viewerEmail == null || recruitments.isEmpty()) {
-            return Set.of();
+            return Map.of();
         }
 
         List<Integer> recruitmentIds = recruitments.stream()
                 .map(RecruitmentDTO::getRecruitmentId)
                 .toList();
-        List<Integer> appliedRecruitmentIds =
-                recruitmentMapper.findAppliedRecruitmentIds(viewerEmail, recruitmentIds);
-        if (appliedRecruitmentIds == null || appliedRecruitmentIds.isEmpty()) {
-            return Set.of();
+        List<MyApplicationSummaryDTO> applications =
+                recruitmentMapper.findMyApplicationSummaries(viewerEmail, recruitmentIds);
+        if (applications == null || applications.isEmpty()) {
+            return Map.of();
         }
-        return new HashSet<>(appliedRecruitmentIds);
+        return applications.stream().collect(Collectors.toMap(
+                MyApplicationSummaryDTO::getRecruitmentId,
+                application -> application));
     }
 
     private boolean isBookmarked(RecruitmentDTO dto, String viewerEmail, String viewerRole) {
@@ -446,9 +452,11 @@ public class RecruitmentService {
                 && freelancerBookmarkMapper.exists(viewerEmail, dto.getRecruitmentId());
     }
 
-    private boolean isApplied(RecruitmentDTO dto, String viewerEmail, String viewerRole) {
-        return findAppliedRecruitmentIds(List.of(dto), viewerEmail, viewerRole)
-                .contains(dto.getRecruitmentId());
+    private MyApplicationSummaryDTO findMyApplicationSummary(RecruitmentDTO dto,
+                                                             String viewerEmail,
+                                                             String viewerRole) {
+        return findMyApplicationSummaries(List.of(dto), viewerEmail, viewerRole)
+                .get(dto.getRecruitmentId());
     }
 
     private List<String> normalizeTechStacks(List<String> techStacks) {
@@ -486,8 +494,9 @@ public class RecruitmentService {
                                                        String viewerEmail,
                                                        String viewerRole,
                                                        boolean isBookmarked,
-                                                       boolean isApplied) {
-        RecruitmentPermissionResponse permission = buildPermission(dto, viewerEmail, viewerRole, isBookmarked, isApplied);
+                                                       MyApplicationSummaryDTO myApplication) {
+        RecruitmentPermissionResponse permission =
+                buildPermission(dto, viewerEmail, viewerRole, isBookmarked, myApplication);
         return RecruitmentListItemResponse.builder()
                 .recruitmentId(dto.getRecruitmentId())
                 .title(dto.getTitle())
@@ -514,6 +523,8 @@ public class RecruitmentService {
                 .canChangeStatus(permission.getCanChangeStatus())
                 .canApply(permission.getCanApply())
                 .isApplied(permission.getIsApplied())
+                .myApplicationStatus(permission.getMyApplicationStatus())
+                .myApplicationId(permission.getMyApplicationId())
                 .isBookmarked(permission.getIsBookmarked())
                 .build();
     }
@@ -523,8 +534,9 @@ public class RecruitmentService {
                                                        String viewerEmail,
                                                        String viewerRole,
                                                        boolean isBookmarked,
-                                                       boolean isApplied) {
-        RecruitmentPermissionResponse permission = buildPermission(dto, viewerEmail, viewerRole, isBookmarked, isApplied);
+                                                       MyApplicationSummaryDTO myApplication) {
+        RecruitmentPermissionResponse permission =
+                buildPermission(dto, viewerEmail, viewerRole, isBookmarked, myApplication);
         return RecruitmentDetailResponse.builder()
                 .recruitmentId(dto.getRecruitmentId())
                 .title(dto.getTitle())
@@ -554,6 +566,8 @@ public class RecruitmentService {
                 .canChangeStatus(permission.getCanChangeStatus())
                 .canApply(permission.getCanApply())
                 .isApplied(permission.getIsApplied())
+                .myApplicationStatus(permission.getMyApplicationStatus())
+                .myApplicationId(permission.getMyApplicationId())
                 .isBookmarked(permission.getIsBookmarked())
                 .permission(permission)
                 .build();
@@ -563,12 +577,14 @@ public class RecruitmentService {
                                                           String viewerEmail,
                                                           String viewerRole,
                                                           boolean isBookmarked,
-                                                          boolean isApplied) {
+                                                          MyApplicationSummaryDTO myApplication) {
         boolean isMine = ROLE_COMPANY.equals(viewerRole)
                 && viewerEmail != null
                 && viewerEmail.equals(dto.getCompanyEmail());
         boolean hasActiveApplications = dto.getApplicantCount() > 0;
         RecruitmentViewStatus viewStatus = resolveViewStatus(dto);
+        boolean isApplied = myApplication != null
+                && !ApplicationStatus.CANCELLED.equals(myApplication.getStatus());
         boolean canApply = ROLE_USER.equals(viewerRole)
                 && RecruitmentViewStatus.OPEN.equals(viewStatus)
                 && !isApplied;
@@ -580,6 +596,8 @@ public class RecruitmentService {
                 .canChangeStatus(isMine)
                 .canApply(canApply)
                 .isApplied(isApplied)
+                .myApplicationStatus(myApplication == null ? null : myApplication.getStatus())
+                .myApplicationId(myApplication == null ? null : myApplication.getApplicationId())
                 .isBookmarked(isBookmarked)
                 .build();
     }

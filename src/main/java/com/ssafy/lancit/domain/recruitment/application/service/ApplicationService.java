@@ -95,16 +95,23 @@ public class ApplicationService {
                                            String role) {
         requireUser(role);
         RecruitmentDTO recruitment = findOpenRecruitment(recruitmentId);
-        if (applicationMapper.existsByRecruitmentAndApplicant(recruitmentId, freelancerEmail)) {
+        ApplicationDTO existing =
+                applicationMapper.findByRecruitmentAndApplicant(recruitmentId, freelancerEmail);
+        if (existing != null && !ApplicationStatus.CANCELLED.equals(existing.getStatus())) {
             throw new CustomException(ErrorCode.APPLICATION_ALREADY_EXISTS);
         }
 
         List<Integer> portfolioIds = validatePortfolioIds(request, freelancerEmail);
+        String intro = normalizeIntro(request.getIntro());
+        if (existing != null) {
+            return reactivateCancelled(existing, portfolioIds, intro, freelancerEmail, role);
+        }
+
         ApplicationDTO application = ApplicationDTO.builder()
                 .recruitmentId(recruitment.getRecruitmentId())
                 .recruitmentTitle(recruitment.getTitle())
                 .applicantEmail(freelancerEmail)
-                .intro(normalizeIntro(request == null ? null : request.getIntro()))
+                .intro(intro)
                 .status(ApplicationStatus.PENDING)
                 .build();
 
@@ -117,6 +124,30 @@ public class ApplicationService {
         createPortfolioSnapshots(application.getApplicationId(), portfolioIds);
         createProfileSnapshot(application.getApplicationId(), freelancerEmail);
         return getMine(recruitmentId, freelancerEmail, role);
+    }
+
+    private ApplicationDetailResponse reactivateCancelled(ApplicationDTO application,
+                                                          List<Integer> portfolioIds,
+                                                          String intro,
+                                                          String freelancerEmail,
+                                                          String role) {
+        int applicationId = application.getApplicationId();
+        List<Integer> previousSnapshotFileIds =
+                applicationPortfolioSnapshotMapper.findFileIdsByApplicationId(applicationId);
+        if (applicationMapper.reactivateCancelled(applicationId, intro) == 0) {
+            throw new CustomException(ErrorCode.APPLICATION_ALREADY_EXISTS);
+        }
+
+        portfolioPermissionMapper.deleteByApplicationId(applicationId);
+        applicationPortfolioSnapshotMapper.deleteByApplicationId(applicationId);
+        applicationProfileSnapshotMapper.deleteTechStacksByApplicationId(applicationId);
+        applicationProfileSnapshotMapper.deleteByApplicationId(applicationId);
+
+        portfolioPermissionMapper.insertAll(applicationId, portfolioIds);
+        createPortfolioSnapshots(applicationId, portfolioIds);
+        createProfileSnapshot(applicationId, freelancerEmail);
+        previousSnapshotFileIds.forEach(fileService::deletePortfolioFileIfUnreferenced);
+        return getMine(application.getRecruitmentId(), freelancerEmail, role);
     }
 
     public Map<String, Object> getCompanyApplicationPortfolio(int recruitmentId,
@@ -204,7 +235,7 @@ public class ApplicationService {
     public ApplicationDetailResponse getMine(int recruitmentId, String freelancerEmail, String role) {
         requireUser(role);
         ApplicationDTO application = findMyApplication(recruitmentId, freelancerEmail);
-        return toDetailResponse(application, false);
+        return toDetailResponse(application, true);
     }
 
     @Transactional

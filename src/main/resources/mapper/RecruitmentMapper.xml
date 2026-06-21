@@ -98,6 +98,7 @@
                 FROM recruitment_application ra_tab
                 WHERE ra_tab.recruitment_id = r.recruitment_id
                   AND ra_tab.applicant_email = #{condition.currentEmail}
+                  AND ra_tab.status &lt;&gt; 'CANCELLED'
             )
         </if>
         <if test="condition != null and condition.safeTab == 'BOOKMARKED'">
@@ -328,8 +329,9 @@
         ORDER BY recruitment_id ASC, tag_name ASC
     </select>
 
-    <select id="findAppliedRecruitmentIds" resultType="int">
-        SELECT DISTINCT recruitment_id
+    <select id="findMyApplicationSummaries"
+            resultType="com.ssafy.lancit.domain.recruitment.post.dto.MyApplicationSummaryDTO">
+        SELECT recruitment_id, application_id, status
         FROM recruitment_application
         WHERE applicant_email = #{applicantEmail}
           AND recruitment_id IN

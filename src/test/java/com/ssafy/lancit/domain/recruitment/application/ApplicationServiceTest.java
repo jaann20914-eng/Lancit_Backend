@@ -260,7 +260,8 @@ class ApplicationServiceTest {
     void apply_openRecruitment_success() {
         ApplicationRequest request = request("지원 소개", List.of(1, 3, 3));
         given(recruitmentMapper.findById(10)).willReturn(openRecruitment());
-        given(applicationMapper.existsByRecruitmentAndApplicant(10, USER_EMAIL)).willReturn(false);
+        ApplicationDTO saved = application(ApplicationStatus.PENDING, null, null);
+        given(applicationMapper.findByRecruitmentAndApplicant(10, USER_EMAIL)).willReturn(null, saved);
         given(portfolioMapper.countOwnedActiveByIds(USER_EMAIL, List.of(1, 3))).willReturn(2);
         doAnswer(invocation -> {
             ApplicationDTO dto = invocation.getArgument(0);
@@ -268,8 +269,10 @@ class ApplicationServiceTest {
             return null;
         }).when(applicationMapper).insert(any(ApplicationDTO.class));
         stubCurrentPortfolioProfile();
+        stubPortfolioProfile();
         stubPortfolioSnapshotWrites(List.of(1, 3));
-        stubDetail(application(ApplicationStatus.PENDING, null, null), List.of(1, 3));
+        given(applicationPortfolioSnapshotMapper.findSummariesByApplicationId(1))
+                .willReturn(portfolios(List.of(1, 3)));
 
         ApplicationDetailResponse result = applicationService.apply(10, request, USER_EMAIL, ROLE_USER);
 
@@ -286,11 +289,72 @@ class ApplicationServiceTest {
     }
 
     @Test
+    @DisplayName("취소한 지원서는 같은 ID로 재활성화하고 제출 스냅샷을 교체")
+    void apply_cancelledApplication_reactivatesAndReplacesSnapshots() {
+        ApplicationDTO cancelled = application(
+                ApplicationStatus.CANCELLED,
+                LocalDateTime.of(2026, 6, 10, 0, 0),
+                LocalDateTime.of(2026, 6, 9, 0, 0));
+        cancelled.setContractId(77);
+        ApplicationDTO reactivated = application(ApplicationStatus.PENDING, null, null);
+
+        given(recruitmentMapper.findById(10)).willReturn(openRecruitment());
+        given(applicationMapper.findByRecruitmentAndApplicant(10, USER_EMAIL))
+                .willReturn(cancelled, reactivated);
+        given(portfolioMapper.countOwnedActiveByIds(USER_EMAIL, List.of(2, 4))).willReturn(2);
+        given(applicationPortfolioSnapshotMapper.findFileIdsByApplicationId(1)).willReturn(List.of(90, 91));
+        given(applicationMapper.reactivateCancelled(1, "재지원 소개")).willReturn(1);
+        stubCurrentPortfolioProfile();
+        stubPortfolioProfile();
+        stubPortfolioSnapshotWrites(List.of(2, 4));
+        given(applicationPortfolioSnapshotMapper.findSummariesByApplicationId(1))
+                .willReturn(portfolios(List.of(2, 4)));
+
+        ApplicationDetailResponse result = applicationService.apply(
+                10, request(" 재지원 소개 ", List.of(2, 4)), USER_EMAIL, ROLE_USER);
+
+        assertThat(result.getApplicationId()).isEqualTo(1);
+        assertThat(result.getStatus()).isEqualTo(ApplicationStatus.PENDING);
+        assertThat(result.getCanceledAt()).isNull();
+        assertThat(result.getViewedAt()).isNull();
+        assertThat(result.getContractId()).isNull();
+        assertThat(result.getPortfolios()).extracting("portfolioId").containsExactly(2, 4);
+        verify(applicationMapper).reactivateCancelled(1, "재지원 소개");
+        verify(portfolioPermissionMapper).deleteByApplicationId(1);
+        verify(applicationPortfolioSnapshotMapper).deleteByApplicationId(1);
+        verify(applicationProfileSnapshotMapper).deleteTechStacksByApplicationId(1);
+        verify(applicationProfileSnapshotMapper).deleteByApplicationId(1);
+        verify(portfolioPermissionMapper).insertAll(1, List.of(2, 4));
+        verify(fileService).deletePortfolioFileIfUnreferenced(90);
+        verify(fileService).deletePortfolioFileIfUnreferenced(91);
+        verify(applicationMapper, never()).insert(any(ApplicationDTO.class));
+    }
+
+    @Test
+    @DisplayName("취소 지원서 재활성화 경쟁에서 상태가 먼저 바뀌면 중복 지원 처리")
+    void apply_cancelledApplication_concurrentReactivation_fail() {
+        given(recruitmentMapper.findById(10)).willReturn(openRecruitment());
+        given(applicationMapper.findByRecruitmentAndApplicant(10, USER_EMAIL))
+                .willReturn(application(ApplicationStatus.CANCELLED, LocalDateTime.now(), null));
+        given(portfolioMapper.countOwnedActiveByIds(USER_EMAIL, List.of(1))).willReturn(1);
+        given(applicationPortfolioSnapshotMapper.findFileIdsByApplicationId(1)).willReturn(List.of());
+        given(applicationMapper.reactivateCancelled(1, "재지원")).willReturn(0);
+
+        assertCustomException(
+                () -> applicationService.apply(
+                        10, request("재지원", List.of(1)), USER_EMAIL, ROLE_USER),
+                ErrorCode.APPLICATION_ALREADY_EXISTS);
+
+        verify(portfolioPermissionMapper, never()).deleteByApplicationId(1);
+        verify(applicationProfileSnapshotMapper, never()).deleteByApplicationId(1);
+    }
+
+    @Test
     @DisplayName("프로필 스냅샷 저장 실패를 전파해 지원 트랜잭션 롤백")
     void apply_profileSnapshotFailure_propagates() {
         ApplicationRequest request = request("지원 소개", List.of(1));
         given(recruitmentMapper.findById(10)).willReturn(openRecruitment());
-        given(applicationMapper.existsByRecruitmentAndApplicant(10, USER_EMAIL)).willReturn(false);
+        given(applicationMapper.findByRecruitmentAndApplicant(10, USER_EMAIL)).willReturn(null);
         given(portfolioMapper.countOwnedActiveByIds(USER_EMAIL, List.of(1))).willReturn(1);
         doAnswer(invocation -> {
             ApplicationDTO dto = invocation.getArgument(0);
@@ -354,7 +418,8 @@ class ApplicationServiceTest {
     @DisplayName("중복 지원 실패")
     void apply_duplicate_fail() {
         given(recruitmentMapper.findById(10)).willReturn(openRecruitment());
-        given(applicationMapper.existsByRecruitmentAndApplicant(10, USER_EMAIL)).willReturn(true);
+        given(applicationMapper.findByRecruitmentAndApplicant(10, USER_EMAIL))
+                .willReturn(application(ApplicationStatus.PENDING, null, null));
 
         assertCustomException(
                 () -> applicationService.apply(10, request("지원", List.of(1)), USER_EMAIL, ROLE_USER),
@@ -367,7 +432,6 @@ class ApplicationServiceTest {
     @DisplayName("portfolioIds 빈 배열 실패")
     void apply_emptyPortfolioIds_fail() {
         given(recruitmentMapper.findById(10)).willReturn(openRecruitment());
-        given(applicationMapper.existsByRecruitmentAndApplicant(10, USER_EMAIL)).willReturn(false);
 
         assertCustomException(
                 () -> applicationService.apply(10, request("지원", List.of()), USER_EMAIL, ROLE_USER),
@@ -378,7 +442,6 @@ class ApplicationServiceTest {
     @DisplayName("타인 포트폴리오 선택 실패")
     void apply_otherUserPortfolio_fail() {
         given(recruitmentMapper.findById(10)).willReturn(openRecruitment());
-        given(applicationMapper.existsByRecruitmentAndApplicant(10, USER_EMAIL)).willReturn(false);
         given(portfolioMapper.countOwnedActiveByIds(USER_EMAIL, List.of(99))).willReturn(0);
 
         assertCustomException(
@@ -390,7 +453,6 @@ class ApplicationServiceTest {
     @DisplayName("삭제된 포트폴리오 선택 실패")
     void apply_deletedPortfolio_fail() {
         given(recruitmentMapper.findById(10)).willReturn(openRecruitment());
-        given(applicationMapper.existsByRecruitmentAndApplicant(10, USER_EMAIL)).willReturn(false);
         given(portfolioMapper.countOwnedActiveByIds(USER_EMAIL, List.of(1, 2))).willReturn(1);
 
         assertCustomException(
@@ -412,11 +474,15 @@ class ApplicationServiceTest {
     @DisplayName("내 지원 조회 성공")
     void getMine_success() {
         stubDetail(application(ApplicationStatus.PENDING, null, null), List.of(1));
+        stubPortfolioProfile();
 
         ApplicationDetailResponse result = applicationService.getMine(10, USER_EMAIL, ROLE_USER);
 
         assertThat(result.getRecruitmentId()).isEqualTo(10);
         assertThat(result.getPortfolios()).hasSize(1);
+        assertThat(result.getPortfolioProfile()).isNotNull();
+        assertThat(result.getPortfolioProfile().getDisplayName()).isEqualTo("지원 홍길동");
+        assertThat(result.getPortfolioProfile().getTechStacks()).containsExactly("Java", "Spring");
     }
 
     @Test
