@@ -1,23 +1,47 @@
 package com.ssafy.lancit.domain.user.dto;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.ssafy.lancit.global.enums.JobCategory;
-
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@Getter @Setter @NoArgsConstructor 
-@AllArgsConstructor @Builder
+@Getter @Setter
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class UserDTO {
-    private String email;               // PK
-    private String password;            // BCrypt (수정 요청 시에만 포함)
+    private String email;
+    private String password;
     private String name;
     private String phone;
     private JobCategory jobCategory;
-    private boolean pushable;           // 알림 수신 여부
-    private Integer profileFileId;      // FK → file (null 허용)
-    private boolean isBookmarked; // DB 컬럼 아님, 조회 시 조립
+    private boolean pushable;
+    private Integer profileFileId;
+    private boolean isBookmarked;
     private boolean isDeleted;
+
+    public UserDTO() {}
+
+    @Builder
+    @JsonCreator
+    public UserDTO(
+            @JsonProperty("email") String email,
+            @JsonProperty("password") String password,
+            @JsonProperty("name") String name,
+            @JsonProperty("phone") String phone,
+            @JsonProperty("jobCategory") JobCategory jobCategory,
+            @JsonProperty("pushable") boolean pushable,
+            @JsonProperty("profileFileId") Integer profileFileId
+    ) {
+        this.email = email;
+        this.password = password;
+        this.name = name;
+        this.phone = phone;
+        this.jobCategory = jobCategory;
+        this.pushable = pushable;
+        this.profileFileId = profileFileId;
+        this.isBookmarked = false;
+        this.isDeleted = false;
+    }
 }
