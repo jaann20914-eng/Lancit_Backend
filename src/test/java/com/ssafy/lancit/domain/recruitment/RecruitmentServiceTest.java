@@ -147,8 +147,56 @@ class RecruitmentServiceTest {
         assertThat(result.getImageFileId()).isEqualTo(20);
         verify(recruitmentMapper).deleteTechStacks(1);
         verify(recruitmentMapper).insertTechStacks(1, List.of("React", "Spring"));
-        verify(fileService).detach(10);
         verify(fileService).attachToParent(20, FileParentType.RECRUITMENT_IMAGE, 1, COMPANY_EMAIL);
+        verify(fileService).deleteRecruitmentImageIfUnreferenced(10);
+    }
+
+    @Test
+    @DisplayName("공고 이미지 제거 시 분리된 실제 파일을 정리한다")
+    void update_removeImage_success() {
+        RecruitmentUpdateRequest request = baseUpdateRequest();
+        request.setImageFileId(null);
+        RecruitmentDTO existing = baseRecruitment(1);
+        existing.setImageFileId(10);
+        RecruitmentDTO updated = baseRecruitment(1);
+
+        given(recruitmentMapper.findById(1)).willReturn(existing, updated);
+        given(recruitmentMapper.countActiveApplications(1)).willReturn(0);
+        given(recruitmentMapper.updateRecruitment(eq(1), any(RecruitmentDTO.class))).willReturn(1);
+        given(recruitmentMapper.findTechStacksByRecruitmentId(1)).willReturn(List.of());
+
+        recruitmentService.update(1, request, COMPANY_EMAIL, "COMPANY");
+
+        verify(fileService).deleteRecruitmentImageIfUnreferenced(10);
+        verify(fileService, never()).attachToParent(any(), eq(FileParentType.RECRUITMENT_IMAGE), eq(1), eq(COMPANY_EMAIL));
+    }
+
+    @Test
+    @DisplayName("공고 삭제 시 연결되던 이미지를 실제 파일 정리 대상으로 넘긴다")
+    void delete_withImage_success() {
+        RecruitmentDTO existing = baseRecruitment(1);
+        existing.setImageFileId(10);
+        given(recruitmentMapper.findById(1)).willReturn(existing);
+        given(recruitmentMapper.countActiveApplications(1)).willReturn(0);
+        given(recruitmentMapper.softDeleteRecruitment(1)).willReturn(1);
+
+        recruitmentService.delete(1, COMPANY_EMAIL, "COMPANY");
+
+        verify(fileService).deleteRecruitmentImageIfUnreferenced(10);
+    }
+
+    @Test
+    @DisplayName("공고 복사 원본에는 기존 이미지 ID를 포함하지 않는다")
+    void getCopySource_excludesImage_success() {
+        RecruitmentDTO existing = baseRecruitment(1);
+        existing.setImageFileId(10);
+        given(recruitmentMapper.findById(1)).willReturn(existing);
+        given(recruitmentMapper.findTechStacksByRecruitmentId(1)).willReturn(List.of("Java"));
+
+        RecruitmentCreateRequest result = recruitmentService.getCopySource(1, COMPANY_EMAIL, "COMPANY");
+
+        assertThat(result.getImageFileId()).isNull();
+        assertThat(result.getTechStacks()).containsExactly("Java");
     }
 
     @Test

@@ -265,6 +265,11 @@ public class ApplicationService {
             throw new CustomException(ErrorCode.CONTRACT_ALREADY_EXISTS);
         }
 
+        if (ApplicationStatus.ACCEPTED.equals(targetStatus)
+                && recruitmentMapper.closeIfOpen(recruitmentId) == 0) {
+            throw new CustomException(ErrorCode.RECRUITMENT_NOT_OPEN);
+        }
+
         int updated = applicationMapper.updateStatusIfPending(applicationId, targetStatus);
         if (updated == 0) {
             throw new CustomException(ErrorCode.INVALID_APPLICATION_STATUS_CHANGE);

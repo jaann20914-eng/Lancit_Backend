@@ -169,6 +169,9 @@ public class RecruitmentService {
         if (deleted == 0) {
             throw new CustomException(ErrorCode.RECRUITMENT_NOT_FOUND);
         }
+        if (existing.getImageFileId() != null) {
+            fileService.deleteRecruitmentImageIfUnreferenced(existing.getImageFileId());
+        }
     }
 
     @Transactional
@@ -203,7 +206,8 @@ public class RecruitmentService {
         response.setStatus(RecruitmentStatus.OPEN);
         response.setWorkLocation(existing.getWorkLocation());
         response.setBudget(existing.getBudget());
-        response.setImageFileId(existing.getImageFileId());
+        // 재등록 공고가 기존 공고의 파일 row를 공유하지 않도록 이미지는 복사 대상에서 제외한다.
+        response.setImageFileId(null);
         response.setContractStartAt(existing.getContractStartAt());
         response.setContractEndAt(existing.getContractEndAt());
         response.setRecruitmentStartAt(null);
@@ -468,10 +472,13 @@ public class RecruitmentService {
     }
 
     private void syncImage(Integer oldImageFileId, Integer newImageFileId, int recruitmentId, String companyEmail) {
-        if (oldImageFileId != null && !oldImageFileId.equals(newImageFileId)) {
-            fileService.detach(oldImageFileId);
+        if (oldImageFileId != null && oldImageFileId.equals(newImageFileId)) {
+            return;
         }
         attachImage(newImageFileId, recruitmentId, companyEmail);
+        if (oldImageFileId != null) {
+            fileService.deleteRecruitmentImageIfUnreferenced(oldImageFileId);
+        }
     }
 
     private RecruitmentListItemResponse toListResponse(RecruitmentDTO dto,

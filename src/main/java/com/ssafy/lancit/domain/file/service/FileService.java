@@ -240,6 +240,18 @@ public class FileService {
         deleteBySystem(fileId);
     }
 
+    @Transactional
+    public void deleteRecruitmentImageIfUnreferenced(int fileId) {
+        if (fileMapper.isCurrentRecruitmentImageReferenced(fileId)) {
+            return;
+        }
+        FileDTO dto = fileMapper.findById(fileId);
+        if (dto == null) {
+            return;
+        }
+        deleteFile(dto);
+    }
+
     private void deleteOrDetachSnapshotFile(FileDTO dto) {
         boolean snapshotReferenced = applicationProfileSnapshotMapper.isProfileFileReferenced(dto.getFileId())
                 || applicationPortfolioSnapshotMapper.isFileReferenced(dto.getFileId());
@@ -248,6 +260,10 @@ public class FileService {
             return;
         }
 
+        deleteFile(dto);
+    }
+
+    private void deleteFile(FileDTO dto) {
         eventPublisher.publishEvent(new FileDeleteEvent(dto.getUploadPath()));
         fileMapper.delete(dto.getFileId());
         if (cacheManager.getCache("signedUrl") != null) {

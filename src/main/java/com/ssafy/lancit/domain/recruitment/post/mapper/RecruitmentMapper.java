@@ -27,6 +27,8 @@ public interface RecruitmentMapper {
 
     int updateStatus(@Param("recruitmentId") int recruitmentId,
                      @Param("status") RecruitmentStatus status);
+
+    int closeIfOpen(@Param("recruitmentId") int recruitmentId);
     
     
 

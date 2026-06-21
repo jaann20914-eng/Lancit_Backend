@@ -88,4 +88,30 @@ class FileServiceSnapshotCleanupTest {
         verify(fileMapper).delete(10);
         verify(eventPublisher).publishEvent(org.mockito.ArgumentMatchers.any(FileDeleteEvent.class));
     }
+
+    @Test
+    void currentRecruitmentReference_preventsImageDeletion() {
+        given(fileMapper.isCurrentRecruitmentImageReferenced(10)).willReturn(true);
+
+        fileService.deleteRecruitmentImageIfUnreferenced(10);
+
+        verify(fileMapper, never()).findById(10);
+        verify(fileMapper, never()).delete(10);
+    }
+
+    @Test
+    void unreferencedRecruitmentImage_isDeletedAfterCommitEventPublished() {
+        FileDTO file = FileDTO.builder().fileId(10).uploadPath("recruitment/image/old.png").build();
+        given(fileMapper.isCurrentRecruitmentImageReferenced(10)).willReturn(false);
+        given(fileMapper.findById(10)).willReturn(file);
+        given(cacheManager.getCache("signedUrl")).willReturn(cache);
+
+        fileService.deleteRecruitmentImageIfUnreferenced(10);
+
+        verify(fileMapper).delete(10);
+        verify(applicationProfileSnapshotMapper, never()).isProfileFileReferenced(10);
+        verify(applicationPortfolioSnapshotMapper, never()).isFileReferenced(10);
+        verify(eventPublisher).publishEvent(org.mockito.ArgumentMatchers.any(FileDeleteEvent.class));
+        verify(cache).evict(10);
+    }
 }

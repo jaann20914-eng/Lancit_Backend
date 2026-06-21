@@ -233,6 +233,20 @@
           AND is_deleted = 0
     </update>
 
+    <update id="closeIfOpen">
+        UPDATE recruitment
+        SET
+            status = 'CLOSED',
+            updated_at = NOW()
+        WHERE recruitment_id = #{recruitmentId}
+          AND status = 'OPEN'
+          AND is_deleted = 0
+          AND (
+              recruitment_end_at IS NULL
+              OR recruitment_end_at &gt;= NOW()
+          )
+    </update>
+
     <select id="findById" resultMap="RecruitmentResultMap">
         SELECT
         <include refid="RecruitmentColumns"/>

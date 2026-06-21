@@ -513,6 +513,7 @@ class ApplicationServiceTest {
         given(recruitmentMapper.findById(10)).willReturn(openRecruitment());
         given(applicationMapper.findCompanyDetail(10, 1)).willReturn(pending, accepted);
         given(contractMapper.existsActiveContract(10, USER_EMAIL)).willReturn(false);
+        given(recruitmentMapper.closeIfOpen(10)).willReturn(1);
         given(applicationMapper.updateStatusIfPending(1, ApplicationStatus.ACCEPTED)).willReturn(1);
         doAnswer(invocation -> {
             ContractDTO contract = invocation.getArgument(0);
@@ -529,6 +530,25 @@ class ApplicationServiceTest {
         assertThat(result.getContractId()).isEqualTo(7);
         verify(contractMapper).insert(any(ContractDTO.class));
         verify(applicationMapper).attachContract(1, 7);
+        verify(recruitmentMapper).closeIfOpen(10);
+    }
+
+    @Test
+    @DisplayName("이미 마감된 공고의 지원자는 채택할 수 없다")
+    void updateStatus_acceptClosedRecruitment_fail() {
+        given(recruitmentMapper.findById(10)).willReturn(openRecruitment());
+        given(applicationMapper.findCompanyDetail(10, 1))
+                .willReturn(application(ApplicationStatus.PENDING, null, null));
+        given(contractMapper.existsActiveContract(10, USER_EMAIL)).willReturn(false);
+        given(recruitmentMapper.closeIfOpen(10)).willReturn(0);
+
+        assertCustomException(
+                () -> applicationService.updateStatus(
+                        10, 1, statusRequest("ACCEPTED"), COMPANY_EMAIL, ROLE_COMPANY),
+                ErrorCode.RECRUITMENT_NOT_OPEN);
+
+        verify(applicationMapper, never()).updateStatusIfPending(anyInt(), any());
+        verify(contractMapper, never()).insert(any());
     }
 
     @Test
