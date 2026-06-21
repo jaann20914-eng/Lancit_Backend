@@ -12,6 +12,7 @@ import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactor
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
+import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import java.time.Duration;
@@ -70,7 +71,10 @@ public class RedisConfig {
 
         Map<String, RedisCacheConfiguration> cacheConfigs = new HashMap<>();
         cacheConfigs.put("signedUrl", defaultConfig.entryTtl(Duration.ofDays(6)));
-        cacheConfigs.put("holiday",   defaultConfig.entryTtl(Duration.ofDays(365)));
+        cacheConfigs.put("holiday", defaultConfig
+                .serializeValuesWith(RedisSerializationContext.SerializationPair
+                        .fromSerializer(RedisSerializer.json()))
+                .entryTtl(Duration.ofDays(365)));
         // 캐시 이름별로 TTL 개별 설정
         // signedUrl → 6일, holiday → 365일
 
