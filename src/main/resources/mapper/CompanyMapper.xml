@@ -31,20 +31,26 @@
 		WHERE email= #{email}
 	</update>
 	
+	
 	<!-- 회사 수정 -->
 	<update id="update">
 	    UPDATE company
-	    SET
+	    <set>
 	        name                     = #{name},
 	        company_name             = #{companyName},
 	        phone                    = #{phone},
 	        job_category             = #{jobCategory},
 	        pushable                 = #{pushable},
 	        business_number          = #{businessNumber},
-	        business_number_verified = #{businessNumberVerified},
-	        profile_file_id          = #{profileFileId}
+	        business_number_verified = #{businessNumberVerified}
+	
+	        <if test="profileFileId != null">
+	            ,profile_file_id = #{profileFileId}
+	        </if>
+	    </set>
 	    WHERE email = #{email}
 	</update>
+	
 	
 	<!--회사 회원 탈퇴-->
 	<update id="softDelete">

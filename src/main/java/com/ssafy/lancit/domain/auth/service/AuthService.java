@@ -20,6 +20,7 @@ import com.ssafy.lancit.domain.auth.dto.SignupDTO;
 import com.ssafy.lancit.domain.chat.mapper.ChatRoomMapper;
 import com.ssafy.lancit.domain.company.dto.CompanyDTO;
 import com.ssafy.lancit.domain.company.mapper.CompanyMapper;
+import com.ssafy.lancit.domain.file.service.FileService;
 import com.ssafy.lancit.domain.user.dto.UserDTO;
 import com.ssafy.lancit.domain.user.mapper.UserMapper;
 
@@ -40,6 +41,8 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final RedisTemplate<String, String> redisTemplate; 
     private final BusinessNumberValidator businessNumberValidator;
+    private final FileService fileService;
+    
 
     //회원가입 - 이메일 중복 확인 → 비밀번호 암호화 → role 분기 INSERT
     @Transactional
@@ -111,6 +114,9 @@ public class AuthService {
         // role 분기 후 이메일로 조회
     	// 조회 결과 null 이면 throw new CustomException(ErrorCode.INVALID_CREDENTIALS)
     	String encodedPassword;
+    	String profileImageUrl = null;
+    	
+    	
     	if (ROLE_USER.equals(role)) {
     		UserDTO user = userMapper.findByEmail(email);
     		if (user == null) throw new CustomException(ErrorCode.INVALID_CREDENTIALS);
@@ -120,15 +126,26 @@ public class AuthService {
     		if (user.isDeleted()) {
     		    throw new CustomException(ErrorCode.WITHDRAWN_USER);
     		}
+    		
+    		//플필다운로드 url
+    		if (user.getProfileFileId() != null) {
+        	    profileImageUrl = fileService.getDownloadUrl(user.getProfileFileId()); // 기존 signed URL 발급 로직 재사용
+        	}
+    		
     	} else if (ROLE_COMPANY.equals(role)) {
     		CompanyDTO company = companyMapper.findByEmail(email);
     		if (company == null) throw new CustomException(ErrorCode.INVALID_CREDENTIALS);
+    		encodedPassword =company.getPassword();
     		
     		//탈퇴한 회사인지 확인
 			if (company.isDeleted()) {
 			    throw new CustomException(ErrorCode.WITHDRAWN_COMPANY);
 			}
-    		encodedPassword =company.getPassword();
+    		
+    		//플필다운로드 url
+    		if (company.getProfileFileId() != null) {
+        	    profileImageUrl = fileService.getDownloadUrl(company.getProfileFileId()); // 기존 signed URL 발급 로직 재사용
+        	}
     	   		
     	}else {
     		throw new CustomException(ErrorCode.INVALID_ROLE);
@@ -158,7 +175,9 @@ public class AuthService {
     	result.put("accessToken", token);
     	result.put("email", email);
     	result.put("role", role);
+    	System.out.println(role);
     	result.put("chatRoomIds", chatRoomIds);
+    	result.put("profileImageUrl", profileImageUrl);
         return result;
     }
 
