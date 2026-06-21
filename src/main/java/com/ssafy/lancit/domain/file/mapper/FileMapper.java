@@ -51,6 +51,10 @@ public interface FileMapper {
 
     void detach(int fileId);
 
+    boolean isCurrentProfileFileReferenced(@Param("fileId") int fileId);
+
+    boolean isCurrentPortfolioFileReferenced(@Param("fileId") int fileId);
+
     //GCS 폴더경로 바꾸기
     void updatePath(@Param("fileId") Integer fileId,@Param("uploadPath") String uploadPath);
 
@@ -58,4 +62,3 @@ public interface FileMapper {
     List<FileDTO> findOrphanContractFiles();
     
 }
-

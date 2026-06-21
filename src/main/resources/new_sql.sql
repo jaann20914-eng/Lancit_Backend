@@ -20,6 +20,8 @@ DROP TABLE IF EXISTS contract_document;
 DROP TABLE IF EXISTS contract;
 DROP TABLE IF EXISTS recruitment_bookmark;
 DROP TABLE IF EXISTS bookmark;
+DROP TABLE IF EXISTS recruitment_application_portfolio_snapshot_file;
+DROP TABLE IF EXISTS recruitment_application_portfolio_snapshot;
 DROP TABLE IF EXISTS recruitment_application_profile_snapshot_tech_stack;
 DROP TABLE IF EXISTS recruitment_application_profile_snapshot;
 DROP TABLE IF EXISTS portfolio_permission;
@@ -396,6 +398,54 @@ CREATE TABLE `recruitment_application_profile_snapshot_tech_stack` (
 -- ============================================================
 --  10. portfolio_permission
 -- ============================================================
+-- ============================================================
+--  recruitment_application_portfolio_snapshot
+-- ============================================================
+CREATE TABLE `recruitment_application_portfolio_snapshot` (
+    application_id      INT             NOT NULL,
+    portfolio_id        INT             NOT NULL                    COMMENT '지원 당시 원본 프로젝트 ID',
+    email               VARCHAR(255)    NOT NULL,
+    category            ENUM('WEB_APP','DESIGN','BRANDING','MARKETING','PLANNING')
+                                        NOT NULL,
+    title               VARCHAR(255)    NOT NULL,
+    summary             VARCHAR(30)     NOT NULL    DEFAULT '',
+    content             TEXT            NULL,
+    work_start_at       DATETIME        NULL,
+    work_end_at         DATETIME        NULL,
+    is_public           TINYINT(1)      NOT NULL    DEFAULT 0,
+    banner_file_id      INT             NULL,
+    source_created_at   DATETIME        NULL,
+    source_updated_at   DATETIME        NULL,
+    sort_order          INT             NOT NULL,
+    created_at          DATETIME        NOT NULL    DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (application_id, portfolio_id),
+    UNIQUE KEY uk_application_portfolio_snapshot_order (application_id, sort_order),
+    CONSTRAINT fk_application_portfolio_snapshot_application
+        FOREIGN KEY (application_id) REFERENCES `recruitment_application` (application_id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_application_portfolio_snapshot_banner
+        FOREIGN KEY (banner_file_id) REFERENCES `file` (file_id)
+        ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='지원 당시 프로젝트 스냅샷';
+
+CREATE TABLE `recruitment_application_portfolio_snapshot_file` (
+    application_id   INT             NOT NULL,
+    portfolio_id     INT             NOT NULL,
+    file_id          INT             NOT NULL,
+    file_role        ENUM('BANNER','ATTACHMENT') NOT NULL,
+    sort_order       INT             NOT NULL,
+    created_at       DATETIME        NOT NULL    DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (application_id, portfolio_id, file_id),
+    CONSTRAINT fk_application_portfolio_snapshot_file_snapshot
+        FOREIGN KEY (application_id, portfolio_id)
+        REFERENCES `recruitment_application_portfolio_snapshot` (application_id, portfolio_id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_application_portfolio_snapshot_file
+        FOREIGN KEY (file_id) REFERENCES `file` (file_id)
+        ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='지원 당시 프로젝트 파일 스냅샷';
+
+
 CREATE TABLE `portfolio_permission` (
     permission_id   INT         NOT NULL    AUTO_INCREMENT,
     application_id  INT         NOT NULL,
@@ -780,6 +830,32 @@ INSERT INTO `recruitment_application` (recruitment_id, applicant_email, status, 
 INSERT INTO `portfolio_permission` (application_id, portfolio_id, is_public) VALUES
 (1, 1, 1),
 (2, 2, 1);
+
+INSERT INTO `recruitment_application_portfolio_snapshot` (
+    application_id, portfolio_id, email, category, title, summary, content,
+    work_start_at, work_end_at, is_public, banner_file_id,
+    source_created_at, source_updated_at, sort_order
+)
+SELECT
+    pp.application_id, p.portfolio_id, p.email, p.category, p.title, p.summary, p.content,
+    p.work_start_at, p.work_end_at, p.is_public, p.banner_file_id,
+    p.created_at, p.updated_at, pp.permission_id
+FROM portfolio_permission pp
+INNER JOIN portfolio p ON p.portfolio_id = pp.portfolio_id;
+
+INSERT INTO `recruitment_application_portfolio_snapshot_file` (
+    application_id, portfolio_id, file_id, file_role, sort_order
+)
+SELECT
+    ps.application_id,
+    ps.portfolio_id,
+    f.file_id,
+    CASE WHEN f.file_id = ps.banner_file_id THEN 'BANNER' ELSE 'ATTACHMENT' END,
+    CASE WHEN f.file_id = ps.banner_file_id THEN 0 ELSE f.file_id END
+FROM recruitment_application_portfolio_snapshot ps
+INNER JOIN file f
+    ON f.file_id = ps.banner_file_id
+    OR (f.parent_type = 'PORTFOLIO_FILE' AND f.parent_id = ps.portfolio_id);
 
 -- ── 9. bookmark (회사가 프리랜서 찜) ─────────────────────────
 INSERT INTO `bookmark` (company_email, freelancer_email, application_id) VALUES

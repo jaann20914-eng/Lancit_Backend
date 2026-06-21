@@ -9,6 +9,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doAnswer;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -220,6 +221,27 @@ class PortfolioServiceTest {
     }
 
     @Test
+    @DisplayName("포트폴리오 프로필 사진 교체 후 이전 파일 정리를 위임")
+    void updateMyProfile_replaceImage_cleanupOldFile() {
+        PortfolioProfileUpdateRequest request = new PortfolioProfileUpdateRequest();
+        request.setDisplayName("홍길동");
+        request.setJobCategory(JobCategory.IT);
+        request.setProfileFileId(20);
+
+        PortfolioProfileDTO before = profile(false, "");
+        before.setProfileFileId(10);
+        PortfolioProfileDTO after = profile(false, "");
+        after.setProfileFileId(20);
+        given(portfolioProfileMapper.findByFreelancerEmail(USER_EMAIL)).willReturn(before, after);
+        given(portfolioProfileMapper.findTechStacks(USER_EMAIL)).willReturn(List.of());
+
+        portfolioService.updateMyProfile(USER_EMAIL, request);
+
+        verify(fileService).promoteOwned(20, FileParentType.PORTFOLIO_PROFILE, USER_EMAIL);
+        verify(fileService).deleteProfileIfUnreferenced(10);
+    }
+
+    @Test
     @DisplayName("포트폴리오 프로필 intro가 30자를 초과하면 실패")
     void updateMyProfile_introTooLong_fail() {
         PortfolioProfileUpdateRequest request = new PortfolioProfileUpdateRequest();
@@ -294,15 +316,40 @@ class PortfolioServiceTest {
         request.setSummary("  한줄 소개  ");
         request.setCategory("design");
         request.setIsPublic(null);
+        doAnswer(invocation -> {
+            invocation.<PortfolioDTO>getArgument(0).setPortfolioId(42);
+            return null;
+        }).when(portfolioMapper).insert(request);
 
-        portfolioService.create(request, USER_EMAIL);
+        Integer portfolioId = portfolioService.create(request, USER_EMAIL);
 
+        assertThat(portfolioId).isEqualTo(42);
         assertThat(request.getEmail()).isEqualTo(USER_EMAIL);
         assertThat(request.getTitle()).isEqualTo("프로젝트");
         assertThat(request.getSummary()).isEqualTo("한줄 소개");
         assertThat(request.getCategory()).isEqualTo("DESIGN");
         assertThat(request.getIsPublic()).isFalse();
         verify(portfolioMapper).insert(request);
+    }
+
+    @Test
+    @DisplayName("포트폴리오 등록 API가 생성 ID를 반환")
+    void createPortfolio_returnsCreatedId() {
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(
+                        USER_EMAIL,
+                        null,
+                        List.of(new SimpleGrantedAuthority("ROLE_USER"))));
+        PortfolioDTO request = basePortfolio(null);
+        doAnswer(invocation -> {
+            invocation.<PortfolioDTO>getArgument(0).setPortfolioId(42);
+            return null;
+        }).when(portfolioMapper).insert(request);
+
+        var response = new PortfolioController(portfolioService).createPortfolio(request);
+
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getData().getPortfolioId()).isEqualTo(42);
     }
 
     @Test
@@ -432,10 +479,15 @@ class PortfolioServiceTest {
     @Test
     @DisplayName("포트폴리오 삭제 성공")
     void delete_success() {
+        PortfolioDTO portfolio = basePortfolio(1);
+        portfolio.setBannerFileId(10);
+        given(portfolioMapper.findById(1)).willReturn(portfolio);
         given(portfolioMapper.softDelete(1)).willReturn(1);
 
         portfolioService.delete(1);
 
+        verify(fileService).deleteBySystem(10);
+        verify(fileService).deleteByParent(FileParentType.PORTFOLIO_FILE, 1);
         verify(portfolioMapper).softDelete(1);
     }
 

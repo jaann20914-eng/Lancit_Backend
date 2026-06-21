@@ -102,7 +102,11 @@ public class PortfolioService {
                 .build();
 
         portfolioProfileMapper.updateProfile(profile);
-        // TODO: 이전 사진이 어떤 지원 스냅샷에서도 참조되지 않을 때만 고아 파일을 정리한다.
+
+        Integer oldProfileFileId = existing.getProfileFileId();
+        if (oldProfileFileId != null && !oldProfileFileId.equals(request.getProfileFileId())) {
+            fileService.deleteProfileIfUnreferenced(oldProfileFileId);
+        }
 
         List<String> techStacks = normalizeTechStacks(request == null ? null : request.getTechStacks());
         portfolioProfileMapper.deleteTechStacks(email);
@@ -141,10 +145,11 @@ public class PortfolioService {
     // PORT-03 포트폴리오 등록
     // 배너 이미지는 컨트롤러 호출 전 POST /api/files/upload 로 먼저 업로드
     @Transactional
-    public void create(PortfolioDTO dto, String email) {
+    public Integer create(PortfolioDTO dto, String email) {
         validateForSave(dto);
         dto.setEmail(email);
         portfolioMapper.insert(dto);
+        return dto.getPortfolioId();
     }
 
     // PORT-03 포트폴리오 수정 (@OwnerCheck 로 소유자 검증)
@@ -168,6 +173,16 @@ public class PortfolioService {
     @OwnerCheck(resourceType = "PORTFOLIO")
     @Transactional
     public void delete(int portfolioId) {
+        PortfolioDTO portfolio = portfolioMapper.findById(portfolioId);
+        if (portfolio == null) {
+            throw new CustomException(ErrorCode.NOT_FOUND);
+        }
+
+        if (portfolio.getBannerFileId() != null) {
+            fileService.deleteBySystem(portfolio.getBannerFileId());
+        }
+        fileService.deleteByParent(FileParentType.PORTFOLIO_FILE, portfolioId);
+
         int deleted = portfolioMapper.softDelete(portfolioId);
         if (deleted == 0) {
             throw new CustomException(ErrorCode.NOT_FOUND);

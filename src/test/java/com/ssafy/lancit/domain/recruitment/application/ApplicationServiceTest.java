@@ -22,6 +22,7 @@ import com.ssafy.lancit.common.page.dto.PageResponse;
 import com.ssafy.lancit.domain.contract.dto.ContractDTO;
 import com.ssafy.lancit.domain.contract.mapper.ContractMapper;
 import com.ssafy.lancit.domain.file.service.FileService;
+import com.ssafy.lancit.domain.portfolio.dto.PortfolioDTO;
 import com.ssafy.lancit.domain.portfolio.dto.PortfolioProfileDTO;
 import com.ssafy.lancit.domain.portfolio.mapper.PortfolioMapper;
 import com.ssafy.lancit.domain.portfolio.service.PortfolioService;
@@ -32,6 +33,7 @@ import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationProfileSna
 import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationRequest;
 import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationStatusUpdateRequest;
 import com.ssafy.lancit.domain.recruitment.application.mapper.ApplicationMapper;
+import com.ssafy.lancit.domain.recruitment.application.mapper.ApplicationPortfolioSnapshotMapper;
 import com.ssafy.lancit.domain.recruitment.application.mapper.ApplicationProfileSnapshotMapper;
 import com.ssafy.lancit.domain.recruitment.application.mapper.PortfolioPermissionMapper;
 import com.ssafy.lancit.domain.recruitment.application.service.ApplicationService;
@@ -78,6 +80,9 @@ class ApplicationServiceTest {
     private ApplicationProfileSnapshotMapper applicationProfileSnapshotMapper;
 
     @Mock
+    private ApplicationPortfolioSnapshotMapper applicationPortfolioSnapshotMapper;
+
+    @Mock
     private FileService fileService;
 
     @Mock
@@ -94,8 +99,8 @@ class ApplicationServiceTest {
         given(recruitmentMapper.findById(10)).willReturn(openRecruitment());
         given(applicationMapper.findCompanyList(10, pageRequest)).willReturn(List.of(application));
         given(applicationMapper.countCompanyList(10)).willReturn(1L);
-        given(portfolioPermissionMapper.findPortfolioIdsByApplicationId(1)).willReturn(List.of(1));
-        given(portfolioMapper.findApplicationSummariesByIds(List.of(1))).willReturn(portfolios(List.of(1)));
+        given(applicationPortfolioSnapshotMapper.findSummariesByApplicationId(1))
+                .willReturn(portfolios(List.of(1)));
 
         PageResponse<ApplicationDetailResponse> result =
                 applicationService.getCompanyApplications(10, COMPANY_EMAIL, ROLE_COMPANY, pageRequest);
@@ -114,8 +119,8 @@ class ApplicationServiceTest {
                 LocalDateTime.of(2026, 6, 13, 20, 30));
         given(recruitmentMapper.findById(10)).willReturn(openRecruitment());
         given(applicationMapper.findCompanyDetail(10, 1)).willReturn(beforeView, afterView);
-        given(portfolioPermissionMapper.findPortfolioIdsByApplicationId(1)).willReturn(List.of(1));
-        given(portfolioMapper.findApplicationSummariesByIds(List.of(1))).willReturn(portfolios(List.of(1)));
+        given(applicationPortfolioSnapshotMapper.findSummariesByApplicationId(1))
+                .willReturn(portfolios(List.of(1)));
         stubPortfolioProfile();
 
         ApplicationDetailResponse result =
@@ -137,13 +142,15 @@ class ApplicationServiceTest {
                 .willReturn(application(ApplicationStatus.PENDING, null, null));
         given(portfolioPermissionMapper.existsCompanyPermission(1, 3, 10, COMPANY_EMAIL))
                 .willReturn(true);
-        given(portfolioService.getOne(3)).willReturn(Map.of("portfolio", "selected"));
+        PortfolioDTO snapshot = PortfolioDTO.builder().portfolioId(3).title("지원 당시 프로젝트").build();
+        given(applicationPortfolioSnapshotMapper.findPortfolio(1, 3)).willReturn(snapshot);
+        given(applicationPortfolioSnapshotMapper.findFiles(1, 3)).willReturn(List.of());
 
         Map<String, Object> result = applicationService.getCompanyApplicationPortfolio(
                 10, 1, 3, COMPANY_EMAIL, ROLE_COMPANY);
 
-        assertThat(result).containsEntry("portfolio", "selected");
-        verify(portfolioService).getOne(3);
+        assertThat(result).containsEntry("portfolio", snapshot);
+        verify(portfolioService, never()).getOne(3);
     }
 
     @Test
@@ -170,8 +177,8 @@ class ApplicationServiceTest {
         given(recruitmentMapper.findById(10)).willReturn(openRecruitment());
         given(applicationMapper.findCompanyDetail(10, 1))
                 .willReturn(application(ApplicationStatus.PENDING, null, viewedAt));
-        given(portfolioPermissionMapper.findPortfolioIdsByApplicationId(1)).willReturn(List.of(1));
-        given(portfolioMapper.findApplicationSummariesByIds(List.of(1))).willReturn(portfolios(List.of(1)));
+        given(applicationPortfolioSnapshotMapper.findSummariesByApplicationId(1))
+                .willReturn(portfolios(List.of(1)));
         stubPortfolioProfile();
 
         ApplicationDetailResponse result =
@@ -261,6 +268,7 @@ class ApplicationServiceTest {
             return null;
         }).when(applicationMapper).insert(any(ApplicationDTO.class));
         stubCurrentPortfolioProfile();
+        stubPortfolioSnapshotWrites(List.of(1, 3));
         stubDetail(application(ApplicationStatus.PENDING, null, null), List.of(1, 3));
 
         ApplicationDetailResponse result = applicationService.apply(10, request, USER_EMAIL, ROLE_USER);
@@ -270,6 +278,8 @@ class ApplicationServiceTest {
         assertThat(result.getPortfolios()).hasSize(2);
         verify(applicationMapper).insert(any(ApplicationDTO.class));
         verify(portfolioPermissionMapper).insertAll(1, List.of(1, 3));
+        verify(applicationPortfolioSnapshotMapper).insertPortfolio(1, 1, 0);
+        verify(applicationPortfolioSnapshotMapper).insertPortfolio(1, 3, 1);
         verify(applicationProfileSnapshotMapper).insert(any(ApplicationProfileSnapshotDTO.class));
         verify(applicationProfileSnapshotMapper).insertTechStack(1, "Java", 0);
         verify(applicationProfileSnapshotMapper).insertTechStack(1, "Spring", 1);
@@ -288,6 +298,7 @@ class ApplicationServiceTest {
             return null;
         }).when(applicationMapper).insert(any(ApplicationDTO.class));
         stubCurrentPortfolioProfile();
+        stubPortfolioSnapshotWrites(List.of(1));
         doThrow(new IllegalStateException("snapshot insert failed"))
                 .when(applicationProfileSnapshotMapper).insert(any(ApplicationProfileSnapshotDTO.class));
 
@@ -416,8 +427,10 @@ class ApplicationServiceTest {
         given(recruitmentMapper.findById(10)).willReturn(openRecruitment());
         given(portfolioMapper.countOwnedActiveByIds(USER_EMAIL, List.of(2, 4))).willReturn(2);
         given(applicationMapper.updateIntro(1, "수정 소개")).willReturn(1);
-        given(portfolioPermissionMapper.findPortfolioIdsByApplicationId(1)).willReturn(List.of(2, 4));
-        given(portfolioMapper.findApplicationSummariesByIds(List.of(2, 4))).willReturn(portfolios(List.of(2, 4)));
+        given(applicationPortfolioSnapshotMapper.findFileIdsByApplicationId(1)).willReturn(List.of(90));
+        stubPortfolioSnapshotWrites(List.of(2, 4));
+        given(applicationPortfolioSnapshotMapper.findSummariesByApplicationId(1))
+                .willReturn(portfolios(List.of(2, 4)));
 
         ApplicationDetailResponse result =
                 applicationService.updateMine(10, request(" 수정 소개 ", List.of(2, 4)), USER_EMAIL, ROLE_USER);
@@ -425,6 +438,8 @@ class ApplicationServiceTest {
         assertThat(result.getPortfolios()).extracting("portfolioId").containsExactly(2, 4);
         verify(portfolioPermissionMapper).deleteByApplicationId(1);
         verify(portfolioPermissionMapper).insertAll(1, List.of(2, 4));
+        verify(applicationPortfolioSnapshotMapper).deleteByApplicationId(1);
+        verify(fileService).deletePortfolioFileIfUnreferenced(90);
         verify(applicationMapper).updateIntro(1, "수정 소개");
     }
 
@@ -614,9 +629,15 @@ class ApplicationServiceTest {
 
     private void stubDetail(ApplicationDTO application, List<Integer> portfolioIds) {
         given(applicationMapper.findByRecruitmentAndApplicant(10, USER_EMAIL)).willReturn(application);
-        given(portfolioPermissionMapper.findPortfolioIdsByApplicationId(application.getApplicationId()))
-                .willReturn(portfolioIds);
-        given(portfolioMapper.findApplicationSummariesByIds(portfolioIds)).willReturn(portfolios(portfolioIds));
+        given(applicationPortfolioSnapshotMapper.findSummariesByApplicationId(application.getApplicationId()))
+                .willReturn(portfolios(portfolioIds));
+    }
+
+    private void stubPortfolioSnapshotWrites(List<Integer> portfolioIds) {
+        for (Integer portfolioId : portfolioIds) {
+            given(applicationPortfolioSnapshotMapper.insertPortfolio(anyInt(), eq(portfolioId), anyInt()))
+                    .willReturn(1);
+        }
     }
 
     private void stubPortfolioProfile() {
