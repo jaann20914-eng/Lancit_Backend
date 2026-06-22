@@ -85,7 +85,7 @@
         <if test="condition != null and condition.recruitmentCategory != null">
             AND r.recruitment_category = #{condition.recruitmentCategory}
         </if>
-        <if test="condition != null and condition.safeTab == 'ALL'">
+        <if test="condition != null and condition.safeTab == 'ALL' and condition.status == null">
             AND r.status = 'OPEN'
             AND (
                 r.recruitment_end_at IS NULL

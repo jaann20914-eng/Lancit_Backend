@@ -1,9 +1,13 @@
 package com.ssafy.lancit.common.exception;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.validation.BindException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.ServletRequestBindingException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import com.ssafy.lancit.common.response.ApiResponse;
 
@@ -25,6 +29,18 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleValidationException(MethodArgumentNotValidException e) {
         String message = e.getBindingResult().getAllErrors().get(0).getDefaultMessage();
         return ResponseEntity.badRequest().body(ApiResponse.fail(message));
+    }
+
+    @ExceptionHandler({
+            BindException.class,
+            MethodArgumentTypeMismatchException.class,
+            HttpMessageNotReadableException.class,
+            ServletRequestBindingException.class
+    })
+    public ResponseEntity<ApiResponse<Void>> handleInvalidRequest(Exception e) {
+        log.debug("[InvalidRequest] {}", e.getClass().getSimpleName());
+        return ResponseEntity.badRequest()
+                .body(ApiResponse.fail(ErrorCode.INVALID_INPUT.getMessage()));
     }
  
     @ExceptionHandler(Exception.class) //fallback 오류
