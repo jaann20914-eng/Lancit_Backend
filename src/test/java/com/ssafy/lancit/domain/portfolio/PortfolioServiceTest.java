@@ -10,6 +10,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -20,6 +22,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -333,6 +336,25 @@ class PortfolioServiceTest {
     }
 
     @Test
+    @DisplayName("포트폴리오 등록 후 TEMP 배너를 생성된 포트폴리오에 연결")
+    void create_withTempBanner_attachToCreatedPortfolio() {
+        PortfolioDTO request = basePortfolio(null);
+        request.setBannerFileId(10);
+        doAnswer(invocation -> {
+            invocation.<PortfolioDTO>getArgument(0).setPortfolioId(42);
+            return null;
+        }).when(portfolioMapper).insert(request);
+
+        Integer portfolioId = portfolioService.create(request, USER_EMAIL);
+
+        assertThat(portfolioId).isEqualTo(42);
+        InOrder inOrder = inOrder(portfolioMapper, fileService);
+        inOrder.verify(portfolioMapper).insert(request);
+        inOrder.verify(fileService).attachToParent(
+                10, FileParentType.PORTFOLIO_BANNER, 42, USER_EMAIL);
+    }
+
+    @Test
     @DisplayName("포트폴리오 등록 API가 생성 ID를 반환")
     void createPortfolio_returnsCreatedId() {
         SecurityContextHolder.getContext().setAuthentication(
@@ -464,6 +486,62 @@ class PortfolioServiceTest {
         assertThat(request.getCategory()).isEqualTo("PLANNING");
         verify(portfolioMapper).findById(1);
         verify(portfolioMapper).update(1, request);
+    }
+
+    @Test
+    @DisplayName("포트폴리오 배너 교체 시 새 배너 연결 후 이전 배너 정리")
+    void update_replaceBanner_attachThenCleanupOldBanner() {
+        PortfolioDTO existing = basePortfolio(1);
+        existing.setBannerFileId(10);
+        PortfolioDTO request = basePortfolio(null);
+        request.setBannerFileId(20);
+
+        given(portfolioMapper.findById(1)).willReturn(existing);
+        given(portfolioMapper.update(1, request)).willReturn(1);
+
+        portfolioService.update(1, request);
+
+        InOrder inOrder = inOrder(fileService, portfolioMapper);
+        inOrder.verify(fileService).attachToParent(
+                20, FileParentType.PORTFOLIO_BANNER, 1, USER_EMAIL);
+        inOrder.verify(portfolioMapper).update(1, request);
+        inOrder.verify(fileService).deletePortfolioFileIfUnreferenced(10);
+    }
+
+    @Test
+    @DisplayName("기존과 같은 배너 ID도 연결을 재확인해 과거 TEMP 배너를 승격")
+    void update_sameBanner_reattachForLegacyTempBanner() {
+        PortfolioDTO existing = basePortfolio(1);
+        existing.setBannerFileId(10);
+        PortfolioDTO request = basePortfolio(null);
+        request.setBannerFileId(10);
+
+        given(portfolioMapper.findById(1)).willReturn(existing);
+        given(portfolioMapper.update(1, request)).willReturn(1);
+
+        portfolioService.update(1, request);
+
+        verify(fileService).attachToParent(
+                10, FileParentType.PORTFOLIO_BANNER, 1, USER_EMAIL);
+        verify(fileService, never()).deletePortfolioFileIfUnreferenced(10);
+    }
+
+    @Test
+    @DisplayName("새 배너 연결 실패 시 포트폴리오 수정과 이전 배너 정리를 수행하지 않음")
+    void update_bannerAttachFails_preserveOldBanner() {
+        PortfolioDTO existing = basePortfolio(1);
+        existing.setBannerFileId(10);
+        PortfolioDTO request = basePortfolio(null);
+        request.setBannerFileId(20);
+
+        given(portfolioMapper.findById(1)).willReturn(existing);
+        doThrow(new CustomException(ErrorCode.FORBIDDEN)).when(fileService).attachToParent(
+                20, FileParentType.PORTFOLIO_BANNER, 1, USER_EMAIL);
+
+        assertCustomException(() -> portfolioService.update(1, request), ErrorCode.FORBIDDEN);
+
+        verify(portfolioMapper, never()).update(anyInt(), any(PortfolioDTO.class));
+        verify(fileService, never()).deletePortfolioFileIfUnreferenced(10);
     }
 
     @Test

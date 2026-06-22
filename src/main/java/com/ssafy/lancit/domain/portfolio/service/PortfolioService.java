@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import org.springframework.stereotype.Service;
@@ -149,6 +150,13 @@ public class PortfolioService {
         validateForSave(dto);
         dto.setEmail(email);
         portfolioMapper.insert(dto);
+        if (dto.getBannerFileId() != null) {
+            fileService.attachToParent(
+                    dto.getBannerFileId(),
+                    FileParentType.PORTFOLIO_BANNER,
+                    dto.getPortfolioId(),
+                    email);
+        }
         return dto.getPortfolioId();
     }
 
@@ -162,9 +170,24 @@ public class PortfolioService {
             throw new CustomException(ErrorCode.NOT_FOUND);
         }
 
+        Integer oldBannerFileId = existing.getBannerFileId();
+        Integer newBannerFileId = dto.getBannerFileId();
+        boolean bannerChanged = !Objects.equals(oldBannerFileId, newBannerFileId);
+        if (newBannerFileId != null) {
+            fileService.attachToParent(
+                    newBannerFileId,
+                    FileParentType.PORTFOLIO_BANNER,
+                    portfolioId,
+                    existing.getEmail());
+        }
+
         int updated = portfolioMapper.update(portfolioId, dto);
         if (updated == 0) {
             throw new CustomException(ErrorCode.NOT_FOUND);
+        }
+
+        if (bannerChanged && oldBannerFileId != null) {
+            fileService.deletePortfolioFileIfUnreferenced(oldBannerFileId);
         }
     }
 

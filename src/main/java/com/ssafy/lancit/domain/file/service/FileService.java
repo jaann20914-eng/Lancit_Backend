@@ -9,6 +9,8 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.ssafy.lancit.common.annotation.OwnerCheck;
@@ -26,12 +28,14 @@ import com.ssafy.lancit.domain.recruitment.application.mapper.ApplicationProfile
 import com.ssafy.lancit.global.enums.FileParentType;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 // 파일 업로드 / 조회 / 삭제
 // ★ Redis: @Cacheable(signedUrl, 6일) / @CacheEvict(삭제 시 자동 제거)
 // ★ GCS: 업로드/삭제 처리, 삭제는 FileDeleteEvent → 트랜잭션 커밋 후 실행
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class FileService {
 
     private final FileMapper fileMapper;
@@ -50,6 +54,8 @@ public class FileService {
     @Transactional
     public List<FileDTO> upload(List<MultipartFile> files, FileParentType parentType,
                           Integer parentId, String email, String role) {
+
+        validatePortfolioUpload(parentType, parentId, email, role);
     	
     	// TEMP 업로드 시 기존 TEMP 파일 삭제 큐에 추가
         // (여러 번 바꿨을 때 이전 TEMP 파일 정리)
@@ -94,6 +100,28 @@ public class FileService {
 			}
     	}
         return result;
+    }
+
+    private void validatePortfolioUpload(FileParentType parentType, Integer parentId,
+                                         String email, String role) {
+        if (!FileParentType.PORTFOLIO_FILE.equals(parentType)
+                && !FileParentType.PORTFOLIO_BANNER.equals(parentType)) {
+            return;
+        }
+        if (!"USER".equalsIgnoreCase(role)) {
+            throw new CustomException(ErrorCode.FORBIDDEN);
+        }
+        if (parentId == null) {
+            throw new CustomException(ErrorCode.INVALID_INPUT);
+        }
+
+        PortfolioDTO portfolio = portfolioMapper.findById(parentId);
+        if (portfolio == null) {
+            throw new CustomException(ErrorCode.PORTFOLIO_NOT_FOUND);
+        }
+        if (!email.equals(portfolio.getEmail())) {
+            throw new CustomException(ErrorCode.FORBIDDEN);
+        }
     }
 
     
@@ -327,9 +355,39 @@ public class FileService {
 
         if (FileParentType.TEMP.equals(file.getParentType())) {
             String newPath = gcsService.move(file.getSysName(), targetType);
-            fileMapper.updatePath(fileId, newPath);
+            try {
+                fileMapper.updatePath(fileId, newPath);
+                fileMapper.updateParent(fileId, targetType, parentId);
+            } catch (RuntimeException e) {
+                restoreTempPath(newPath);
+                throw e;
+            }
+            registerMoveRollback(newPath);
+            return;
         }
         fileMapper.updateParent(fileId, targetType, parentId);
+    }
+
+    private void registerMoveRollback(String promotedPath) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCompletion(int status) {
+                if (status == TransactionSynchronization.STATUS_ROLLED_BACK) {
+                    restoreTempPath(promotedPath);
+                }
+            }
+        });
+    }
+
+    private void restoreTempPath(String promotedPath) {
+        try {
+            gcsService.move(promotedPath, FileParentType.TEMP);
+        } catch (RuntimeException rollbackException) {
+            log.error("[GCS] TEMP 파일 승격 롤백 실패: {}", promotedPath, rollbackException);
+        }
     }
 
     @Transactional
