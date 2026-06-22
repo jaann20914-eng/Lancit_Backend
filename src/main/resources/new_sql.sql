@@ -398,10 +398,26 @@ CREATE TABLE `recruitment_application_profile_snapshot_tech_stack` (
 -- ============================================================
 --  10. portfolio_permission
 -- ============================================================
+CREATE TABLE `portfolio_permission` (
+    permission_id   INT         NOT NULL    AUTO_INCREMENT,
+    application_id  INT         NOT NULL,
+    portfolio_id    INT         NOT NULL,
+    is_public       TINYINT(1)  NOT NULL    DEFAULT 0,
+    PRIMARY KEY (permission_id),
+    UNIQUE KEY uk_permission_application_portfolio (application_id, portfolio_id),
+    CONSTRAINT fk_permission_application
+        FOREIGN KEY (application_id) REFERENCES `recruitment_application` (application_id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_permission_portfolio
+        FOREIGN KEY (portfolio_id) REFERENCES `portfolio` (portfolio_id)
+        ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='포트폴리오 열람 권한';
+
 -- ============================================================
---  recruitment_application_portfolio_snapshot
+--  10-1. recruitment_application_portfolio_snapshot
 -- ============================================================
 CREATE TABLE `recruitment_application_portfolio_snapshot` (
+    snapshot_id         BIGINT          NOT NULL    AUTO_INCREMENT,
     application_id      INT             NOT NULL,
     portfolio_id        INT             NOT NULL                    COMMENT '지원 당시 원본 프로젝트 ID',
     email               VARCHAR(255)    NOT NULL,
@@ -418,48 +434,51 @@ CREATE TABLE `recruitment_application_portfolio_snapshot` (
     source_updated_at   DATETIME        NULL,
     sort_order          INT             NOT NULL,
     created_at          DATETIME        NOT NULL    DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (application_id, portfolio_id),
+    updated_at          DATETIME        NOT NULL    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (snapshot_id),
+    UNIQUE KEY uk_application_portfolio_snapshot (application_id, portfolio_id),
     UNIQUE KEY uk_application_portfolio_snapshot_order (application_id, sort_order),
     CONSTRAINT fk_application_portfolio_snapshot_application
         FOREIGN KEY (application_id) REFERENCES `recruitment_application` (application_id)
         ON DELETE CASCADE,
+    CONSTRAINT fk_application_portfolio_snapshot_portfolio
+        FOREIGN KEY (portfolio_id) REFERENCES `portfolio` (portfolio_id)
+        ON DELETE RESTRICT,
     CONSTRAINT fk_application_portfolio_snapshot_banner
         FOREIGN KEY (banner_file_id) REFERENCES `file` (file_id)
         ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='지원 당시 프로젝트 스냅샷';
 
+-- ============================================================
+--  10-2. recruitment_application_portfolio_snapshot_file
+-- ============================================================
 CREATE TABLE `recruitment_application_portfolio_snapshot_file` (
-    application_id   INT             NOT NULL,
-    portfolio_id     INT             NOT NULL,
-    file_id          INT             NOT NULL,
-    file_role        ENUM('BANNER','ATTACHMENT') NOT NULL,
-    sort_order       INT             NOT NULL,
-    created_at       DATETIME        NOT NULL    DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (application_id, portfolio_id, file_id),
+    snapshot_file_id  BIGINT          NOT NULL    AUTO_INCREMENT,
+    snapshot_id       BIGINT          NOT NULL,
+    file_id           INT             NOT NULL,
+    file_role         ENUM('BANNER','ATTACHMENT') NOT NULL,
+    user_email        VARCHAR(255)    NULL,
+    company_email     VARCHAR(255)    NULL,
+    sys_name          VARCHAR(255)    NOT NULL                    COMMENT '지원 당시 시스템 파일명',
+    ori_name          VARCHAR(255)    NOT NULL                    COMMENT '지원 당시 원본 파일명',
+    parent_type       ENUM('PROFILE','PORTFOLIO_PROFILE','PORTFOLIO_BANNER','PORTFOLIO_FILE','RECRUITMENT_IMAGE','CONTRACT','CHAT','TEMP')
+                                      NOT NULL,
+    parent_id         INT             NULL,
+    upload_path       VARCHAR(500)    NOT NULL                    COMMENT '지원 당시 GCS 오브젝트 경로',
+    file_size         INT             NOT NULL,
+    source_created_at DATETIME        NULL,
+    sort_order        INT             NOT NULL,
+    created_at        DATETIME        NOT NULL    DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (snapshot_file_id),
+    UNIQUE KEY uk_application_portfolio_snapshot_file (snapshot_id, file_id),
     CONSTRAINT fk_application_portfolio_snapshot_file_snapshot
-        FOREIGN KEY (application_id, portfolio_id)
-        REFERENCES `recruitment_application_portfolio_snapshot` (application_id, portfolio_id)
+        FOREIGN KEY (snapshot_id)
+        REFERENCES `recruitment_application_portfolio_snapshot` (snapshot_id)
         ON DELETE CASCADE,
     CONSTRAINT fk_application_portfolio_snapshot_file
         FOREIGN KEY (file_id) REFERENCES `file` (file_id)
         ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='지원 당시 프로젝트 파일 스냅샷';
-
-
-CREATE TABLE `portfolio_permission` (
-    permission_id   INT         NOT NULL    AUTO_INCREMENT,
-    application_id  INT         NOT NULL,
-    portfolio_id    INT         NOT NULL,
-    is_public       TINYINT(1)  NOT NULL    DEFAULT 0,
-    PRIMARY KEY (permission_id),
-    UNIQUE KEY uk_permission_application_portfolio (application_id, portfolio_id),
-    CONSTRAINT fk_permission_application
-        FOREIGN KEY (application_id) REFERENCES `recruitment_application` (application_id)
-        ON DELETE CASCADE,
-    CONSTRAINT fk_permission_portfolio
-        FOREIGN KEY (portfolio_id) REFERENCES `portfolio` (portfolio_id)
-        ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='포트폴리오 열람 권한';
 
 -- ============================================================
 --  11. bookmark
@@ -760,6 +779,8 @@ CREATE TABLE `file_delete_queue` (
 --  9-1. recruitment_application_profile_snapshot (-> recruitment_application, file)
 --  9-2. recruitment_application_profile_snapshot_tech_stack (-> recruitment_application)
 -- 10. portfolio_permission    (-> recruitment_application, portfolio)
+-- 10-1. recruitment_application_portfolio_snapshot (-> recruitment_application, portfolio, file)
+-- 10-2. recruitment_application_portfolio_snapshot_file (-> snapshot, file)
 -- 11. bookmark                (-> company, user, recruitment_application)
 -- 12. recruitment_bookmark    (-> user, recruitment)
 -- 13. contract                (-> recruitment, company, user)
@@ -824,12 +845,14 @@ ALTER TABLE `recruitment`
 INSERT INTO `recruitment_application` (recruitment_id, applicant_email, status, is_bookmarked_by_company) VALUES
 (1, 'test@lancit.com',  'ACCEPTED', 1),
 (2, 'test2@lancit.com', 'PENDING',  0),
-(3, 'test3@lancit.com', 'PENDING',  0);
+(3, 'test3@lancit.com', 'PENDING',  0),
+(1, 'test2@lancit.com', 'PENDING',  0);
 
 -- ── 8. portfolio_permission ─────────────────────────────────
 INSERT INTO `portfolio_permission` (application_id, portfolio_id, is_public) VALUES
 (1, 1, 1),
-(2, 2, 1);
+(2, 2, 1),
+(4, 2, 1);
 
 INSERT INTO `recruitment_application_portfolio_snapshot` (
     application_id, portfolio_id, email, category, title, summary, content,
@@ -844,13 +867,23 @@ FROM portfolio_permission pp
 INNER JOIN portfolio p ON p.portfolio_id = pp.portfolio_id;
 
 INSERT INTO `recruitment_application_portfolio_snapshot_file` (
-    application_id, portfolio_id, file_id, file_role, sort_order
+    snapshot_id, file_id, file_role,
+    user_email, company_email, sys_name, ori_name, parent_type, parent_id,
+    upload_path, file_size, source_created_at, sort_order
 )
 SELECT
-    ps.application_id,
-    ps.portfolio_id,
+    ps.snapshot_id,
     f.file_id,
     CASE WHEN f.file_id = ps.banner_file_id THEN 'BANNER' ELSE 'ATTACHMENT' END,
+    f.user_email,
+    f.company_email,
+    f.sys_name,
+    f.ori_name,
+    f.parent_type,
+    f.parent_id,
+    f.upload_path,
+    f.file_size,
+    f.created_at,
     CASE WHEN f.file_id = ps.banner_file_id THEN 0 ELSE f.file_id END
 FROM recruitment_application_portfolio_snapshot ps
 INNER JOIN file f

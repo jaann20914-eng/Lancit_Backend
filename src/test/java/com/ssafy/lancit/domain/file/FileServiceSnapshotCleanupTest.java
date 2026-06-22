@@ -90,6 +90,17 @@ class FileServiceSnapshotCleanupTest {
     }
 
     @Test
+    void snapshotReferencedPortfolioFile_isNotPhysicallyDeleted() {
+        given(applicationPortfolioSnapshotMapper.isFileReferenced(10)).willReturn(true);
+
+        fileService.deletePortfolioFileIfUnreferenced(10);
+
+        verify(fileMapper, never()).findById(10);
+        verify(fileMapper, never()).delete(10);
+        verify(eventPublisher, never()).publishEvent(org.mockito.ArgumentMatchers.any(FileDeleteEvent.class));
+    }
+
+    @Test
     void currentRecruitmentReference_preventsImageDeletion() {
         given(fileMapper.isCurrentRecruitmentImageReferenced(10)).willReturn(true);
 

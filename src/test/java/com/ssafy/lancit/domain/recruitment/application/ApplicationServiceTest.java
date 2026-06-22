@@ -283,9 +283,29 @@ class ApplicationServiceTest {
         verify(portfolioPermissionMapper).insertAll(1, List.of(1, 3));
         verify(applicationPortfolioSnapshotMapper).insertPortfolio(1, 1, 0);
         verify(applicationPortfolioSnapshotMapper).insertPortfolio(1, 3, 1);
+        verify(applicationPortfolioSnapshotMapper).insertFiles(1, 1);
+        verify(applicationPortfolioSnapshotMapper).insertFiles(1, 3);
         verify(applicationProfileSnapshotMapper).insert(any(ApplicationProfileSnapshotDTO.class));
         verify(applicationProfileSnapshotMapper).insertTechStack(1, "Java", 0);
         verify(applicationProfileSnapshotMapper).insertTechStack(1, "Spring", 1);
+    }
+
+    @Test
+    @DisplayName("포트폴리오 스냅샷이 없는 레거시 지원도 회사 목록에서 빈 목록으로 조회")
+    void getCompanyApplications_withoutPortfolioSnapshot_returnsEmptyPortfolios() {
+        PageRequest pageRequest = new PageRequest();
+        ApplicationDTO application = application(ApplicationStatus.PENDING, null, null);
+        given(recruitmentMapper.findById(10)).willReturn(openRecruitment());
+        given(applicationMapper.findCompanyList(10, pageRequest)).willReturn(List.of(application));
+        given(applicationMapper.countCompanyList(10)).willReturn(1L);
+        given(applicationPortfolioSnapshotMapper.findSummariesByApplicationId(1)).willReturn(null);
+
+        PageResponse<ApplicationDetailResponse> result =
+                applicationService.getCompanyApplications(10, COMPANY_EMAIL, ROLE_COMPANY, pageRequest);
+
+        assertThat(result.getContent()).singleElement()
+                .extracting(ApplicationDetailResponse::getPortfolios)
+                .isEqualTo(List.of());
     }
 
     @Test

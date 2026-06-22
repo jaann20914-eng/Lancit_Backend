@@ -69,34 +69,52 @@
 
     <insert id="insertFiles">
         INSERT INTO recruitment_application_portfolio_snapshot_file (
-            application_id,
-            portfolio_id,
+            snapshot_id,
             file_id,
             file_role,
+            user_email,
+            company_email,
+            sys_name,
+            ori_name,
+            parent_type,
+            parent_id,
+            upload_path,
+            file_size,
+            source_created_at,
             sort_order,
             created_at
         )
         SELECT
-            #{applicationId},
-            p.portfolio_id,
+            ps.snapshot_id,
             f.file_id,
             CASE
                 WHEN f.file_id = p.banner_file_id THEN 'BANNER'
                 ELSE 'ATTACHMENT'
             END,
+            f.user_email,
+            f.company_email,
+            f.sys_name,
+            f.ori_name,
+            f.parent_type,
+            f.parent_id,
+            f.upload_path,
+            f.file_size,
+            f.created_at,
             CASE
                 WHEN f.file_id = p.banner_file_id THEN 0
                 ELSE f.file_id
             END,
             NOW()
-        FROM portfolio p
+        FROM recruitment_application_portfolio_snapshot ps
+        INNER JOIN portfolio p ON p.portfolio_id = ps.portfolio_id
         INNER JOIN file f
             ON f.file_id = p.banner_file_id
             OR (
                 f.parent_type = 'PORTFOLIO_FILE'
                 AND f.parent_id = p.portfolio_id
             )
-        WHERE p.portfolio_id = #{portfolioId}
+        WHERE ps.application_id = #{applicationId}
+          AND ps.portfolio_id = #{portfolioId}
     </insert>
 
     <delete id="deleteByApplicationId">
@@ -137,34 +155,58 @@
     </select>
 
     <select id="findFiles" resultType="com.ssafy.lancit.domain.file.dto.FileDTO">
-        SELECT f.*
+        SELECT
+            sf.file_id,
+            sf.user_email,
+            sf.company_email,
+            sf.sys_name,
+            sf.ori_name,
+            sf.parent_type,
+            sf.parent_id,
+            sf.upload_path,
+            sf.source_created_at AS created_at,
+            sf.file_size
         FROM recruitment_application_portfolio_snapshot_file sf
-        INNER JOIN file f ON f.file_id = sf.file_id
-        WHERE sf.application_id = #{applicationId}
-          AND sf.portfolio_id = #{portfolioId}
+        INNER JOIN recruitment_application_portfolio_snapshot ps
+            ON ps.snapshot_id = sf.snapshot_id
+        WHERE ps.application_id = #{applicationId}
+          AND ps.portfolio_id = #{portfolioId}
           AND sf.file_role = 'ATTACHMENT'
         ORDER BY sf.sort_order ASC
     </select>
 
     <select id="findFileIdsByApplicationId" resultType="int">
         SELECT file_id
-        FROM recruitment_application_portfolio_snapshot_file
-        WHERE application_id = #{applicationId}
-        ORDER BY portfolio_id ASC, sort_order ASC
+        FROM recruitment_application_portfolio_snapshot_file sf
+        INNER JOIN recruitment_application_portfolio_snapshot ps
+            ON ps.snapshot_id = sf.snapshot_id
+        WHERE ps.application_id = #{applicationId}
+        ORDER BY ps.sort_order ASC, sf.sort_order ASC
     </select>
 
     <select id="existsFile" resultType="boolean">
         SELECT COUNT(*) &gt; 0
-        FROM recruitment_application_portfolio_snapshot_file
-        WHERE application_id = #{applicationId}
-          AND portfolio_id = #{portfolioId}
-          AND file_id = #{fileId}
+        FROM recruitment_application_portfolio_snapshot_file sf
+        INNER JOIN recruitment_application_portfolio_snapshot ps
+            ON ps.snapshot_id = sf.snapshot_id
+        WHERE ps.application_id = #{applicationId}
+          AND ps.portfolio_id = #{portfolioId}
+          AND sf.file_id = #{fileId}
     </select>
 
     <select id="isFileReferenced" resultType="boolean">
-        SELECT COUNT(*) &gt; 0
-        FROM recruitment_application_portfolio_snapshot_file
-        WHERE file_id = #{fileId}
+        SELECT (
+            EXISTS (
+                SELECT 1
+                FROM recruitment_application_portfolio_snapshot_file sf
+                WHERE sf.file_id = #{fileId}
+            )
+            OR EXISTS (
+                SELECT 1
+                FROM recruitment_application_portfolio_snapshot ps
+                WHERE ps.banner_file_id = #{fileId}
+            )
+        )
     </select>
 
 </mapper>
