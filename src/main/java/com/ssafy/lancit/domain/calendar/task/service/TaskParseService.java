@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.time.Clock;
 import java.time.DateTimeException;
 import java.time.DayOfWeek;
 import java.time.Duration;
@@ -117,14 +118,20 @@ public class TaskParseService {
     );
 
     private final AiTaskParseClient aiTaskParseClient;
+    private final Clock clock;
 
     public TaskParseService() {
-        this(null);
+        this(null, Clock.system(SEOUL_ZONE));
     }
 
-    @Autowired(required = false)
     public TaskParseService(AiTaskParseClient aiTaskParseClient) {
+        this(aiTaskParseClient, Clock.system(SEOUL_ZONE));
+    }
+
+    @Autowired
+    public TaskParseService(AiTaskParseClient aiTaskParseClient, Clock clock) {
         this.aiTaskParseClient = aiTaskParseClient;
+        this.clock = clock == null ? Clock.system(SEOUL_ZONE) : clock;
     }
 
     public TaskParseResponseDTO parse(TaskParseRequestDTO requestDTO) {
@@ -281,7 +288,7 @@ public class TaskParseService {
         String sourceWithoutMemo = removeMemoParts(sourceText, memoResult.parts());
         String clientCompany = extractClientCompany(titleResult.title(), sourceWithoutMemo);
 
-        LocalDate today = LocalDate.now(SEOUL_ZONE);
+        LocalDate today = LocalDate.now(clock);
         List<DateCandidate> dateCandidates = extractDateCandidates(sourceText, today, warnings);
         List<TimeCandidate> timeCandidates = extractTimeCandidates(sourceText, warnings);
         PaidParseResult paidParseResult = extractPaidDetail(sourceText, today, dateCandidates, timeCandidates);
