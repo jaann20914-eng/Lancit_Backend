@@ -97,7 +97,7 @@ public class ContractService {
         detail.put("document", document);
 
         // 컨펌파일 목록
-        List<ContractFileDTO> confirmFiles = contractFileMapper.findConfirmFilesByContractId(contractId);
+        List<Map<String, Object>> confirmFiles = contractFileMapper.findConfirmFilesByContractId(contractId);
         detail.put("confirmFiles", confirmFiles);
 
         // PDF 파일
@@ -282,6 +282,8 @@ public class ContractService {
         );
     }
 
+    
+    
 
     // NEGOTIATING_C -> IN_PROGRESS
     @Transactional

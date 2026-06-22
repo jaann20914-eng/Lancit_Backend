@@ -5,14 +5,14 @@ import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.event.TransactionPhase;
-import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
-import com.ssafy.lancit.domain.file.event.FileDeleteEvent;
+import com.ssafy.lancit.common.exception.CustomException;
+import com.ssafy.lancit.common.exception.ErrorCode;
 import com.ssafy.lancit.global.enums.FileParentType;
 
 import lombok.RequiredArgsConstructor;
@@ -41,6 +41,7 @@ public class GcsService {
             case CONTRACT          -> "contract/";
             case CHAT              -> "chat/";
             case TEMP              -> "temp/";
+            case TEMP_SIGNATURE    -> "temp/signature/";
         };
     }
 
@@ -94,5 +95,12 @@ public class GcsService {
 	    
 	    
 	// 삭제 이벤트 리스너용은 FileDeleteEventListener 에 있음
+	    
+	    //브롭다운로드
+	    public byte[] download(String uploadPath) {
+	        Blob blob = storage.get(BlobId.of(bucketName, uploadPath));
+	        if (blob == null) throw new CustomException(ErrorCode.FILE_NOT_FOUND);
+	        return blob.getContent();
+	    }
 	    
 }

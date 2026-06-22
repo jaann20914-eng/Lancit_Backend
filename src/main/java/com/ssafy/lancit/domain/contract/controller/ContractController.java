@@ -20,24 +20,28 @@ import org.springframework.web.bind.annotation.RestController;
 import com.ssafy.lancit.common.page.dto.PageRequest;
 import com.ssafy.lancit.common.page.dto.PageResponse;
 import com.ssafy.lancit.common.response.ApiResponse;
-import com.ssafy.lancit.domain.contract.dto.ContractDTO;
 import com.ssafy.lancit.domain.contract.dto.ContractDocumentDTO;
 import com.ssafy.lancit.domain.contract.dto.ContractFileDTO;
 import com.ssafy.lancit.domain.contract.service.ContractFileService;
 import com.ssafy.lancit.domain.contract.service.ContractPdfService;
 import com.ssafy.lancit.domain.contract.service.ContractService;
+import com.ssafy.lancit.domain.file.dto.FileDTO;
+import com.ssafy.lancit.domain.file.service.FileService;
+import com.ssafy.lancit.domain.file.service.GcsService;
 
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/contracts")
+@RequestMapping("/api/contracts")
 @RequiredArgsConstructor
 public class ContractController {
 
     private final ContractService contractService;
     private final ContractFileService contractFileService;
     private final ContractPdfService contractPdfService;
-
+    private final FileService fileService;
+    private final GcsService gcsService;
+    
   //==================================================================== 조회 관련 + 임시저장
     // 계약 목록 조회
     @GetMapping
@@ -178,6 +182,24 @@ public class ContractController {
         return "근로계약서_" + name + ".pdf";
     }
     
+    // 저장된 pdf 다운로드
+    @GetMapping("/{contractId}/pdf/download")
+    public ResponseEntity<byte[]> downloadPdf(@PathVariable Integer contractId) {
+        Map<String, Object> result = contractService.getPdfDownloadUrl(contractId);
+        Integer fileId = (Integer) result.get("fileId");
+        
+        FileDTO fileDto = fileService.findById(fileId);
+        byte[] bytes = gcsService.download(fileDto.getUploadPath());
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + 
+                        java.net.URLEncoder.encode("근로계약서.pdf", java.nio.charset.StandardCharsets.UTF_8) + 
+                        "\"")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(bytes);
+    }
+    
     
   //==================================================================== 컨펌 파일
 
@@ -196,12 +218,8 @@ public class ContractController {
 
     // 컨펌파일 목록 조회
     @GetMapping("/{contractId}/confirm-files")
-    public ApiResponse<List<ContractFileDTO>> getConfirmFiles(
-            @PathVariable Integer contractId) {
-
-        return ApiResponse.ok(
-                contractFileService.getConfirmFiles(contractId)
-        );
+    public ApiResponse<List<Map<String, Object>>> getConfirmFiles(@PathVariable Integer contractId) {
+        return ApiResponse.ok(contractFileService.getConfirmFiles(contractId));
     }
 
 

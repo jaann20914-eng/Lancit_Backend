@@ -1,6 +1,7 @@
 package com.ssafy.lancit.domain.contract.service;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -74,10 +75,8 @@ public class ContractFileService {
     }
 	
     
-    
-    // 계약아이디로 컨펌파일 전부 가져오기
-    public List<ContractFileDTO> getConfirmFiles(
-            Integer contractId) {
+
+    public List<Map<String, Object>> getConfirmFiles(Integer contractId) {
     	//계약아이디 유효성 검사
     	contractValidator.getContractOrThrow(contractId);
         //계약아이디로 컨펌 파일 찾기

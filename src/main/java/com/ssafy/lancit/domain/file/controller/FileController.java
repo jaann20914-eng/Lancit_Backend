@@ -2,6 +2,7 @@ package com.ssafy.lancit.domain.file.controller;
 
 import java.util.List;
 
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -18,6 +19,7 @@ import com.ssafy.lancit.common.response.ApiResponse;
 import com.ssafy.lancit.common.util.SecurityUtil;
 import com.ssafy.lancit.domain.file.dto.FileDTO;
 import com.ssafy.lancit.domain.file.service.FileService;
+import com.ssafy.lancit.domain.file.service.GcsService;
 import com.ssafy.lancit.global.enums.FileParentType;
 
 import lombok.RequiredArgsConstructor;
@@ -31,6 +33,7 @@ import lombok.RequiredArgsConstructor;
 public class FileController {
 
     private final FileService fileService;
+    private final GcsService gcsService;
 
     // 파일 업로드 - GCS 업로드 + DB 저장
     // 프로필 사진: parentType=PROFILE, parentId=null
@@ -74,12 +77,32 @@ public class FileController {
     
     
     // 파일 다운로드 - Signed URL 반환 (프론트가 직접 GCS 에서 다운로드)
+//    @GetMapping("/{fileId}/download")
+//    public ResponseEntity<ApiResponse<String>> download(@PathVariable int fileId) {
+//        String email = SecurityUtil.getCurrentEmail();
+//        fileService.validateReadAccess(fileId, email);
+//        String url = fileService.getDownloadUrl(fileId);
+//        return ResponseEntity.ok(ApiResponse.ok(url));
+//    }
     @GetMapping("/{fileId}/download")
-    public ResponseEntity<ApiResponse<String>> download(@PathVariable int fileId) {
+    public ResponseEntity<byte[]> download(@PathVariable int fileId) {
         String email = SecurityUtil.getCurrentEmail();
         fileService.validateReadAccess(fileId, email);
-        String url = fileService.getDownloadUrl(fileId);
-        return ResponseEntity.ok(ApiResponse.ok(url));
+
+        FileDTO dto = fileService.findById(fileId);
+        byte[] bytes = gcsService.download(dto.getUploadPath());
+
+        String encodedName;
+        try {
+            encodedName = java.net.URLEncoder.encode(dto.getOriName(), java.nio.charset.StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            encodedName = "file";
+        }
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + encodedName + "\"")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(bytes);
     }
     
     

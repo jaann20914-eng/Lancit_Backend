@@ -4,36 +4,53 @@
 
 <mapper namespace="com.ssafy.lancit.domain.contract.mapper.ContractDocumentMapper">
 
-    <resultMap id="ContractDocumentResultMap" type="com.ssafy.lancit.domain.contract.dto.ContractDocumentDTO">
-        <result property="contractId"               column="contract_id"/>
-        <result property="partyA"                   column="party_a"/>
-        <result property="representativeName"        column="representative_name"/>
-        <result property="companyAddress"            column="company_address"/>
-        <result property="partyB"                   column="party_b"/>
-        <result property="freelancerBirthDate"       column="freelancer_birth_date"/>
-        <result property="freelancerAddress"         column="freelancer_address"/>
-        <result property="workLocation"              column="work_location"/>
-        <result property="workDescription"           column="work_description"/>
-        <result property="workStartTime"             column="work_start_time"/>
-        <result property="workEndTime"               column="work_end_time"/>
-        <result property="breakTime"                 column="break_time"/>
-        <result property="contractStartDate"         column="contract_start_date"/>
-        <result property="contractEndDate"           column="contract_end_date"/>
-        <result property="monthlyWage"               column="monthly_wage"/>
-        <result property="basePay"                   column="base_pay"/>
-        <result property="basePayBasis"              column="base_pay_basis"/>
-        <result property="overtimePay"               column="overtime_pay"/>
-        <result property="overtimePayBasis"          column="overtime_pay_basis"/>
-        <result property="holidayPay"                column="holiday_pay"/>
-        <result property="holidayPayBasis"           column="holiday_pay_basis"/>
-        <result property="mealAllowance"             column="meal_allowance"/>
-        <result property="totalWage"                 column="total_wage"/>
-        <result property="representativeSignFileId"  column="representative_sign_file_id"/>
-        <result property="freelancerSignFileId"      column="freelancer_sign_file_id"/>
-        <result property="contractWrittenAt"         column="contract_written_at"/>
-        <result property="confirmedAt"               column="confirmed_at"/>
-    </resultMap>
-
+	<resultMap id="ContractDocumentResultMap"
+	           type="com.ssafy.lancit.domain.contract.dto.ContractDocumentDTO">
+	
+	    <result property="contractId" column="contract_id"/>
+	    <!-- 갑 -->
+	    <result property="partyA" column="party_a"/>
+	    <result property="representativeName" column="representative_name"/>
+	    <result property="companyAddress" column="company_address"/>
+	    <!-- 을 -->
+	    <result property="partyB" column="party_b"/>
+	    <result property="freelancerBirthDate" column="freelancer_birth_date"/>
+	    <result property="freelancerAddress" column="freelancer_address"/>
+	    <result property="confirmSignerName" column="confirm_signer_name"/>
+	    <result property="privacySignerName" column="privacy_signer_name"/>
+	    <!-- 근무 정보 -->
+	    <result property="workLocation" column="work_location"/>
+	    <result property="workDescription" column="work_description"/>
+	    <result property="workDays" column="work_days"/>
+	    <result property="workStartTime" column="work_start_time"/>
+	    <result property="workEndTime" column="work_end_time"/>
+	    <result property="breakTimeStart" column="break_time_start"/>
+	    <result property="breakTimeEnd" column="break_time_end"/>
+	    <!-- 계약 기간 -->
+	    <result property="contractStartDate" column="contract_start_date"/>
+	    <result property="contractEndDate" column="contract_end_date"/>
+	    <!-- 급여 -->
+	    <result property="monthlyWage" column="monthly_wage"/>
+	    <result property="basePay" column="base_pay"/>
+	    <!--<result property="basePayBasis" column="base_pay_basis"/>-->
+	    <result property="basePayBasisMinutes" column="base_pay_basis_minutes"/>
+	    <result property="overtimePay" column="overtime_pay"/>
+	    <!--<result property="overtimePayBasis" column="overtime_pay_basis"/>-->
+	    <result property="overtimePayBasisMinutes" column="overtime_pay_basis_minutes"/>
+	    <result property="holidayPay" column="holiday_pay"/>
+	    <!--<result property="holidayPayBasis" column="holiday_pay_basis"/>-->
+	    <result property="holidayPayBasisMinutes" column="holiday_pay_basis_minutes"/>
+	    <result property="mealAllowance" column="meal_allowance"/>
+	    <result property="totalWage" column="total_wage"/>
+	    <!-- 서명 -->
+	    <result property="representativeSignFileId" column="representative_sign_file_id"/>
+	    <result property="contractSignFileId" column="contract_sign_file_id"/>
+	    <result property="confirmSignFileId" column="confirm_sign_file_id"/>
+	    <result property="privacySignFileId" column="privacy_sign_file_id"/>
+	    <!-- 작성/확정 -->
+	    <result property="contractWrittenAt" column="contract_written_at"/>
+	    <result property="confirmedAt" column="confirmed_at"/>
+	</resultMap>
 
     <!-- 계약서 조회 -->
     <select id="findByContractId" resultMap="ContractDocumentResultMap">
@@ -45,42 +62,58 @@
 
     <!-- 계약서 생성 (빈 계약서) -->
     <insert id="insert">
-        INSERT INTO contract_document (contract_id, contract_written_at)
-        VALUES (#{contractId}, NOW())
+        INSERT INTO contract_document
+		(contract_id, contract_written_at)
+		VALUES
+		(#{contractId}, CURDATE())
     </insert>
+    
 
 
     <!-- 계약서 수정 (null 이 아닌 필드만 업데이트) -->
     <update id="update">
-        UPDATE contract_document
-        <set>
-            <if test="partyA != null">party_a = #{partyA},</if>
-            <if test="representativeName != null">representative_name = #{representativeName},</if>
-            <if test="companyAddress != null">company_address = #{companyAddress},</if>
-            <if test="partyB != null">party_b = #{partyB},</if>
-            <if test="freelancerBirthDate != null">freelancer_birth_date = #{freelancerBirthDate},</if>
-            <if test="freelancerAddress != null">freelancer_address = #{freelancerAddress},</if>
-            <if test="workLocation != null">work_location = #{workLocation},</if>
-            <if test="workDescription != null">work_description = #{workDescription},</if>
-            <if test="workStartTime != null">work_start_time = #{workStartTime},</if>
-            <if test="workEndTime != null">work_end_time = #{workEndTime},</if>
-            <if test="breakTime != null">break_time = #{breakTime},</if>
-            <if test="contractStartDate != null">contract_start_date = #{contractStartDate},</if>
-            <if test="contractEndDate != null">contract_end_date = #{contractEndDate},</if>
-            <if test="monthlyWage != null">monthly_wage = #{monthlyWage},</if>
-            <if test="basePay != null">base_pay = #{basePay},</if>
-            <if test="basePayBasis != null">base_pay_basis = #{basePayBasis},</if>
-            <if test="overtimePay != null">overtime_pay = #{overtimePay},</if>
-            <if test="overtimePayBasis != null">overtime_pay_basis = #{overtimePayBasis},</if>
-            <if test="holidayPay != null">holiday_pay = #{holidayPay},</if>
-            <if test="holidayPayBasis != null">holiday_pay_basis = #{holidayPayBasis},</if>
-            <if test="mealAllowance != null">meal_allowance = #{mealAllowance},</if>
-            <if test="totalWage != null">total_wage = #{totalWage},</if>
-            <if test="representativeSignFileId != null">representative_sign_file_id = #{representativeSignFileId},</if>
-            <if test="freelancerSignFileId != null">freelancer_sign_file_id = #{freelancerSignFileId},</if>
-        </set>
-        WHERE contract_id = #{contractId}
-    </update>
+    UPDATE contract_document
+    <set>
+        <if test="partyA != null">party_a = #{partyA},</if>
+        <if test="representativeName != null">representative_name = #{representativeName},</if>
+        <if test="companyAddress != null">company_address = #{companyAddress},</if>
+        <if test="partyB != null">party_b = #{partyB},</if>
+        <if test="freelancerBirthDate != null">freelancer_birth_date = #{freelancerBirthDate},</if>
+        <if test="freelancerAddress != null">freelancer_address = #{freelancerAddress},</if>
+        <if test="confirmSignerName != null">confirm_signer_name = #{confirmSignerName},</if>
+        <if test="privacySignerName != null">privacy_signer_name = #{privacySignerName},</if>
+        <if test="workLocation != null">work_location = #{workLocation},</if>
+        <if test="workDescription != null">work_description = #{workDescription},</if>
+        <if test="workDays != null">work_days = #{workDays},</if>
+        <if test="workStartTime != null">work_start_time = #{workStartTime},</if>
+        <if test="workEndTime != null">work_end_time = #{workEndTime},</if>
+        <if test="breakTimeStart != null">break_time_start = #{breakTimeStart},</if>
+        <if test="breakTimeEnd != null">break_time_end = #{breakTimeEnd},</if>
+        <if test="contractStartDate != null">contract_start_date = #{contractStartDate},</if>
+        <if test="contractEndDate != null">contract_end_date = #{contractEndDate},</if>
+        <if test="monthlyWage != null">monthly_wage = #{monthlyWage},</if>
+        <if test="basePay != null">base_pay = #{basePay},</if>
+        <!--<if test="basePayBasis != null">base_pay_basis = #{basePayBasis},</if>-->
+        <if test="basePayBasisMinutes != null">base_pay_basis_minutes = #{basePayBasisMinutes},</if>
+        <if test="overtimePay != null">overtime_pay = #{overtimePay},</if>
+        <!--<if test="overtimePayBasis != null">overtime_pay_basis = #{overtimePayBasis},</if>-->
+        <if test="overtimePayBasisMinutes != null">overtime_pay_basis_minutes = #{overtimePayBasisMinutes},</if>
+        <if test="holidayPay != null">holiday_pay = #{holidayPay},</if>
+        <!--<if test="holidayPayBasis != null">holiday_pay_basis = #{holidayPayBasis},</if>-->
+        <if test="holidayPayBasisMinutes != null"> holiday_pay_basis_minutes = #{holidayPayBasisMinutes},</if>
+        
+        <if test="mealAllowance != null">meal_allowance = #{mealAllowance},</if>
+        <if test="totalWage != null">total_wage = #{totalWage},</if>
+        <if test="representativeSignFileId != null">representative_sign_file_id = #{representativeSignFileId},</if>
+        <if test="contractSignFileId != null">contract_sign_file_id = #{contractSignFileId},</if>
+        <if test="confirmSignFileId != null">confirm_sign_file_id = #{confirmSignFileId},</if>
+        <if test="privacySignFileId != null">privacy_sign_file_id = #{privacySignFileId},</if>
+        <if test="contractWrittenAt != null">contract_written_at = #{contractWrittenAt},</if>
+    </set>
+    
+    WHERE contract_id = #{contractId}
+</update>
+
 
 
     <!-- 승인 시간 저장 -->

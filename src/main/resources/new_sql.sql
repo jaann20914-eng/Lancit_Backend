@@ -64,10 +64,20 @@ CREATE TABLE `file` (
         )
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='파일';
 
-ALTER TABLE `file`
-    MODIFY COLUMN parent_type
-        ENUM('PROFILE','PORTFOLIO_PROFILE','PORTFOLIO_BANNER','PORTFOLIO_FILE','RECRUITMENT_IMAGE','CONTRACT','CHAT','TEMP')
-        NOT NULL COMMENT '부모 타입';
+ALTER TABLE file
+MODIFY COLUMN parent_type
+ENUM(
+    'PROFILE',
+    'PORTFOLIO_PROFILE',
+    'PORTFOLIO_BANNER',
+    'PORTFOLIO_FILE',
+    'RECRUITMENT_IMAGE',
+    'CONTRACT',
+    'CHAT',
+    'TEMP',
+    'TEMP_SIGNATURE'
+)
+NOT NULL COMMENT '부모 타입';
 
 -- ============================================================
 --  2. user (프리랜서)
@@ -488,60 +498,93 @@ ALTER TABLE `recruitment_application`
 -- ============================================================
 --  14. contract_document (계약서 본문)
 -- ============================================================
-CREATE TABLE `contract_document` (
-    contract_id  INT PRIMARY KEY,
+CREATE TABLE contract_document (
+    contract_id INT PRIMARY KEY,
 
-    party_a                     VARCHAR(255),
-    representative_name         VARCHAR(100),
-    company_address             VARCHAR(500),
+    -- 갑
+    party_a VARCHAR(255),
+    representative_name VARCHAR(100),
+    company_address VARCHAR(500),
 
-    party_b                     VARCHAR(100),
-    freelancer_birth_date       DATE,
-    freelancer_address          VARCHAR(500),
+    -- 을
+    party_b VARCHAR(100),
+    freelancer_birth_date DATE,
+    freelancer_address VARCHAR(500),
 
-    work_location               VARCHAR(255),
-    work_description            TEXT,
-    work_days                   VARCHAR(100),
+    confirm_signer_name VARCHAR(100),
+    privacy_signer_name VARCHAR(100),
 
-    work_start_time             TIME,
-    work_end_time               TIME,
-    break_time                  TIME,
+    -- 근무 정보
+    work_location VARCHAR(255),
+    work_description TEXT,
+    work_days VARCHAR(100),
 
-    contract_start_date         DATE,
-    contract_end_date           DATE,
+    work_start_time TIME,
+    work_end_time TIME,
 
-    monthly_wage                INT DEFAULT 0,
+    break_time_start TIME,
+    break_time_end TIME,
 
-    base_pay                    INT DEFAULT 0,
-    base_pay_basis              TIME,
+    -- 계약 기간
+    contract_start_date DATE,
+    contract_end_date DATE,
 
-    overtime_pay                INT DEFAULT 0,
-    overtime_pay_basis          TIME,
+    -- 급여
+    monthly_wage INT DEFAULT 0,
 
-    holiday_pay                 INT DEFAULT 0,
-    holiday_pay_basis           TIME,
+    base_pay INT DEFAULT 0,
+    base_pay_basis_minutes INT DEFAULT 0,
 
-    meal_allowance              INT DEFAULT 0,
-    total_wage                  INT DEFAULT 0,
+    overtime_pay INT DEFAULT 0,
+    overtime_pay_basis_minutes INT DEFAULT 0,
 
+    holiday_pay INT DEFAULT 0,
+    holiday_pay_basis_minutes INT DEFAULT 0,
+
+    meal_allowance INT DEFAULT 0,
+    total_wage INT DEFAULT 0,
+
+    -- 서명
     representative_sign_file_id INT NULL,
-    freelancer_sign_file_id     INT NULL,
 
-    contract_written_at         DATETIME,
-    confirmed_at                DATETIME,
+    contract_sign_file_id INT NULL,
+    confirm_sign_file_id INT NULL,
+    privacy_sign_file_id INT NULL,
+
+    -- 작성 / 확정
+    contract_written_at DATE,
+    confirmed_at DATETIME,
 
     CONSTRAINT fk_contract_document_contract
-        FOREIGN KEY (contract_id) REFERENCES `contract` (contract_id)
+        FOREIGN KEY (contract_id)
+        REFERENCES contract(contract_id)
         ON DELETE CASCADE,
 
     CONSTRAINT fk_contract_document_rep_sign
-        FOREIGN KEY (representative_sign_file_id) REFERENCES `file` (file_id)
+        FOREIGN KEY (representative_sign_file_id)
+        REFERENCES file(file_id)
         ON DELETE SET NULL,
 
-    CONSTRAINT fk_contract_document_free_sign
-        FOREIGN KEY (freelancer_sign_file_id) REFERENCES `file` (file_id)
+    CONSTRAINT fk_contract_document_contract_sign
+        FOREIGN KEY (contract_sign_file_id)
+        REFERENCES file(file_id)
+        ON DELETE SET NULL,
+
+    CONSTRAINT fk_contract_document_confirm_sign
+        FOREIGN KEY (confirm_sign_file_id)
+        REFERENCES file(file_id)
+        ON DELETE SET NULL,
+
+    CONSTRAINT fk_contract_document_privacy_sign
+        FOREIGN KEY (privacy_sign_file_id)
+        REFERENCES file(file_id)
         ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='계약서 본문';
+) ENGINE=InnoDB
+DEFAULT CHARSET=utf8mb4
+COMMENT='계약서 본문';
+ALTER TABLE contract_document
+MODIFY overtime_pay_basis_minutes INT NULL,
+MODIFY holiday_pay_basis_minutes INT NULL;
 
 -- ============================================================
 --  15. contract_file
@@ -798,31 +841,7 @@ INSERT INTO `contract` (recruitment_id, company_email, freelancer_email, status)
 (1, 'company@lancit.com', 'test2@lancit.com', 'IN_PROGRESS');
 
 -- ── 12. contract_document (contract_id=2 진행중 계약의 본문) ─
-INSERT INTO `contract_document` (
-    contract_id, party_a, representative_name, company_address,
-    party_b, freelancer_birth_date, freelancer_address,
-    work_location, work_description, work_days,
-    work_start_time, work_end_time, break_time,
-    contract_start_date, contract_end_date,
-    monthly_wage, base_pay, base_pay_basis,
-    overtime_pay, overtime_pay_basis,
-    holiday_pay, holiday_pay_basis,
-    meal_allowance, total_wage,
-    representative_sign_file_id, freelancer_sign_file_id,
-    contract_written_at, confirmed_at
-) VALUES (
-    2, '테스트회사', '담당자A', '서울특별시 강남구 테헤란로 123',
-    '이디자인', '1995-03-15', '서울특별시 마포구 양화로 45',
-    '서울 (재택 가능)', 'UI/UX 디자인 및 배너 제작', 'MON,TUE,WED,THU,FRI',
-    '09:00:00', '18:00:00', '12:00:00',
-    '2026-07-01', '2026-12-31',
-    2500000, 2000000, '160:00:00',
-    300000, '10:00:00',
-    100000, '08:00:00',
-    100000, 2500000,
-    NULL, NULL,
-    '2026-06-14 00:00:00', NULL
-);
+
 
 -- ── 13. chat_room (각 계약당 1개) ────────────────────────────
 INSERT INTO `chat_room` (contract_id, freelancer_email, company_email) VALUES

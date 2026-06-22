@@ -256,39 +256,52 @@ public class FileService {
         if (targetType.equals(file.getParentType())) {
             return;
         }
-        if (!FileParentType.TEMP.equals(file.getParentType())) {
-            throw new CustomException(ErrorCode.INVALID_INPUT);
-        }
+//        if (!FileParentType.TEMP.equals(file.getParentType())) {
+//            throw new CustomException(ErrorCode.INVALID_INPUT);
+//        }
+        if (!FileParentType.TEMP.equals(file.getParentType())
+        	    && !FileParentType.TEMP_SIGNATURE.equals(file.getParentType())) {
+        	    throw new CustomException(ErrorCode.INVALID_INPUT);
+        	}
 
         String newPath = gcsService.move(file.getSysName(), targetType);
         fileMapper.updatePath(fileId, newPath);
         fileMapper.updateParentType(fileId, targetType);
     }
-
+    
+    
+    
     @Transactional
-    public void attachToParent(Integer fileId, FileParentType targetType, int parentId, String ownerEmail) {
-        if (fileId == null) {
-            return;
-        }
+    public void attachToParent(Integer fileId, FileParentType targetType, int parentId,String ownerEmail) {
+        if (fileId == null) { return;}
 
         FileDTO file = findById(fileId);
-        String fileOwnerEmail = file.getUserEmail() != null ? file.getUserEmail() : file.getCompanyEmail();
+
+        String fileOwnerEmail =file.getUserEmail() != null? file.getUserEmail(): file.getCompanyEmail();
         if (!ownerEmail.equals(fileOwnerEmail)) {
             throw new CustomException(ErrorCode.FORBIDDEN);
         }
-        if (file.getParentId() != null && !file.getParentId().equals(parentId)) {
+
+        if (file.getParentId() != null&& !file.getParentId().equals(parentId)) {
             throw new CustomException(ErrorCode.FORBIDDEN);
         }
-        if (!FileParentType.TEMP.equals(file.getParentType()) && !targetType.equals(file.getParentType())) {
+
+        // TEMP 또는 TEMP_SIGNATURE 에서만 승격 가능
+        // 이미 targetType 이면 재호출 허용
+        if (!FileParentType.TEMP.equals(file.getParentType()) && !FileParentType.TEMP_SIGNATURE.equals(file.getParentType())&& !targetType.equals(file.getParentType())) {
             throw new CustomException(ErrorCode.INVALID_INPUT);
         }
 
-        if (FileParentType.TEMP.equals(file.getParentType())) {
-            String newPath = gcsService.move(file.getSysName(), targetType);
+        // TEMP 계열이면 GCS 경로도 이동
+        if (FileParentType.TEMP.equals(file.getParentType()) || FileParentType.TEMP_SIGNATURE.equals(file.getParentType())) {
+            String newPath = gcsService.move(file.getSysName(),targetType);
             fileMapper.updatePath(fileId, newPath);
         }
+
         fileMapper.updateParent(fileId, targetType, parentId);
     }
+    
+    
 
     @Transactional
     public void detachByParent(FileParentType parentType, int parentId) {
