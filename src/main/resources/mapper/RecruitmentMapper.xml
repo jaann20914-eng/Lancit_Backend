@@ -85,7 +85,7 @@
         <if test="condition != null and condition.recruitmentCategory != null">
             AND r.recruitment_category = #{condition.recruitmentCategory}
         </if>
-        <if test="condition != null and condition.safeTab == 'ALL'">
+        <if test="condition != null and condition.safeTab == 'ALL' and condition.status == null">
             AND r.status = 'OPEN'
             AND (
                 r.recruitment_end_at IS NULL
@@ -98,6 +98,7 @@
                 FROM recruitment_application ra_tab
                 WHERE ra_tab.recruitment_id = r.recruitment_id
                   AND ra_tab.applicant_email = #{condition.currentEmail}
+                  AND ra_tab.status &lt;&gt; 'CANCELLED'
             )
         </if>
         <if test="condition != null and condition.safeTab == 'BOOKMARKED'">
@@ -233,6 +234,20 @@
           AND is_deleted = 0
     </update>
 
+    <update id="closeIfOpen">
+        UPDATE recruitment
+        SET
+            status = 'CLOSED',
+            updated_at = NOW()
+        WHERE recruitment_id = #{recruitmentId}
+          AND status = 'OPEN'
+          AND is_deleted = 0
+          AND (
+              recruitment_end_at IS NULL
+              OR recruitment_end_at &gt;= NOW()
+          )
+    </update>
+
     <select id="findById" resultMap="RecruitmentResultMap">
         SELECT
         <include refid="RecruitmentColumns"/>
@@ -314,8 +329,9 @@
         ORDER BY recruitment_id ASC, tag_name ASC
     </select>
 
-    <select id="findAppliedRecruitmentIds" resultType="int">
-        SELECT DISTINCT recruitment_id
+    <select id="findMyApplicationSummaries"
+            resultType="com.ssafy.lancit.domain.recruitment.post.dto.MyApplicationSummaryDTO">
+        SELECT recruitment_id, application_id, status
         FROM recruitment_application
         WHERE applicant_email = #{applicantEmail}
           AND recruitment_id IN

@@ -14,6 +14,7 @@ import org.springframework.web.client.RestClient;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
+import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -71,20 +72,34 @@ public class GmsGeminiTaskParseClient implements AiTaskParseClient {
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
     private final Environment environment;
+    private final Clock clock;
 
     @Autowired
+    public GmsGeminiTaskParseClient(ObjectMapper objectMapper, Environment environment, Clock clock) {
+        this(createTimeoutRestClient(), objectMapper, environment, clock);
+    }
+
     public GmsGeminiTaskParseClient(ObjectMapper objectMapper, Environment environment) {
-        this(createTimeoutRestClient(), objectMapper, environment);
+        this(createTimeoutRestClient(), objectMapper, environment, Clock.system(SEOUL_ZONE));
     }
 
     GmsGeminiTaskParseClient(ObjectMapper objectMapper) {
-        this(createTimeoutRestClient(), objectMapper, null);
+        this(createTimeoutRestClient(), objectMapper, null, Clock.system(SEOUL_ZONE));
+    }
+
+    GmsGeminiTaskParseClient(ObjectMapper objectMapper, Clock clock) {
+        this(createTimeoutRestClient(), objectMapper, null, clock);
     }
 
     GmsGeminiTaskParseClient(RestClient restClient, ObjectMapper objectMapper, Environment environment) {
+        this(restClient, objectMapper, environment, Clock.system(SEOUL_ZONE));
+    }
+
+    GmsGeminiTaskParseClient(RestClient restClient, ObjectMapper objectMapper, Environment environment, Clock clock) {
         this.restClient = restClient;
         this.objectMapper = objectMapper;
         this.environment = environment;
+        this.clock = clock == null ? Clock.system(SEOUL_ZONE) : clock;
     }
 
     @Override
@@ -180,7 +195,7 @@ public class GmsGeminiTaskParseClient implements AiTaskParseClient {
     }
 
     private String createPrompt(String sourceText) {
-        LocalDate today = LocalDate.now(SEOUL_ZONE);
+        LocalDate today = LocalDate.now(clock);
         return """
                 사용자의 자연어 일정 문장을 분석해서 아래 TaskParseResponseDTO JSON 스키마와 동일한 필드명만 사용해 응답하세요.
                 최종 응답은 JSON 객체 하나만 반환하세요. 설명 문장, 마크다운, 코드블록, 접두사, 접미사를 절대 출력하지 마세요.

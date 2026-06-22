@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ssafy.lancit.domain.recruitment.application.mapper.ApplicationPortfolioSnapshotMapper">
+
+    <resultMap id="PortfolioSnapshotResultMap" type="com.ssafy.lancit.domain.portfolio.dto.PortfolioDTO">
+        <id property="portfolioId" column="portfolio_id"/>
+        <result property="email" column="email"/>
+        <result property="category" column="category"/>
+        <result property="title" column="title"/>
+        <result property="summary" column="summary"/>
+        <result property="content" column="content"/>
+        <result property="workStartAt" column="work_start_at"/>
+        <result property="workEndAt" column="work_end_at"/>
+        <result property="isPublic" column="is_public"/>
+        <result property="bannerFileId" column="banner_file_id"/>
+        <result property="createdAt" column="source_created_at"/>
+        <result property="updatedAt" column="source_updated_at"/>
+    </resultMap>
+
+    <resultMap id="PortfolioSummaryResultMap"
+               type="com.ssafy.lancit.domain.recruitment.application.dto.ApplicationPortfolioSummaryResponse">
+        <id property="portfolioId" column="portfolio_id"/>
+        <result property="title" column="title"/>
+        <result property="summary" column="summary"/>
+        <result property="category" column="category"/>
+        <result property="bannerFileId" column="banner_file_id"/>
+        <result property="isPublic" column="is_public"/>
+    </resultMap>
+
+    <insert id="insertPortfolio">
+        INSERT INTO recruitment_application_portfolio_snapshot (
+            application_id,
+            portfolio_id,
+            email,
+            category,
+            title,
+            summary,
+            content,
+            work_start_at,
+            work_end_at,
+            is_public,
+            banner_file_id,
+            source_created_at,
+            source_updated_at,
+            sort_order,
+            created_at
+        )
+        SELECT
+            #{applicationId},
+            p.portfolio_id,
+            p.email,
+            p.category,
+            p.title,
+            p.summary,
+            p.content,
+            p.work_start_at,
+            p.work_end_at,
+            p.is_public,
+            p.banner_file_id,
+            p.created_at,
+            p.updated_at,
+            #{sortOrder},
+            NOW()
+        FROM portfolio p
+        WHERE p.portfolio_id = #{portfolioId}
+          AND p.is_deleted = 0
+    </insert>
+
+    <insert id="insertFiles">
+        INSERT INTO recruitment_application_portfolio_snapshot_file (
+            snapshot_id,
+            file_id,
+            file_role,
+            user_email,
+            company_email,
+            sys_name,
+            ori_name,
+            parent_type,
+            parent_id,
+            upload_path,
+            file_size,
+            source_created_at,
+            sort_order,
+            created_at
+        )
+        SELECT
+            ps.snapshot_id,
+            f.file_id,
+            CASE
+                WHEN f.file_id = p.banner_file_id THEN 'BANNER'
+                ELSE 'ATTACHMENT'
+            END,
+            f.user_email,
+            f.company_email,
+            f.sys_name,
+            f.ori_name,
+            f.parent_type,
+            f.parent_id,
+            f.upload_path,
+            f.file_size,
+            f.created_at,
+            CASE
+                WHEN f.file_id = p.banner_file_id THEN 0
+                ELSE f.file_id
+            END,
+            NOW()
+        FROM recruitment_application_portfolio_snapshot ps
+        INNER JOIN portfolio p ON p.portfolio_id = ps.portfolio_id
+        INNER JOIN file f
+            ON f.file_id = p.banner_file_id
+            OR (
+                f.parent_type = 'PORTFOLIO_FILE'
+                AND f.parent_id = p.portfolio_id
+            )
+        WHERE ps.application_id = #{applicationId}
+          AND ps.portfolio_id = #{portfolioId}
+    </insert>
+
+    <delete id="deleteByApplicationId">
+        DELETE FROM recruitment_application_portfolio_snapshot
+        WHERE application_id = #{applicationId}
+    </delete>
+
+    <select id="findSummariesByApplicationId" resultMap="PortfolioSummaryResultMap">
+        SELECT
+            portfolio_id,
+            title,
+            summary,
+            category,
+            banner_file_id,
+            is_public
+        FROM recruitment_application_portfolio_snapshot
+        WHERE application_id = #{applicationId}
+        ORDER BY sort_order ASC
+    </select>
+
+    <select id="findPortfolio" resultMap="PortfolioSnapshotResultMap">
+        SELECT
+            portfolio_id,
+            email,
+            category,
+            title,
+            summary,
+            content,
+            work_start_at,
+            work_end_at,
+            is_public,
+            banner_file_id,
+            source_created_at,
+            source_updated_at
+        FROM recruitment_application_portfolio_snapshot
+        WHERE application_id = #{applicationId}
+          AND portfolio_id = #{portfolioId}
+    </select>
+
+    <select id="findFiles" resultType="com.ssafy.lancit.domain.file.dto.FileDTO">
+        SELECT
+            sf.file_id,
+            sf.user_email,
+            sf.company_email,
+            sf.sys_name,
+            sf.ori_name,
+            sf.parent_type,
+            sf.parent_id,
+            sf.upload_path,
+            sf.source_created_at AS created_at,
+            sf.file_size
+        FROM recruitment_application_portfolio_snapshot_file sf
+        INNER JOIN recruitment_application_portfolio_snapshot ps
+            ON ps.snapshot_id = sf.snapshot_id
+        WHERE ps.application_id = #{applicationId}
+          AND ps.portfolio_id = #{portfolioId}
+          AND sf.file_role = 'ATTACHMENT'
+        ORDER BY sf.sort_order ASC
+    </select>
+
+    <select id="findFileIdsByApplicationId" resultType="int">
+        SELECT file_id
+        FROM recruitment_application_portfolio_snapshot_file sf
+        INNER JOIN recruitment_application_portfolio_snapshot ps
+            ON ps.snapshot_id = sf.snapshot_id
+        WHERE ps.application_id = #{applicationId}
+        ORDER BY ps.sort_order ASC, sf.sort_order ASC
+    </select>
+
+    <select id="existsFile" resultType="boolean">
+        SELECT COUNT(*) &gt; 0
+        FROM recruitment_application_portfolio_snapshot_file sf
+        INNER JOIN recruitment_application_portfolio_snapshot ps
+            ON ps.snapshot_id = sf.snapshot_id
+        WHERE ps.application_id = #{applicationId}
+          AND ps.portfolio_id = #{portfolioId}
+          AND sf.file_id = #{fileId}
+    </select>
+
+    <select id="isFileReferenced" resultType="boolean">
+        SELECT (
+            EXISTS (
+                SELECT 1
+                FROM recruitment_application_portfolio_snapshot_file sf
+                WHERE sf.file_id = #{fileId}
+            )
+            OR EXISTS (
+                SELECT 1
+                FROM recruitment_application_portfolio_snapshot ps
+                WHERE ps.banner_file_id = #{fileId}
+            )
+        )
+    </select>
+
+</mapper>

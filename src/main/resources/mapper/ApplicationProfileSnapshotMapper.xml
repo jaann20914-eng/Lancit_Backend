@@ -74,6 +74,16 @@
         ORDER BY sort_order ASC
     </select>
 
+    <delete id="deleteTechStacksByApplicationId">
+        DELETE FROM recruitment_application_profile_snapshot_tech_stack
+        WHERE application_id = #{applicationId}
+    </delete>
+
+    <delete id="deleteByApplicationId">
+        DELETE FROM recruitment_application_profile_snapshot
+        WHERE application_id = #{applicationId}
+    </delete>
+
     <select id="isProfileFileReferenced" resultType="boolean">
         SELECT COUNT(*) &gt; 0
         FROM recruitment_application_profile_snapshot

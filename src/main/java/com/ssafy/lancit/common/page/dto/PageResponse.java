@@ -35,13 +35,9 @@ public class PageResponse<T> {
         this.page          = req.getPage();
         this.size          = req.getSize();
         this.totalElements = totalElements;
-        this.totalPages    = (int) Math.ceil((double) totalElements / req.getSize());
-        this.hasNext       = req.getPage() <= 0
-                ? req.getPage() + 1 < this.totalPages
-                : req.getPage() < this.totalPages;
-        this.hasPrev       = req.getPage() <= 0
-                ? req.getPage() > 0
-                : req.getPage() > 1;
+        this.totalPages    = (int) Math.ceil((double) totalElements / this.size);
+        this.hasNext       = this.page < this.totalPages;
+        this.hasPrev       = this.page > 1;
     }
 
     

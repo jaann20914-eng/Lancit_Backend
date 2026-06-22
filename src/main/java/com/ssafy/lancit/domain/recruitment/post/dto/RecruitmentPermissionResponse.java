@@ -1,5 +1,6 @@
 package com.ssafy.lancit.domain.recruitment.post.dto;
 
+import com.ssafy.lancit.global.enums.ApplicationStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -18,5 +19,7 @@ public class RecruitmentPermissionResponse {
     private Boolean canChangeStatus;
     private Boolean canApply;
     private Boolean isApplied;
+    private ApplicationStatus myApplicationStatus;
+    private Integer myApplicationId;
     private Boolean isBookmarked;
 }

@@ -6,8 +6,8 @@ import com.ssafy.lancit.common.page.dto.PageRequest;
 import com.ssafy.lancit.common.page.dto.PageResponse;
 import com.ssafy.lancit.domain.contract.dto.ContractDTO;
 import com.ssafy.lancit.domain.contract.mapper.ContractMapper;
-import com.ssafy.lancit.domain.file.dto.FileDTO;
 import com.ssafy.lancit.domain.file.service.FileService;
+import com.ssafy.lancit.domain.portfolio.dto.PortfolioDTO;
 import com.ssafy.lancit.domain.portfolio.dto.PortfolioProfileDTO;
 import com.ssafy.lancit.domain.portfolio.mapper.PortfolioMapper;
 import com.ssafy.lancit.domain.portfolio.service.PortfolioService;
@@ -18,13 +18,13 @@ import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationProfileSna
 import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationRequest;
 import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationStatusUpdateRequest;
 import com.ssafy.lancit.domain.recruitment.application.mapper.ApplicationMapper;
+import com.ssafy.lancit.domain.recruitment.application.mapper.ApplicationPortfolioSnapshotMapper;
 import com.ssafy.lancit.domain.recruitment.application.mapper.ApplicationProfileSnapshotMapper;
 import com.ssafy.lancit.domain.recruitment.application.mapper.PortfolioPermissionMapper;
 import com.ssafy.lancit.domain.recruitment.post.dto.RecruitmentDTO;
 import com.ssafy.lancit.domain.recruitment.post.mapper.RecruitmentMapper;
 import com.ssafy.lancit.global.enums.ApplicationStatus;
 import com.ssafy.lancit.global.enums.ContractStatus;
-import com.ssafy.lancit.global.enums.FileParentType;
 import com.ssafy.lancit.global.enums.RecruitmentStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DuplicateKeyException;
@@ -33,6 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -51,6 +52,7 @@ public class ApplicationService {
     private final PortfolioMapper portfolioMapper;
     private final PortfolioService portfolioService;
     private final ApplicationProfileSnapshotMapper applicationProfileSnapshotMapper;
+    private final ApplicationPortfolioSnapshotMapper applicationPortfolioSnapshotMapper;
     private final FileService fileService;
     private final RecruitmentMapper recruitmentMapper;
     private final ContractMapper contractMapper;
@@ -93,16 +95,23 @@ public class ApplicationService {
                                            String role) {
         requireUser(role);
         RecruitmentDTO recruitment = findOpenRecruitment(recruitmentId);
-        if (applicationMapper.existsByRecruitmentAndApplicant(recruitmentId, freelancerEmail)) {
+        ApplicationDTO existing =
+                applicationMapper.findByRecruitmentAndApplicant(recruitmentId, freelancerEmail);
+        if (existing != null && !ApplicationStatus.CANCELLED.equals(existing.getStatus())) {
             throw new CustomException(ErrorCode.APPLICATION_ALREADY_EXISTS);
         }
 
         List<Integer> portfolioIds = validatePortfolioIds(request, freelancerEmail);
+        String intro = normalizeIntro(request.getIntro());
+        if (existing != null) {
+            return reactivateCancelled(existing, portfolioIds, intro, freelancerEmail, role);
+        }
+
         ApplicationDTO application = ApplicationDTO.builder()
                 .recruitmentId(recruitment.getRecruitmentId())
                 .recruitmentTitle(recruitment.getTitle())
                 .applicantEmail(freelancerEmail)
-                .intro(normalizeIntro(request == null ? null : request.getIntro()))
+                .intro(intro)
                 .status(ApplicationStatus.PENDING)
                 .build();
 
@@ -112,8 +121,33 @@ public class ApplicationService {
             throw new CustomException(ErrorCode.APPLICATION_ALREADY_EXISTS);
         }
         portfolioPermissionMapper.insertAll(application.getApplicationId(), portfolioIds);
+        createPortfolioSnapshots(application.getApplicationId(), portfolioIds);
         createProfileSnapshot(application.getApplicationId(), freelancerEmail);
         return getMine(recruitmentId, freelancerEmail, role);
+    }
+
+    private ApplicationDetailResponse reactivateCancelled(ApplicationDTO application,
+                                                          List<Integer> portfolioIds,
+                                                          String intro,
+                                                          String freelancerEmail,
+                                                          String role) {
+        int applicationId = application.getApplicationId();
+        List<Integer> previousSnapshotFileIds =
+                applicationPortfolioSnapshotMapper.findFileIdsByApplicationId(applicationId);
+        if (applicationMapper.reactivateCancelled(applicationId, intro) == 0) {
+            throw new CustomException(ErrorCode.APPLICATION_ALREADY_EXISTS);
+        }
+
+        portfolioPermissionMapper.deleteByApplicationId(applicationId);
+        applicationPortfolioSnapshotMapper.deleteByApplicationId(applicationId);
+        applicationProfileSnapshotMapper.deleteTechStacksByApplicationId(applicationId);
+        applicationProfileSnapshotMapper.deleteByApplicationId(applicationId);
+
+        portfolioPermissionMapper.insertAll(applicationId, portfolioIds);
+        createPortfolioSnapshots(applicationId, portfolioIds);
+        createProfileSnapshot(applicationId, freelancerEmail);
+        previousSnapshotFileIds.forEach(fileService::deletePortfolioFileIfUnreferenced);
+        return getMine(application.getRecruitmentId(), freelancerEmail, role);
     }
 
     public Map<String, Object> getCompanyApplicationPortfolio(int recruitmentId,
@@ -128,7 +162,15 @@ public class ApplicationService {
                 applicationId, portfolioId, recruitmentId, companyEmail)) {
             throw new CustomException(ErrorCode.FORBIDDEN);
         }
-        return portfolioService.getOne(portfolioId);
+        PortfolioDTO portfolio = applicationPortfolioSnapshotMapper.findPortfolio(applicationId, portfolioId);
+        if (portfolio == null) {
+            throw new CustomException(ErrorCode.PORTFOLIO_NOT_FOUND);
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("portfolio", portfolio);
+        result.put("files", applicationPortfolioSnapshotMapper.findFiles(applicationId, portfolioId));
+        return result;
     }
 
     public String getCompanyApplicationPortfolioFileUrl(int recruitmentId,
@@ -139,7 +181,7 @@ public class ApplicationService {
                                                         String role) {
         verifyCompanyPortfolioPermission(
                 recruitmentId, applicationId, portfolioId, companyEmail, role);
-        verifyApplicationPortfolioFile(portfolioId, fileId);
+        verifyApplicationPortfolioFile(applicationId, portfolioId, fileId);
         return fileService.getSignedUrl(fileId);
     }
 
@@ -151,7 +193,7 @@ public class ApplicationService {
                                                                 String role) {
         verifyCompanyPortfolioPermission(
                 recruitmentId, applicationId, portfolioId, companyEmail, role);
-        verifyApplicationPortfolioFile(portfolioId, fileId);
+        verifyApplicationPortfolioFile(applicationId, portfolioId, fileId);
         return fileService.getDownloadUrl(fileId);
     }
 
@@ -184,11 +226,8 @@ public class ApplicationService {
         }
     }
 
-    private void verifyApplicationPortfolioFile(int portfolioId, int fileId) {
-        FileDTO file = fileService.findById(fileId);
-        boolean supportedType = FileParentType.PORTFOLIO_BANNER.equals(file.getParentType())
-                || FileParentType.PORTFOLIO_FILE.equals(file.getParentType());
-        if (!supportedType || file.getParentId() == null || file.getParentId() != portfolioId) {
+    private void verifyApplicationPortfolioFile(int applicationId, int portfolioId, int fileId) {
+        if (!applicationPortfolioSnapshotMapper.existsFile(applicationId, portfolioId, fileId)) {
             throw new CustomException(ErrorCode.FORBIDDEN);
         }
     }
@@ -196,7 +235,7 @@ public class ApplicationService {
     public ApplicationDetailResponse getMine(int recruitmentId, String freelancerEmail, String role) {
         requireUser(role);
         ApplicationDTO application = findMyApplication(recruitmentId, freelancerEmail);
-        return toDetailResponse(application, false);
+        return toDetailResponse(application, true);
     }
 
     @Transactional
@@ -215,8 +254,14 @@ public class ApplicationService {
             throw new CustomException(ErrorCode.INVALID_APPLICATION_STATUS);
         }
 
-        portfolioPermissionMapper.deleteByApplicationId(application.getApplicationId());
-        portfolioPermissionMapper.insertAll(application.getApplicationId(), portfolioIds);
+        int applicationId = application.getApplicationId();
+        List<Integer> previousSnapshotFileIds =
+                applicationPortfolioSnapshotMapper.findFileIdsByApplicationId(applicationId);
+        portfolioPermissionMapper.deleteByApplicationId(applicationId);
+        portfolioPermissionMapper.insertAll(applicationId, portfolioIds);
+        applicationPortfolioSnapshotMapper.deleteByApplicationId(applicationId);
+        createPortfolioSnapshots(applicationId, portfolioIds);
+        previousSnapshotFileIds.forEach(fileService::deletePortfolioFileIfUnreferenced);
         return getMine(recruitmentId, freelancerEmail, role);
     }
 
@@ -249,6 +294,11 @@ public class ApplicationService {
         if (ApplicationStatus.ACCEPTED.equals(targetStatus)
                 && contractMapper.existsActiveContract(recruitmentId, application.getApplicantEmail())) {
             throw new CustomException(ErrorCode.CONTRACT_ALREADY_EXISTS);
+        }
+
+        if (ApplicationStatus.ACCEPTED.equals(targetStatus)
+                && recruitmentMapper.closeIfOpen(recruitmentId) == 0) {
+            throw new CustomException(ErrorCode.RECRUITMENT_NOT_OPEN);
         }
 
         int updated = applicationMapper.updateStatusIfPending(applicationId, targetStatus);
@@ -398,11 +448,8 @@ public class ApplicationService {
     }
 
     private ApplicationDetailResponse toDetailResponse(ApplicationDTO application, boolean includePortfolioProfile) {
-        List<Integer> portfolioIds =
-                portfolioPermissionMapper.findPortfolioIdsByApplicationId(application.getApplicationId());
-        List<ApplicationPortfolioSummaryResponse> portfolios = portfolioIds == null || portfolioIds.isEmpty()
-                ? List.of()
-                : portfolioMapper.findApplicationSummariesByIds(portfolioIds);
+        List<ApplicationPortfolioSummaryResponse> portfolios =
+                applicationPortfolioSnapshotMapper.findSummariesByApplicationId(application.getApplicationId());
         PortfolioProfileDTO portfolioProfile = includePortfolioProfile
                 ? findProfileSnapshot(application.getApplicationId())
                 : null;
@@ -424,6 +471,16 @@ public class ApplicationService {
                 .portfolioProfile(portfolioProfile)
                 .portfolios(portfolios == null ? List.of() : portfolios)
                 .build();
+    }
+
+    private void createPortfolioSnapshots(int applicationId, List<Integer> portfolioIds) {
+        for (int index = 0; index < portfolioIds.size(); index++) {
+            int portfolioId = portfolioIds.get(index);
+            if (applicationPortfolioSnapshotMapper.insertPortfolio(applicationId, portfolioId, index) == 0) {
+                throw new CustomException(ErrorCode.INVALID_APPLICATION_PORTFOLIO);
+            }
+            applicationPortfolioSnapshotMapper.insertFiles(applicationId, portfolioId);
+        }
     }
 
     private void createProfileSnapshot(int applicationId, String freelancerEmail) {

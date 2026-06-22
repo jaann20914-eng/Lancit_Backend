@@ -64,6 +64,10 @@ public class FileServiceTest {
                 INSERT INTO company (email, password, name, company_name, phone, job_category)
                 VALUES (?, ?, ?, ?, ?, 'IT')
                 """, COMPANY_EMAIL, "test-password", "파일 테스트 담당자", "파일 테스트 회사", "01000000003");
+        jdbcTemplate.update("""
+                INSERT INTO portfolio (portfolio_id, email, title, summary, is_public)
+                VALUES (?, ?, ?, ?, 0)
+                """, PARENT_ID, USER_EMAIL, "파일 테스트 포트폴리오", "파일 테스트");
     }
 
     @AfterEach
@@ -85,6 +89,7 @@ public class FileServiceTest {
     @AfterAll
     void removeOwnerFixtures() {
         cleanUpOwnedFiles();
+        jdbcTemplate.update("DELETE FROM portfolio WHERE portfolio_id = ?", PARENT_ID);
         jdbcTemplate.update("DELETE FROM company WHERE email = ?", COMPANY_EMAIL);
         jdbcTemplate.update("DELETE FROM `user` WHERE email IN (?, ?)", USER_EMAIL, OTHER_USER_EMAIL);
     }
