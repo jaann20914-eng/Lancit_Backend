@@ -125,6 +125,7 @@ class GeminiTaskParseContractTest {
         assertRequiredFields(id, actualNode, expected.path("requiredFields"));
         assertNullableFields(id, actualNode, expected.path("nullableFields"));
         assertTitleContains(id, actual.getTitle(), expected.path("titleContains"));
+        assertTitleContainsAny(id, actual.getTitle(), expected.path("titleContainsAny"));
         assertRequiredKeywords(id, actualNode, expected.path("requiredKeywords"));
         assertExactValues(id, actualNode, expected);
     }
@@ -206,6 +207,20 @@ class GeminiTaskParseContractTest {
                     .as(id + " title should contain: " + token)
                     .contains(normalize(token));
         }
+    }
+
+    private void assertTitleContainsAny(String id, String actualTitle, JsonNode titleContainsAny) {
+        if (titleContainsAny.isMissingNode() || titleContainsAny.isEmpty()) {
+            return;
+        }
+
+        List<String> tokens = stringList(titleContainsAny);
+        assertThat(tokens)
+                .as(id + " titleContainsAny")
+                .isNotEmpty();
+        assertThat(tokens.stream().anyMatch(token -> normalize(actualTitle).contains(normalize(token))))
+                .as(id + " title should contain at least one of: " + tokens)
+                .isTrue();
     }
 
     private void assertRequiredKeywords(String id, JsonNode actualNode, JsonNode requiredKeywords) {

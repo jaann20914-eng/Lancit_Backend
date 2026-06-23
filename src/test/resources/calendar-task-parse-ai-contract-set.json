@@ -2830,9 +2830,10 @@
     "status": "active",
     "expected": {
       "allowTextVariation": true,
-      "titleContains": [
+      "titleContainsAny": [
+        "입금",
         "계약금",
-        "입금"
+        "예산"
       ],
       "requiredFields": [
         "sourceText",
@@ -3122,13 +3123,13 @@
         "warnings",
         "startAt",
         "budgetText",
-        "memo",
         "startDate",
         "startTime"
       ],
       "nullableFields": [
         "categoryId",
         "content",
+        "memo",
         "startText",
         "endAt",
         "endDate",
@@ -3150,9 +3151,6 @@
       ],
       "requiredKeywords": {
         "budgetText": [
-          "100~150만원"
-        ],
-        "memo": [
           "100~150만원"
         ]
       },

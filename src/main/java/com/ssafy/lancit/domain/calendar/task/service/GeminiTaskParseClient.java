@@ -34,7 +34,7 @@ public class GeminiTaskParseClient implements AiTaskParseClient {
     private static final String API_BASE_URL_PROPERTY = "gemini.api.base-url";
     private static final String MODEL_PROPERTY = "gemini.model";
     private static final String DEFAULT_API_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models";
-    private static final String DEFAULT_MODEL = "gemini-3.5-flash";
+    private static final String DEFAULT_MODEL = "gemini-3.1-flash-lite";
     private static final List<String> REQUIRED_RESPONSE_FIELDS = List.of(
             "sourceText",
             "categoryId",
