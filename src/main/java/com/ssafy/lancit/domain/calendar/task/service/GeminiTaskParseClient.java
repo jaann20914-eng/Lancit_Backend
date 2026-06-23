@@ -173,7 +173,7 @@ public class GeminiTaskParseClient implements AiTaskParseClient {
                 - responseSchema를 반드시 준수합니다.
                 - sourceText는 원문 그대로, categoryId는 항상 null, status 기본값은 "IN_PROGRESS"입니다.
                 - 알 수 없는 값은 null, warnings가 없으면 []로 반환합니다.
-                - content는 null이 아닌 한 문장 요약, confidence는 0.0~1.0 숫자입니다.
+                - confidence는 0.0~1.0 숫자입니다.
 
                 날짜/시간 규칙:
                 - start*=회의/작업/일정, end*=종료, paid*=지급/입금/정산 예정일 또는 기한입니다.
@@ -189,13 +189,39 @@ public class GeminiTaskParseClient implements AiTaskParseClient {
 
                 의미/금액 규칙:
                 - title은 날짜·시간·장소·금액을 뺀 핵심 명사구입니다.
-                - 장소, 회의실, 링크, 준비물, 회의 방식과 부가 설명은 memo에만 넣습니다.
+                - content는 일정 설명, 목적, 안건, 논의 내용, 작업 내용, 진행 내용이 사용자의 원문에 명시된 경우에만 씁니다.
+                - 제목과 날짜/시간만 있는 단순 일정, 제목+날짜/시간+장소만 있는 일정은 content=null입니다.
+                - 날짜, 시간, title, startAt, endAt으로 이미 표현 가능한 정보를 content에 반복하지 않습니다.
+                - "~진행", "~예정", "~참석"처럼 원문에 없는 자동 요약 문구를 content에 만들지 않습니다.
+                - 장소, 회의실, 주소, 링크, 준비물, 온라인/오프라인 여부, 회의 방식과 부가 정보는 memo에만 넣습니다.
                 - clientCompany에는 회사/거래처만 넣고 사람·학교·장소·회의실·카페·온라인 정보는 넣지 않습니다.
+                - 면접/채용/인터뷰/면담 같은 개인 채용 일정의 회사명은 clientCompany로 분리하지 않고 title에 포함합니다.
                 - budgetAmount=전체 예산/견적, depositAmount=계약금/선금, paidAmount=실제 입금/지급액,
                   balanceAmount=잔금, contractAmount=계약 총액, budgetText=숫자로 확정할 수 없는 범위/비율 원문입니다.
                 - 서로 다른 금액 의미는 각 필드로 분리합니다. budget은 하위 호환 대표 금액으로 전체 예산을 우선하고,
                   없으면 paidAmount/depositAmount/balanceAmount/contractAmount 중 문맥상 핵심 금액을 사용합니다.
                 - 사용자가 말하지 않은 회사, 금액, 카테고리 등은 추정하지 않습니다.
+
+                content/memo 예시:
+                {
+                  "sourceText": "2026년 7월 12일 14:00~16:00 회의",
+                  "title": "회의",
+                  "content": null,
+                  "memo": null
+                }
+                {
+                  "sourceText": "내일 오후 3시 줌으로 기획 회의, 랜딩페이지 개선안 논의",
+                  "title": "기획 회의",
+                  "content": "랜딩페이지 개선안 논의",
+                  "memo": "온라인: Zoom"
+                }
+                {
+                  "sourceText": "삼성전자 면접 6월 25일 오후 3시",
+                  "title": "삼성전자 면접",
+                  "clientCompany": null,
+                  "content": null,
+                  "memo": null
+                }
 
                 사용자 원문:
                 %s
@@ -206,7 +232,7 @@ public class GeminiTaskParseClient implements AiTaskParseClient {
         return """
                 이전 응답은 DTO 검증에 실패했습니다.
                 responseSchema의 모든 필드를 포함한 JSON만 다시 반환하세요.
-                content는 null이 아닌 문자열이어야 합니다.
+                content는 실제 설명/안건/작업 내용이 명시된 경우에만 문자열이고, 단순 일정이면 null입니다.
                 이전 응답 검증 실패 사유: %s
 
                 %s
@@ -321,9 +347,6 @@ public class GeminiTaskParseClient implements AiTaskParseClient {
         if (!StringUtils.hasText(responseDTO.getTitle())) {
             throw new AiResponseValidationException("AI task parse result has no title");
         }
-        if (!StringUtils.hasText(responseDTO.getContent())) {
-            throw new AiResponseValidationException("AI task parse result has no content");
-        }
         if (responseDTO.getStatus() == null) {
             throw new AiResponseValidationException("AI task parse result has no status");
         }
@@ -397,7 +420,7 @@ public class GeminiTaskParseClient implements AiTaskParseClient {
         properties.put("sourceText", stringSchema());
         properties.put("categoryId", nullSchema());
         properties.put("title", nullableStringSchema());
-        properties.put("content", stringSchema());
+        properties.put("content", nullableStringSchema());
         properties.put("memo", nullableStringSchema());
         properties.put("startAt", nullableStringSchema());
         properties.put("startDate", nullableStringSchema());

@@ -53,9 +53,36 @@ class GeminiTaskParseClientTest {
         assertThat((Map<String, Object>) properties.get("title"))
                 .containsEntry("type", "STRING")
                 .containsEntry("nullable", true);
+        assertThat((Map<String, Object>) properties.get("content"))
+                .containsEntry("type", "STRING")
+                .containsEntry("nullable", true);
 
         List<String> requiredFields = (List<String>) responseSchema.get("required");
-        assertThat(requiredFields).contains("sourceText", "categoryId", "title", "warnings");
+        assertThat(requiredFields).contains("sourceText", "categoryId", "title", "content", "warnings");
+    }
+
+    @Test
+    void createPromptDocumentsContentAndMemoPolicy() {
+        GeminiTaskParseClient client = new GeminiTaskParseClient(
+                new ObjectMapper(),
+                new MockEnvironment(),
+                FIXED_CLOCK
+        );
+
+        String prompt = client.createPrompt("2026년 7월 12일 14:00~16:00 회의");
+
+        assertThat(prompt)
+                .contains("content는 일정 설명, 목적, 안건, 논의 내용, 작업 내용, 진행 내용")
+                .contains("content=null")
+                .contains("면접/채용/인터뷰/면담 같은 개인 채용 일정의 회사명")
+                .contains("\"sourceText\": \"2026년 7월 12일 14:00~16:00 회의\"")
+                .contains("\"title\": \"회의\"")
+                .contains("\"content\": null")
+                .contains("\"sourceText\": \"삼성전자 면접 6월 25일 오후 3시\"")
+                .contains("\"title\": \"삼성전자 면접\"")
+                .contains("\"clientCompany\": null")
+                .contains("\"memo\": \"온라인: Zoom\"")
+                .doesNotContain("content는 null이 아닌 한 문장 요약");
     }
 
     @Test
