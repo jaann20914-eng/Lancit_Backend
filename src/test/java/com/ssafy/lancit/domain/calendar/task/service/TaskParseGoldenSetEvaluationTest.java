@@ -3,7 +3,6 @@ package com.ssafy.lancit.domain.calendar.task.service;
 import com.ssafy.lancit.domain.calendar.task.dto.TaskParseRequestDTO;
 import com.ssafy.lancit.domain.calendar.task.dto.TaskParseResponseDTO;
 import com.ssafy.lancit.global.enums.DateTimePrecision;
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -12,9 +11,11 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -26,6 +27,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 class TaskParseGoldenSetEvaluationTest {
 
     private static final String GOLDEN_SET_RESOURCE = "/calendar-task-parse-golden-set.json";
+    private static final ZoneId SEOUL_ZONE = ZoneId.of("Asia/Seoul");
+    private static final LocalDate FIXED_TODAY = LocalDate.of(2026, 6, 24);
+    private static final Clock FIXED_CLOCK = Clock.fixed(
+            FIXED_TODAY.atStartOfDay(SEOUL_ZONE).toInstant(),
+            SEOUL_ZONE
+    );
     private static final List<String> DATE_TIME_GROUPS = List.of("start", "end", "paid");
     private static final List<String> AMOUNT_FIELDS = List.of(
             "budgetAmount",
@@ -34,21 +41,44 @@ class TaskParseGoldenSetEvaluationTest {
             "balanceAmount",
             "contractAmount"
     );
+    private static final Map<String, String> PENDING_CASES = Map.ofEntries(
+            Map.entry("GT-023", "TODO: unsupported flexible minute token in rule parser"),
+            Map.entry("GT-024", "TODO: unsupported evening meridiem in primary time parser"),
+            Map.entry("GT-026", "TODO: unsupported after-work meridiem in primary time parser"),
+            Map.entry("GT-027", "TODO: unsupported noon token in primary time parser"),
+            Map.entry("GT-028", "TODO: unsupported time-only duration end calculation"),
+            Map.entry("GT-030", "TODO: unsupported dawn text preservation in primary time parser"),
+            Map.entry("GT-034", "TODO: unsupported place extraction without location particle"),
+            Map.entry("GT-085", "TODO: unsupported memo extraction for payment precondition"),
+            Map.entry("GT-093", "TODO: unsupported cross-day date range"),
+            Map.entry("GT-094", "TODO: unsupported cross-day explicit date range"),
+            Map.entry("GT-095", "TODO: unsupported partial day-part expression"),
+            Map.entry("GT-096", "TODO: unsupported fuzzy week expression"),
+            Map.entry("GT-097", "TODO: unsupported fuzzy current-week expression"),
+            Map.entry("GT-098", "TODO: unsupported approximate day-part expression"),
+            Map.entry("GT-100", "TODO: unsupported unknown schedule time memo")
+    );
 
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final TaskParseService taskParseService = new TaskParseService();
+    private final TaskParseService taskParseService = new TaskParseService(null, FIXED_CLOCK);
 
     @Test
     void evaluateGoldenSet() throws Exception {
-        Assumptions.assumeTrue(
-                Boolean.getBoolean("golden.eval"),
-                "Golden set evaluation is opt-in. Run with -Dgolden.eval=true"
-        );
-
         JsonNode testCases = loadGoldenSet();
         EvaluationSummary summary = new EvaluationSummary(testCases.size());
 
         for (JsonNode testCase : testCases) {
+            String id = text(testCase, "id");
+            String pendingReason = PENDING_CASES.get(id);
+            if (pendingReason != null) {
+                summary.addPending(new PendingGoldenCaseResult(
+                        id,
+                        text(testCase, "category"),
+                        text(testCase, "input"),
+                        pendingReason
+                ));
+                continue;
+            }
             GoldenCaseResult result = evaluateCase(testCase);
             summary.add(result);
         }
@@ -60,8 +90,9 @@ class TaskParseGoldenSetEvaluationTest {
         System.out.println(report);
         System.out.println("Golden set report written to " + reportPath.toAbsolutePath());
 
-        double minimumScore = Double.parseDouble(System.getProperty("golden.minScore", "0.0"));
-        assertThat(summary.score()).isGreaterThanOrEqualTo(minimumScore);
+        assertThat(summary.failedResults())
+                .as("Active golden cases should pass. Unsupported cases belong in PENDING_CASES.")
+                .isEmpty();
     }
 
     private JsonNode loadGoldenSet() throws Exception {
@@ -300,9 +331,16 @@ class TaskParseGoldenSetEvaluationTest {
         }
     }
 
+    private record PendingGoldenCaseResult(String id,
+                                           String category,
+                                           String input,
+                                           String reason) {
+    }
+
     private static class EvaluationSummary {
         private final int totalCases;
         private final List<GoldenCaseResult> results = new ArrayList<>();
+        private final List<PendingGoldenCaseResult> pendingResults = new ArrayList<>();
 
         private EvaluationSummary(int totalCases) {
             this.totalCases = totalCases;
@@ -310,6 +348,16 @@ class TaskParseGoldenSetEvaluationTest {
 
         private void add(GoldenCaseResult result) {
             results.add(result);
+        }
+
+        private void addPending(PendingGoldenCaseResult result) {
+            pendingResults.add(result);
+        }
+
+        private List<GoldenCaseResult> failedResults() {
+            return results.stream()
+                    .filter(result -> !result.passed())
+                    .toList();
         }
 
         private double score() {
@@ -327,13 +375,16 @@ class TaskParseGoldenSetEvaluationTest {
             int passedChecks = results.stream().mapToInt(GoldenCaseResult::passedChecks).sum();
             StringBuilder report = new StringBuilder();
             report.append("# Calendar Task Parse Golden Set Evaluation\n\n");
+            report.append("- Fixed reference date: 2026-06-24 Asia/Seoul\n");
             report.append("- Total cases: ").append(totalCases).append("\n");
-            report.append("- Passed cases: ").append(passedCases).append("/").append(totalCases).append("\n");
+            report.append("- Active cases: ").append(results.size()).append("\n");
+            report.append("- Pending cases: ").append(pendingResults.size()).append("\n");
+            report.append("- Passed active cases: ").append(passedCases).append("/").append(results.size()).append("\n");
             report.append("- Passed checks: ").append(passedChecks).append("/").append(totalChecks).append("\n");
             report.append("- Score: ").append(String.format(Locale.ROOT, "%.2f%%", score() * 100)).append("\n\n");
             report.append("## Category Summary\n\n");
-            report.append("| Category | Passed Cases | Total Cases |\n");
-            report.append("| --- | ---: | ---: |\n");
+            report.append("| Category | Passed Active Cases | Active Cases | Pending Cases |\n");
+            report.append("| --- | ---: | ---: | ---: |\n");
             for (Map.Entry<String, CategorySummary> entry : categorySummaries().entrySet()) {
                 CategorySummary categorySummary = entry.getValue();
                 report.append("| ")
@@ -342,20 +393,38 @@ class TaskParseGoldenSetEvaluationTest {
                         .append(categorySummary.passedCases())
                         .append(" | ")
                         .append(categorySummary.totalCases())
+                        .append(" | ")
+                        .append(categorySummary.pendingCases())
                         .append(" |\n");
             }
             report.append("\n");
             report.append("## Failures\n\n");
-            for (GoldenCaseResult result : results) {
-                if (result.passed()) {
-                    continue;
-                }
+            List<GoldenCaseResult> failedResults = failedResults();
+            if (failedResults.isEmpty()) {
+                report.append("None.\n\n");
+            }
+            for (GoldenCaseResult result : failedResults) {
                 report.append("### ").append(result.id()).append(" - ").append(result.category()).append("\n");
                 report.append("- Input: `").append(result.input()).append("`\n");
                 for (String failure : result.failures()) {
                     report.append("- ").append(failure).append("\n");
                 }
                 report.append("\n");
+            }
+            report.append("## Pending Cases\n\n");
+            if (pendingResults.isEmpty()) {
+                report.append("None.\n");
+            }
+            for (PendingGoldenCaseResult result : pendingResults) {
+                report.append("- ")
+                        .append(result.id())
+                        .append(" (")
+                        .append(result.category())
+                        .append("): ")
+                        .append(result.reason())
+                        .append(" / `")
+                        .append(result.input())
+                        .append("`\n");
             }
             return report.toString();
         }
@@ -366,6 +435,10 @@ class TaskParseGoldenSetEvaluationTest {
                 summaries.computeIfAbsent(result.category(), ignored -> new CategorySummary())
                         .add(result.passed());
             }
+            for (PendingGoldenCaseResult result : pendingResults) {
+                summaries.computeIfAbsent(result.category(), ignored -> new CategorySummary())
+                        .addPending();
+            }
             return summaries;
         }
     }
@@ -373,6 +446,7 @@ class TaskParseGoldenSetEvaluationTest {
     private static class CategorySummary {
         private int totalCases;
         private int passedCases;
+        private int pendingCases;
 
         private void add(boolean passed) {
             totalCases++;
@@ -381,12 +455,20 @@ class TaskParseGoldenSetEvaluationTest {
             }
         }
 
+        private void addPending() {
+            pendingCases++;
+        }
+
         private int totalCases() {
             return totalCases;
         }
 
         private int passedCases() {
             return passedCases;
+        }
+
+        private int pendingCases() {
+            return pendingCases;
         }
     }
 }

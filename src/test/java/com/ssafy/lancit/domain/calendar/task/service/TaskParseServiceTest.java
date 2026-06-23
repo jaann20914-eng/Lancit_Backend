@@ -21,7 +21,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class TaskParseServiceTest {
 
     private static final ZoneId SEOUL_ZONE = ZoneId.of("Asia/Seoul");
-    private static final LocalDate FIXED_TODAY = LocalDate.of(2026, 6, 22);
+    private static final LocalDate FIXED_TODAY = LocalDate.of(2026, 6, 24);
     private static final Clock FIXED_CLOCK = Clock.fixed(
             FIXED_TODAY.atStartOfDay(SEOUL_ZONE).toInstant(),
             SEOUL_ZONE
@@ -130,8 +130,7 @@ class TaskParseServiceTest {
         assertThat(result.getClientCompany()).isEqualTo("삼성전자");
         assertThat(result.getCategoryId()).isNull();
         assertThat(result.getStartAt()).isNull();
-        assertThat(result.getStartDate().getMonthValue()).isEqualTo(7);
-        assertThat(result.getStartDate().getDayOfMonth()).isEqualTo(1);
+        assertThat(result.getStartDate()).isEqualTo(LocalDate.of(2026, 7, 1));
         assertThat(result.getStartPrecision()).isEqualTo(DateTimePrecision.DATE_ONLY);
         assertThat(result.getMemo()).isNull();
     }
@@ -215,6 +214,7 @@ class TaskParseServiceTest {
         assertThat(result.getTitle()).isEqualTo("면담");
         assertThat(result.getClientCompany()).isNull();
         assertThat(result.getMemo()).isEqualTo("장소: 카카오 판교오피스");
+        assertThat(result.getStartAt()).isEqualTo(LocalDate.of(2027, 6, 12).atTime(10, 0));
         assertThat(result.getStartPrecision()).isEqualTo(DateTimePrecision.DATE_TIME);
     }
 
@@ -225,8 +225,7 @@ class TaskParseServiceTest {
         assertThat(result.getTitle()).isEqualTo("자료 리뷰");
         assertThat(result.getClientCompany()).isNull();
         assertThat(result.getMemo()).isEqualTo("장소: 토스 본사 3층");
-        assertThat(result.getStartAt().toLocalDate().getMonthValue()).isEqualTo(6);
-        assertThat(result.getStartAt().toLocalDate().getDayOfMonth()).isEqualTo(15);
+        assertThat(result.getStartAt().toLocalDate()).isEqualTo(LocalDate.of(2027, 6, 15));
         assertThat(result.getStartTime()).isEqualTo(LocalTime.of(14, 0));
         assertThat(result.getStartPrecision()).isEqualTo(DateTimePrecision.DATE_TIME);
     }
@@ -256,6 +255,7 @@ class TaskParseServiceTest {
 
         assertThat(result.getTitle()).isEqualTo("발표");
         assertThat(result.getMemo()).isEqualTo("장소: 회의실 B, 준비물: 노트북");
+        assertThat(result.getStartAt()).isEqualTo(LocalDate.of(2027, 6, 12).atTime(10, 0));
         assertThat(result.getStartPrecision()).isEqualTo(DateTimePrecision.DATE_TIME);
     }
 
@@ -274,6 +274,7 @@ class TaskParseServiceTest {
 
         assertThat(result.getTitle()).isEqualTo("Figma 링크 확인");
         assertThat(result.getMemo()).isEqualTo("자료: PDF로 준비");
+        assertThat(result.getStartAt()).isEqualTo(LocalDate.of(2027, 6, 18).atTime(14, 0));
         assertThat(result.getStartPrecision()).isEqualTo(DateTimePrecision.DATE_TIME);
     }
 
@@ -312,9 +313,9 @@ class TaskParseServiceTest {
         TaskParseResponseDTO result = parse("6월 12일 14:00~16:00 랜싯 프로젝트 회의");
 
         assertThat(result.getTitle()).isEqualTo("랜싯 프로젝트 회의");
-        assertThat(result.getStartAt().toLocalDate().getMonthValue()).isEqualTo(6);
-        assertThat(result.getStartAt().toLocalDate().getDayOfMonth()).isEqualTo(12);
+        assertThat(result.getStartAt().toLocalDate()).isEqualTo(LocalDate.of(2027, 6, 12));
         assertThat(result.getStartAt().toLocalTime()).isEqualTo(LocalTime.of(14, 0));
+        assertThat(result.getEndAt().toLocalDate()).isEqualTo(LocalDate.of(2027, 6, 12));
         assertThat(result.getEndAt().toLocalTime()).isEqualTo(LocalTime.of(16, 0));
         assertThat(result.getRequiresConfirmation()).isFalse();
     }
@@ -533,9 +534,7 @@ class TaskParseServiceTest {
         assertThat(result.getBudget()).isEqualTo(3_000_000);
         assertThat(result.getPaidAmount()).isEqualTo(3_000_000);
         assertThat(result.getPaidAt()).isNull();
-        assertThat(result.getPaidDate()).isNotNull();
-        assertThat(result.getPaidDate().getMonthValue()).isEqualTo(7);
-        assertThat(result.getPaidDate().getDayOfMonth()).isEqualTo(1);
+        assertThat(result.getPaidDate()).isEqualTo(LocalDate.of(2026, 7, 1));
         assertThat(result.getPaidPrecision()).isEqualTo(DateTimePrecision.DATE_ONLY);
         assertThat(result.getStartAt()).isNull();
         assertThat(result.getWarnings()).anyMatch(warning -> warning.contains("지급일"));

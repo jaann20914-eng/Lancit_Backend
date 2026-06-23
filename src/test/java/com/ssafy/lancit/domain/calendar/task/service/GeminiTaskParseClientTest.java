@@ -17,7 +17,7 @@ class GeminiTaskParseClientTest {
 
     private static final ZoneId SEOUL_ZONE = ZoneId.of("Asia/Seoul");
     private static final Clock FIXED_CLOCK = Clock.fixed(
-            LocalDate.of(2026, 6, 23).atStartOfDay(SEOUL_ZONE).toInstant(),
+            LocalDate.of(2026, 6, 24).atStartOfDay(SEOUL_ZONE).toInstant(),
             SEOUL_ZONE
     );
 
