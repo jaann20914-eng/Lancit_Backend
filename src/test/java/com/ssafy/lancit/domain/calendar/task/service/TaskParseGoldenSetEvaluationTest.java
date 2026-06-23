@@ -26,7 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class TaskParseGoldenSetEvaluationTest {
 
-    private static final String GOLDEN_SET_RESOURCE = "/calendar-task-parse-golden-set.json";
+    private static final String GOLDEN_SET_RESOURCE = "/calendar-task-parse-rule-golden-set.json";
     private static final ZoneId SEOUL_ZONE = ZoneId.of("Asia/Seoul");
     private static final LocalDate FIXED_TODAY = LocalDate.of(2026, 6, 24);
     private static final Clock FIXED_CLOCK = Clock.fixed(
@@ -41,24 +41,6 @@ class TaskParseGoldenSetEvaluationTest {
             "balanceAmount",
             "contractAmount"
     );
-    private static final Map<String, String> PENDING_CASES = Map.ofEntries(
-            Map.entry("GT-023", "TODO: unsupported flexible minute token in rule parser"),
-            Map.entry("GT-024", "TODO: unsupported evening meridiem in primary time parser"),
-            Map.entry("GT-026", "TODO: unsupported after-work meridiem in primary time parser"),
-            Map.entry("GT-027", "TODO: unsupported noon token in primary time parser"),
-            Map.entry("GT-028", "TODO: unsupported time-only duration end calculation"),
-            Map.entry("GT-030", "TODO: unsupported dawn text preservation in primary time parser"),
-            Map.entry("GT-034", "TODO: unsupported place extraction without location particle"),
-            Map.entry("GT-085", "TODO: unsupported memo extraction for payment precondition"),
-            Map.entry("GT-093", "TODO: unsupported cross-day date range"),
-            Map.entry("GT-094", "TODO: unsupported cross-day explicit date range"),
-            Map.entry("GT-095", "TODO: unsupported partial day-part expression"),
-            Map.entry("GT-096", "TODO: unsupported fuzzy week expression"),
-            Map.entry("GT-097", "TODO: unsupported fuzzy current-week expression"),
-            Map.entry("GT-098", "TODO: unsupported approximate day-part expression"),
-            Map.entry("GT-100", "TODO: unsupported unknown schedule time memo")
-    );
-
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final TaskParseService taskParseService = new TaskParseService(null, FIXED_CLOCK);
 
@@ -69,13 +51,12 @@ class TaskParseGoldenSetEvaluationTest {
 
         for (JsonNode testCase : testCases) {
             String id = text(testCase, "id");
-            String pendingReason = PENDING_CASES.get(id);
-            if (pendingReason != null) {
+            if (!testCase.path("active").asBoolean(false)) {
                 summary.addPending(new PendingGoldenCaseResult(
                         id,
                         text(testCase, "category"),
-                        text(testCase, "input"),
-                        pendingReason
+                        text(testCase, "sourceText"),
+                        pendingReason(testCase)
                 ));
                 continue;
             }
@@ -109,7 +90,7 @@ class TaskParseGoldenSetEvaluationTest {
     private GoldenCaseResult evaluateCase(JsonNode testCase) {
         String id = text(testCase, "id");
         String category = text(testCase, "category");
-        String input = text(testCase, "input");
+        String input = text(testCase, "sourceText");
         JsonNode expected = testCase.path("expected");
         TaskParseResponseDTO actual = taskParseService.parse(TaskParseRequestDTO.builder()
                 .sourceText(input)
@@ -132,6 +113,7 @@ class TaskParseGoldenSetEvaluationTest {
                                        List<String> passes,
                                        List<String> failures) {
         for (String group : DATE_TIME_GROUPS) {
+            boolean expectedAtPresent = expected.has(group + "At") && !expected.path(group + "At").isNull();
             boolean groupMentioned = hasAnyDateTimeExpectation(expected, group);
             if (!groupMentioned) {
                 compareStrict(group + "At", null, actualAt(actual, group), passes, failures);
@@ -146,11 +128,15 @@ class TaskParseGoldenSetEvaluationTest {
             }
             if (expected.has(group + "Date")) {
                 compareStrict(group + "Date", parseDateOrNull(expected, group + "Date"), actualDate(actual, group), passes, failures);
-                compareStrict(group + "At", null, actualAt(actual, group), passes, failures);
+                if (!expectedAtPresent) {
+                    compareStrict(group + "At", null, actualAt(actual, group), passes, failures);
+                }
             }
             if (expected.has(group + "Time")) {
                 compareStrict(group + "Time", parseTimeOrNull(expected, group + "Time"), actualTime(actual, group), passes, failures);
-                compareStrict(group + "At", null, actualAt(actual, group), passes, failures);
+                if (!expectedAtPresent) {
+                    compareStrict(group + "At", null, actualAt(actual, group), passes, failures);
+                }
             }
             if (expected.has(group + "Text")) {
                 compareTextContains(group + "Text", textOrNull(expected, group + "Text"), actualText(actual, group), passes, failures);
@@ -166,19 +152,19 @@ class TaskParseGoldenSetEvaluationTest {
                                      List<String> passes,
                                      List<String> failures) {
         if (expected.has("budgetAmount")) {
-            compareStrict("budgetAmount", expected.path("budgetAmount").intValue(), actual.getBudgetAmount(), passes, failures);
+            compareStrict("budgetAmount", integerOrNull(expected, "budgetAmount"), actual.getBudgetAmount(), passes, failures);
         }
         if (expected.has("depositAmount")) {
-            compareStrict("depositAmount", expected.path("depositAmount").intValue(), actual.getDepositAmount(), passes, failures);
+            compareStrict("depositAmount", integerOrNull(expected, "depositAmount"), actual.getDepositAmount(), passes, failures);
         }
         if (expected.has("paidAmount")) {
-            compareStrict("paidAmount", expected.path("paidAmount").intValue(), actual.getPaidAmount(), passes, failures);
+            compareStrict("paidAmount", integerOrNull(expected, "paidAmount"), actual.getPaidAmount(), passes, failures);
         }
         if (expected.has("balanceAmount")) {
-            compareStrict("balanceAmount", expected.path("balanceAmount").intValue(), actual.getBalanceAmount(), passes, failures);
+            compareStrict("balanceAmount", integerOrNull(expected, "balanceAmount"), actual.getBalanceAmount(), passes, failures);
         }
         if (expected.has("contractAmount")) {
-            compareStrict("contractAmount", expected.path("contractAmount").intValue(), actual.getContractAmount(), passes, failures);
+            compareStrict("contractAmount", integerOrNull(expected, "contractAmount"), actual.getContractAmount(), passes, failures);
         }
     }
 
@@ -240,6 +226,22 @@ class TaskParseGoldenSetEvaluationTest {
             return null;
         }
         return value.asString();
+    }
+
+    private Integer integerOrNull(JsonNode node, String fieldName) {
+        JsonNode value = node.path(fieldName);
+        if (value.isMissingNode() || value.isNull()) {
+            return null;
+        }
+        return value.intValue();
+    }
+
+    private String pendingReason(JsonNode testCase) {
+        String reason = textOrNull(testCase, "policyReason");
+        if (reason != null) {
+            return reason;
+        }
+        return "inactive golden-set case: " + text(testCase, "status");
     }
 
     private LocalDateTime parseDateTimeOrNull(JsonNode node, String fieldName) {

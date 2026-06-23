@@ -7,13 +7,18 @@ import com.ssafy.lancit.domain.calendar.task.dto.TaskParseResponseDTO;
 import com.ssafy.lancit.global.enums.DateTimePrecision;
 import com.ssafy.lancit.global.enums.TaskStatus;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
+import java.io.InputStream;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -26,7 +31,10 @@ class TaskParseServiceTest {
             FIXED_TODAY.atStartOfDay(SEOUL_ZONE).toInstant(),
             SEOUL_ZONE
     );
+    private static final String RULE_GOLDEN_SET_RESOURCE = "/calendar-task-parse-rule-golden-set.json";
+    private static final String AI_CONTRACT_SET_RESOURCE = "/calendar-task-parse-ai-contract-set.json";
 
+    private final ObjectMapper objectMapper = new ObjectMapper();
     private final TaskParseService taskParseService = new TaskParseService(null, FIXED_CLOCK);
 
     @Test
@@ -617,11 +625,78 @@ class TaskParseServiceTest {
         assertThat(result.getMemo()).isNull();
     }
 
+    @Test
+    void parseActiveRuleGoldenSetWithAiFailureFallbackAsExactDto() throws Exception {
+        TaskParseService service = new TaskParseService(sourceText -> {
+            throw new IllegalStateException("AI unavailable");
+        }, FIXED_CLOCK);
+
+        JsonNode testCases = loadJsonArray(RULE_GOLDEN_SET_RESOURCE);
+        int activeCount = 0;
+        for (JsonNode testCase : testCases) {
+            if (!testCase.path("active").asBoolean(false)) {
+                continue;
+            }
+
+            activeCount++;
+            String id = testCase.path("id").asString();
+            String sourceText = testCase.path("sourceText").asString();
+            TaskParseResponseDTO expected = objectMapper.readValue(
+                    testCase.path("expected").toString(),
+                    TaskParseResponseDTO.class
+            );
+            TaskParseResponseDTO actual = parse(service, sourceText);
+
+            assertThat(actual)
+                    .as(id)
+                    .usingRecursiveComparison()
+                    .isEqualTo(expected);
+        }
+
+        assertThat(activeCount).isPositive();
+    }
+
+    @Test
+    void ruleAndAiContractGoldenSetsHaveSameIdsAndSourceText() throws Exception {
+        Map<String, String> ruleSourceTextById = sourceTextById(loadJsonArray(RULE_GOLDEN_SET_RESOURCE));
+        Map<String, String> aiSourceTextById = sourceTextById(loadJsonArray(AI_CONTRACT_SET_RESOURCE));
+
+        assertThat(aiSourceTextById.keySet())
+                .containsExactlyElementsOf(ruleSourceTextById.keySet());
+        ruleSourceTextById.forEach((id, sourceText) ->
+                assertThat(aiSourceTextById)
+                        .as(id)
+                        .containsEntry(id, sourceText));
+    }
+
     private TaskParseResponseDTO parse(String sourceText) {
         return parse(taskParseService, sourceText);
     }
 
     private TaskParseResponseDTO parse(TaskParseService service, String sourceText) {
         return service.parse(TaskParseRequestDTO.builder().sourceText(sourceText).build());
+    }
+
+    private JsonNode loadJsonArray(String resourceName) throws Exception {
+        try (InputStream inputStream = getClass().getResourceAsStream(resourceName)) {
+            assertThat(inputStream)
+                    .as("Test resource must exist: " + resourceName)
+                    .isNotNull();
+            JsonNode root = objectMapper.readTree(inputStream);
+            assertThat(root.isArray()).isTrue();
+            return root;
+        }
+    }
+
+    private Map<String, String> sourceTextById(JsonNode testCases) {
+        Map<String, String> sourceTextById = new LinkedHashMap<>();
+        for (JsonNode testCase : testCases) {
+            String id = testCase.path("id").asString();
+            assertThat(sourceTextById)
+                    .as("Duplicate golden-set id: " + id)
+                    .doesNotContainKey(id);
+            sourceTextById.put(id, testCase.path("sourceText").asString());
+        }
+        return sourceTextById;
     }
 }
