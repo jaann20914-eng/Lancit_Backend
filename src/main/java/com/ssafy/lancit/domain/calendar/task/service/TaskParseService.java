@@ -7,6 +7,7 @@ import com.ssafy.lancit.domain.calendar.task.dto.TaskParseResponseDTO;
 import com.ssafy.lancit.global.enums.DateTimePrecision;
 import com.ssafy.lancit.global.enums.TaskStatus;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -121,17 +122,21 @@ public class TaskParseService {
     private final Clock clock;
 
     public TaskParseService() {
-        this(null, Clock.system(SEOUL_ZONE));
+        this((AiTaskParseClient) null, Clock.system(SEOUL_ZONE));
     }
 
     public TaskParseService(AiTaskParseClient aiTaskParseClient) {
         this(aiTaskParseClient, Clock.system(SEOUL_ZONE));
     }
 
-    @Autowired
     public TaskParseService(AiTaskParseClient aiTaskParseClient, Clock clock) {
         this.aiTaskParseClient = aiTaskParseClient;
         this.clock = clock == null ? Clock.system(SEOUL_ZONE) : clock;
+    }
+
+    @Autowired
+    public TaskParseService(Clock clock, ObjectProvider<AiTaskParseClient> aiTaskParseClientProvider) {
+        this(aiTaskParseClientProvider == null ? null : aiTaskParseClientProvider.getIfAvailable(), clock);
     }
 
     public TaskParseResponseDTO parse(TaskParseRequestDTO requestDTO) {

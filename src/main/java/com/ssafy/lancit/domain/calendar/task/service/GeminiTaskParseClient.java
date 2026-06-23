@@ -18,23 +18,23 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 @Slf4j
 @Component
-public class GmsGeminiTaskParseClient implements AiTaskParseClient {
+public class GeminiTaskParseClient implements AiTaskParseClient {
 
     private static final ZoneId SEOUL_ZONE = ZoneId.of("Asia/Seoul");
     private static final int CONNECT_TIMEOUT_MILLIS = 3_000;
     private static final int READ_TIMEOUT_MILLIS = 30_000;
-    private static final String API_KEY_PROPERTY = "gms.api.key";
-    private static final String AI_URL_PROPERTY = "gms.ai.url";
-    private static final String AI_MODEL_PROPERTY = "gms.ai.model";
-    private static final String LEGACY_GEMINI_URL_PROPERTY = "gms.gemini.url";
-    private static final String LEGACY_GEMINI_MODEL_PROPERTY = "gms.gemini.model";
-    private static final String DEFAULT_AI_URL = "https://gms.ssafy.io/gmsapi/api.openai.com/v1/responses";
-    private static final String DEFAULT_AI_MODEL = "gpt-5.5-pro";
+    private static final String API_KEY_PROPERTY = "gemini.api.key";
+    private static final String API_KEY_ENV_PROPERTY = "GEMINI_API_KEY";
+    private static final String API_BASE_URL_PROPERTY = "gemini.api.base-url";
+    private static final String MODEL_PROPERTY = "gemini.model";
+    private static final String DEFAULT_API_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models";
+    private static final String DEFAULT_MODEL = "gemini-3.5-flash";
     private static final List<String> REQUIRED_RESPONSE_FIELDS = List.of(
             "sourceText",
             "categoryId",
@@ -75,27 +75,19 @@ public class GmsGeminiTaskParseClient implements AiTaskParseClient {
     private final Clock clock;
 
     @Autowired
-    public GmsGeminiTaskParseClient(ObjectMapper objectMapper, Environment environment, Clock clock) {
+    public GeminiTaskParseClient(ObjectMapper objectMapper, Environment environment, Clock clock) {
         this(createTimeoutRestClient(), objectMapper, environment, clock);
     }
 
-    public GmsGeminiTaskParseClient(ObjectMapper objectMapper, Environment environment) {
+    GeminiTaskParseClient(ObjectMapper objectMapper, Environment environment) {
         this(createTimeoutRestClient(), objectMapper, environment, Clock.system(SEOUL_ZONE));
     }
 
-    GmsGeminiTaskParseClient(ObjectMapper objectMapper) {
-        this(createTimeoutRestClient(), objectMapper, null, Clock.system(SEOUL_ZONE));
-    }
-
-    GmsGeminiTaskParseClient(ObjectMapper objectMapper, Clock clock) {
+    GeminiTaskParseClient(ObjectMapper objectMapper, Clock clock) {
         this(createTimeoutRestClient(), objectMapper, null, clock);
     }
 
-    GmsGeminiTaskParseClient(RestClient restClient, ObjectMapper objectMapper, Environment environment) {
-        this(restClient, objectMapper, environment, Clock.system(SEOUL_ZONE));
-    }
-
-    GmsGeminiTaskParseClient(RestClient restClient, ObjectMapper objectMapper, Environment environment, Clock clock) {
+    GeminiTaskParseClient(RestClient restClient, ObjectMapper objectMapper, Environment environment, Clock clock) {
         this.restClient = restClient;
         this.objectMapper = objectMapper;
         this.environment = environment;
@@ -104,144 +96,84 @@ public class GmsGeminiTaskParseClient implements AiTaskParseClient {
 
     @Override
     public TaskParseResponseDTO parse(String sourceText) {
-        GmsAiConfig config = getGmsAiConfig();
+        GeminiConfig config = getGeminiConfig();
 
         try {
             config.validate();
             TaskParseResponseDTO responseDTO = requestAndParseWithRetry(config, sourceText);
-            log.info("GMS AI task parsing succeeded. model={}, urlPresent={}, apiKeyPresent={}",
-                    config.model(), config.urlPresent(), config.apiKeyPresent());
+            log.info("Gemini task parsing succeeded. model={}, baseUrlPresent={}, apiKeyPresent={}",
+                    config.model(), config.baseUrlPresent(), config.apiKeyPresent());
             return responseDTO;
         } catch (RuntimeException e) {
-            log.warn("GMS AI task parsing failed. model={}, urlPresent={}, apiKeyPresent={}",
-                    config.model(), config.urlPresent(), config.apiKeyPresent());
+            log.warn("Gemini task parsing failed. model={}, baseUrlPresent={}, apiKeyPresent={}",
+                    config.model(), config.baseUrlPresent(), config.apiKeyPresent());
             throw e;
         } catch (Exception e) {
-            log.warn("GMS AI task parsing failed. model={}, urlPresent={}, apiKeyPresent={}",
-                    config.model(), config.urlPresent(), config.apiKeyPresent());
-            throw new IllegalStateException("Failed to parse GMS AI response", e);
+            log.warn("Gemini task parsing failed. model={}, baseUrlPresent={}, apiKeyPresent={}",
+                    config.model(), config.baseUrlPresent(), config.apiKeyPresent());
+            throw new IllegalStateException("Failed to parse Gemini response", e);
         }
     }
 
-    private TaskParseResponseDTO requestAndParseWithRetry(GmsAiConfig config, String sourceText) throws Exception {
+    private TaskParseResponseDTO requestAndParseWithRetry(GeminiConfig config, String sourceText) throws Exception {
         try {
             return requestAndParse(config, createPrompt(sourceText));
         } catch (AiResponseValidationException firstFailure) {
             try {
                 return requestAndParse(config, createRetryPrompt(sourceText, firstFailure.getMessage()));
             } catch (AiResponseValidationException retryFailure) {
-                throw new IllegalStateException("Failed to parse GMS AI response after retry", retryFailure);
+                throw new IllegalStateException("Failed to parse Gemini response after retry", retryFailure);
             } catch (RuntimeException e) {
                 throw e;
             } catch (Exception e) {
-                throw new IllegalStateException("Failed to parse GMS AI retry response", e);
+                throw new IllegalStateException("Failed to parse Gemini retry response", e);
             }
         }
     }
 
-    private GmsAiConfig getGmsAiConfig() {
-        String apiKey = getProperty(API_KEY_PROPERTY, "");
-        String url = getProperty(AI_URL_PROPERTY, getProperty(LEGACY_GEMINI_URL_PROPERTY, DEFAULT_AI_URL));
-        String model = getProperty(AI_MODEL_PROPERTY, getProperty(LEGACY_GEMINI_MODEL_PROPERTY, DEFAULT_AI_MODEL));
-
-        return new GmsAiConfig(apiKey, url, model);
-    }
-
-    private String getProperty(String propertyName, String defaultValue) {
-        if (environment == null) {
-            return defaultValue;
-        }
-        try {
-            String value = environment.getProperty(propertyName);
-            return value == null ? defaultValue : value.trim();
-        } catch (IllegalArgumentException e) {
-            return defaultValue;
-        }
-    }
-
-    private static boolean isConfigured(String value) {
-        return StringUtils.hasText(value) && !isUnresolvedPlaceholder(value);
-    }
-
-    private static boolean isUnresolvedPlaceholder(String value) {
-        String trimmedValue = value.trim();
-        return trimmedValue.startsWith("${") && trimmedValue.endsWith("}");
-    }
-
-    private TaskParseResponseDTO requestAndParse(GmsAiConfig config, String prompt) throws Exception {
-        String requestBody = objectMapper.writeValueAsString(createRequestBody(config, prompt));
+    private TaskParseResponseDTO requestAndParse(GeminiConfig config, String prompt) throws Exception {
+        String requestBody = objectMapper.writeValueAsString(createRequestBody(prompt));
         ResponseEntity<String> response = restClient.post()
-                .uri(config.url())
+                .uri(config.generateContentUrl())
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON)
-                .header("Authorization", "Bearer " + config.apiKey())
+                .header("x-goog-api-key", config.apiKey())
                 .body(requestBody)
                 .retrieve()
                 .toEntity(String.class);
 
         if (!response.getStatusCode().is2xxSuccessful() || !StringUtils.hasText(response.getBody())) {
-            throw new IllegalStateException("GMS AI returned an empty or non-success response");
+            throw new IllegalStateException("Gemini returned an empty or non-success response");
         }
 
-        String aiText = extractResponsesText(response.getBody());
+        String aiText = extractGenerateContentText(response.getBody());
         return parseTaskResponse(aiText);
     }
 
-    private Map<String, Object> createRequestBody(GmsAiConfig config, String prompt) {
+    Map<String, Object> createRequestBody(String prompt) {
         return Map.of(
-                "model", config.model(),
-                "input", prompt
+                "contents", List.of(Map.of(
+                        "role", "user",
+                        "parts", List.of(Map.of("text", prompt))
+                )),
+                "generationConfig", Map.of(
+                        "responseMimeType", "application/json",
+                        "responseSchema", createTaskParseResponseSchema()
+                )
         );
     }
 
-    // TODO: GMS/LLM 크레딧 복구 후 실제 응답 품질은 수동으로 검증한다. 자동 테스트에서는 외부 API를 호출하지 않는다.
     String createPrompt(String sourceText) {
         LocalDate today = LocalDate.now(clock);
         return """
-                자연어 일정 문장을 TaskParseResponseDTO로 파싱하세요.
+                자연어 일정 문장을 TaskParseResponseDTO JSON으로 파싱하세요.
                 기준 날짜: %s, 시간대: Asia/Seoul
 
-                출력 계약:
-                - 설명/마크다운/코드블록 없이 JSON 객체 하나만 반환합니다.
-                - 아래 DTO 필드를 모두 한 번씩 포함하고, DTO 외 필드는 출력하지 않습니다.
-                - 알 수 없는 값은 null, warnings가 없으면 []로 반환합니다.
+                출력 규칙:
+                - responseSchema를 반드시 준수합니다.
                 - sourceText는 원문 그대로, categoryId는 항상 null, status 기본값은 "IN_PROGRESS"입니다.
+                - 알 수 없는 값은 null, warnings가 없으면 []로 반환합니다.
                 - content는 null이 아닌 한 문장 요약, confidence는 0.0~1.0 숫자입니다.
-
-                DTO 필드와 타입:
-                {
-                  "sourceText": string,
-                  "categoryId": null,
-                  "title": string|null,
-                  "content": string,
-                  "memo": string|null,
-                  "startAt": string|null,
-                  "startDate": string|null,
-                  "startTime": string|null,
-                  "startText": string|null,
-                  "startPrecision": "NONE"|"DATE_ONLY"|"TIME_ONLY"|"DATE_TIME",
-                  "endAt": string|null,
-                  "endDate": string|null,
-                  "endTime": string|null,
-                  "endText": string|null,
-                  "endPrecision": "NONE"|"DATE_ONLY"|"TIME_ONLY"|"DATE_TIME",
-                  "status": "IN_PROGRESS"|"COMPLETED"|"CANCELLED",
-                  "clientCompany": string|null,
-                  "budget": number|null,
-                  "budgetAmount": number|null,
-                  "depositAmount": number|null,
-                  "paidAmount": number|null,
-                  "balanceAmount": number|null,
-                  "contractAmount": number|null,
-                  "budgetText": string|null,
-                  "paidAt": string|null,
-                  "paidDate": string|null,
-                  "paidTime": string|null,
-                  "paidText": string|null,
-                  "paidPrecision": "NONE"|"DATE_ONLY"|"TIME_ONLY"|"DATE_TIME",
-                  "confidence": number|null,
-                  "warnings": string[]
-                }
 
                 날짜/시간 규칙:
                 - start*=회의/작업/일정, end*=종료, paid*=지급/입금/정산 예정일 또는 기한입니다.
@@ -272,10 +204,8 @@ public class GmsGeminiTaskParseClient implements AiTaskParseClient {
 
     private String createRetryPrompt(String sourceText, String failureReason) {
         return """
-                이전 응답은 DTO 스키마에 맞지 않습니다.
-                아래 스키마의 모든 필드를 포함한 JSON만 다시 반환하세요.
-                설명 문장, 마크다운, 코드블록은 출력하지 마세요.
-                첫 글자는 { 이고 마지막 글자는 } 이어야 합니다.
+                이전 응답은 DTO 검증에 실패했습니다.
+                responseSchema의 모든 필드를 포함한 JSON만 다시 반환하세요.
                 content는 null이 아닌 문자열이어야 합니다.
                 이전 응답 검증 실패 사유: %s
 
@@ -283,54 +213,39 @@ public class GmsGeminiTaskParseClient implements AiTaskParseClient {
                 """.formatted(failureReason, createPrompt(sourceText));
     }
 
-    private String extractResponsesText(String responseBody) throws Exception {
-        JsonNode root = objectMapper.readTree(responseBody);
-        String outputText = extractOutputArrayText(root);
-        if (StringUtils.hasText(outputText)) {
-            return outputText;
+    String extractGenerateContentText(String responseBody) throws AiResponseValidationException {
+        JsonNode root;
+        try {
+            root = objectMapper.readTree(responseBody);
+        } catch (Exception e) {
+            throw new AiResponseValidationException("Gemini response is not valid JSON", e);
         }
 
-        JsonNode outputTextNode = root.path("output_text");
-        if (outputTextNode.isTextual() && StringUtils.hasText(outputTextNode.asString())) {
-            return outputTextNode.asString();
+        JsonNode candidatesNode = root.path("candidates");
+        if (!candidatesNode.isArray() || candidatesNode.isEmpty()) {
+            throw new AiResponseValidationException("Gemini response candidates are empty");
         }
 
-        throw new AiResponseValidationException("GMS AI response text is empty");
-    }
-
-    private String extractOutputArrayText(JsonNode root) {
-        JsonNode outputNode = root.path("output");
-        if (!outputNode.isArray()) {
-            return null;
+        JsonNode partsNode = candidatesNode.get(0).path("content").path("parts");
+        if (!partsNode.isArray() || partsNode.isEmpty()) {
+            throw new AiResponseValidationException("Gemini response text parts are empty");
         }
 
         StringBuilder textBuilder = new StringBuilder();
-        for (JsonNode outputItem : outputNode) {
-            appendTextContent(textBuilder, outputItem.path("content"));
-            appendTextNode(textBuilder, outputItem.path("text"));
+        for (JsonNode partNode : partsNode) {
+            JsonNode textNode = partNode.path("text");
+            if (!textNode.isTextual() || !StringUtils.hasText(textNode.asString())) {
+                continue;
+            }
+            if (textBuilder.length() > 0) {
+                textBuilder.append("\n");
+            }
+            textBuilder.append(textNode.asString());
+        }
+        if (!StringUtils.hasText(textBuilder.toString())) {
+            throw new AiResponseValidationException("Gemini response text is empty");
         }
         return textBuilder.toString();
-    }
-
-    private void appendTextContent(StringBuilder textBuilder, JsonNode contentNode) {
-        if (contentNode.isArray()) {
-            for (JsonNode contentItem : contentNode) {
-                appendTextNode(textBuilder, contentItem.path("text"));
-            }
-            return;
-        }
-
-        appendTextNode(textBuilder, contentNode);
-    }
-
-    private void appendTextNode(StringBuilder textBuilder, JsonNode textNode) {
-        if (!textNode.isTextual() || !StringUtils.hasText(textNode.asString())) {
-            return;
-        }
-        if (textBuilder.length() > 0) {
-            textBuilder.append("\n");
-        }
-        textBuilder.append(textNode.asString());
     }
 
     private TaskParseResponseDTO parseTaskResponse(String aiText) throws AiResponseValidationException {
@@ -477,6 +392,127 @@ public class GmsGeminiTaskParseClient implements AiTaskParseClient {
         }
     }
 
+    private Map<String, Object> createTaskParseResponseSchema() {
+        Map<String, Object> properties = new LinkedHashMap<>();
+        properties.put("sourceText", stringSchema());
+        properties.put("categoryId", nullSchema());
+        properties.put("title", nullableStringSchema());
+        properties.put("content", stringSchema());
+        properties.put("memo", nullableStringSchema());
+        properties.put("startAt", nullableStringSchema());
+        properties.put("startDate", nullableStringSchema());
+        properties.put("startTime", nullableStringSchema());
+        properties.put("startText", nullableStringSchema());
+        properties.put("startPrecision", enumSchema("NONE", "DATE_ONLY", "TIME_ONLY", "DATE_TIME"));
+        properties.put("endAt", nullableStringSchema());
+        properties.put("endDate", nullableStringSchema());
+        properties.put("endTime", nullableStringSchema());
+        properties.put("endText", nullableStringSchema());
+        properties.put("endPrecision", enumSchema("NONE", "DATE_ONLY", "TIME_ONLY", "DATE_TIME"));
+        properties.put("status", enumSchema("IN_PROGRESS", "COMPLETED", "CANCELLED"));
+        properties.put("clientCompany", nullableStringSchema());
+        properties.put("budget", nullableIntegerSchema());
+        properties.put("budgetAmount", nullableIntegerSchema());
+        properties.put("depositAmount", nullableIntegerSchema());
+        properties.put("paidAmount", nullableIntegerSchema());
+        properties.put("balanceAmount", nullableIntegerSchema());
+        properties.put("contractAmount", nullableIntegerSchema());
+        properties.put("budgetText", nullableStringSchema());
+        properties.put("paidAt", nullableStringSchema());
+        properties.put("paidDate", nullableStringSchema());
+        properties.put("paidTime", nullableStringSchema());
+        properties.put("paidText", nullableStringSchema());
+        properties.put("paidPrecision", enumSchema("NONE", "DATE_ONLY", "TIME_ONLY", "DATE_TIME"));
+        properties.put("confidence", nullableNumberSchema());
+        properties.put("warnings", arraySchema(stringSchema()));
+
+        return objectSchema(properties, REQUIRED_RESPONSE_FIELDS);
+    }
+
+    private Map<String, Object> objectSchema(Map<String, Object> properties, List<String> required) {
+        Map<String, Object> schema = new LinkedHashMap<>();
+        schema.put("type", "OBJECT");
+        schema.put("properties", properties);
+        schema.put("required", required);
+        return schema;
+    }
+
+    private Map<String, Object> stringSchema() {
+        return Map.of("type", "STRING");
+    }
+
+    private Map<String, Object> integerSchema() {
+        return Map.of("type", "INTEGER");
+    }
+
+    private Map<String, Object> numberSchema() {
+        return Map.of("type", "NUMBER");
+    }
+
+    private Map<String, Object> nullSchema() {
+        return Map.of("type", "NULL");
+    }
+
+    private Map<String, Object> nullableStringSchema() {
+        return nullableSchema(stringSchema());
+    }
+
+    private Map<String, Object> nullableIntegerSchema() {
+        return nullableSchema(integerSchema());
+    }
+
+    private Map<String, Object> nullableNumberSchema() {
+        return nullableSchema(numberSchema());
+    }
+
+    private Map<String, Object> nullableSchema(Map<String, Object> valueSchema) {
+        Map<String, Object> nullableSchema = new LinkedHashMap<>(valueSchema);
+        nullableSchema.put("nullable", true);
+        return nullableSchema;
+    }
+
+    private Map<String, Object> enumSchema(String... values) {
+        return Map.of(
+                "type", "STRING",
+                "enum", List.of(values)
+        );
+    }
+
+    private Map<String, Object> arraySchema(Map<String, Object> itemSchema) {
+        return Map.of(
+                "type", "ARRAY",
+                "items", itemSchema
+        );
+    }
+
+    private GeminiConfig getGeminiConfig() {
+        String apiKey = getProperty(API_KEY_PROPERTY, getProperty(API_KEY_ENV_PROPERTY, ""));
+        String apiBaseUrl = getProperty(API_BASE_URL_PROPERTY, DEFAULT_API_BASE_URL);
+        String model = getProperty(MODEL_PROPERTY, DEFAULT_MODEL);
+        return new GeminiConfig(apiKey, apiBaseUrl, model);
+    }
+
+    private String getProperty(String propertyName, String defaultValue) {
+        if (environment == null) {
+            return defaultValue;
+        }
+        try {
+            String value = environment.getProperty(propertyName);
+            return value == null ? defaultValue : value.trim();
+        } catch (IllegalArgumentException e) {
+            return defaultValue;
+        }
+    }
+
+    private static boolean isConfigured(String value) {
+        return StringUtils.hasText(value) && !isUnresolvedPlaceholder(value);
+    }
+
+    private static boolean isUnresolvedPlaceholder(String value) {
+        String trimmedValue = value.trim();
+        return trimmedValue.startsWith("${") && trimmedValue.endsWith("}");
+    }
+
     private static RestClient createTimeoutRestClient() {
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(Duration.ofMillis(CONNECT_TIMEOUT_MILLIS));
@@ -486,34 +522,42 @@ public class GmsGeminiTaskParseClient implements AiTaskParseClient {
                 .build();
     }
 
-    private record GmsAiConfig(String apiKey, String url, String model) {
+    private record GeminiConfig(String apiKey, String apiBaseUrl, String model) {
 
         private boolean apiKeyPresent() {
             return isConfigured(apiKey);
         }
 
-        private boolean urlPresent() {
-            return isConfigured(url);
+        private boolean baseUrlPresent() {
+            return isConfigured(apiBaseUrl);
         }
 
         private boolean modelPresent() {
             return isConfigured(model);
         }
 
+        private String generateContentUrl() {
+            String normalizedBaseUrl = apiBaseUrl.endsWith("/")
+                    ? apiBaseUrl.substring(0, apiBaseUrl.length() - 1)
+                    : apiBaseUrl;
+            String normalizedModel = model.startsWith("models/") ? model.substring("models/".length()) : model;
+            return normalizedBaseUrl + "/" + normalizedModel + ":generateContent";
+        }
+
         private void validate() {
             if (!apiKeyPresent()) {
-                throw new IllegalStateException("GMS API key is not configured");
+                throw new IllegalStateException("Gemini API key is not configured");
             }
-            if (!urlPresent()) {
-                throw new IllegalStateException("GMS AI URL is not configured");
+            if (!baseUrlPresent()) {
+                throw new IllegalStateException("Gemini API base URL is not configured");
             }
             if (!modelPresent()) {
-                throw new IllegalStateException("GMS AI model is not configured");
+                throw new IllegalStateException("Gemini model is not configured");
             }
         }
     }
 
-    private static class AiResponseValidationException extends Exception {
+    static class AiResponseValidationException extends Exception {
 
         private AiResponseValidationException(String message) {
             super(message);

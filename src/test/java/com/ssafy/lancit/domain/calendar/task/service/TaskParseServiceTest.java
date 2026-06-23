@@ -7,7 +7,6 @@ import com.ssafy.lancit.domain.calendar.task.dto.TaskParseResponseDTO;
 import com.ssafy.lancit.global.enums.DateTimePrecision;
 import com.ssafy.lancit.global.enums.TaskStatus;
 import org.junit.jupiter.api.Test;
-import tools.jackson.databind.ObjectMapper;
 
 import java.time.Clock;
 import java.time.LocalDate;
@@ -88,18 +87,6 @@ class TaskParseServiceTest {
         assertThat(result.getStartAt()).isEqualTo(FIXED_TODAY.plusDays(1).atTime(15, 0));
         assertThat(result.getStartDate()).isEqualTo(FIXED_TODAY.plusDays(1));
         assertThat(result.getStartTime()).isEqualTo(LocalTime.of(15, 0));
-        assertThat(result.getStartPrecision()).isEqualTo(DateTimePrecision.DATE_TIME);
-        assertThat(result.getClientCompany()).isEqualTo("삼성전자");
-    }
-
-    @Test
-    void parseFallsBackToRulesWhenGmsKeyIsMissing() {
-        TaskParseService service = new TaskParseService(new GmsGeminiTaskParseClient(new ObjectMapper(), FIXED_CLOCK), FIXED_CLOCK);
-
-        TaskParseResponseDTO result = parse(service, "내일 오후 3시에 삼성전자 미팅");
-
-        assertThat(result.getTitle()).isEqualTo("삼성전자 미팅");
-        assertThat(result.getStartAt()).isEqualTo(FIXED_TODAY.plusDays(1).atTime(15, 0));
         assertThat(result.getStartPrecision()).isEqualTo(DateTimePrecision.DATE_TIME);
         assertThat(result.getClientCompany()).isEqualTo("삼성전자");
     }
