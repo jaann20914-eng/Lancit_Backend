@@ -56,71 +56,81 @@
     </update>
 
 
-    <!-- 계약 목록 조회 (상태 필터 + 키워드 검색 + 페이지네이션) -->
-    <select id="searchContracts" resultType="java.util.Map">
-        SELECT c.contract_id,
-               c.status,
-               c.company_email,
-               c.freelancer_email,
-               r.title      AS recruitment_title,
-               r.recruitment_id
-        FROM contract c
-        JOIN recruitment r ON c.recruitment_id = r.recruitment_id
-        WHERE (c.company_email = #{email} OR c.freelancer_email = #{email})
-        <if test="status != null and status != ''">
-            AND c.status = #{status}
-        </if>
-        <if test="keyword != null and keyword != ''">
-            <choose>
-                <when test="keywordType == 'title'">
-                    AND r.title LIKE CONCAT('%', #{keyword}, '%')
-                </when>
-                <when test="keywordType == 'company'">
-                    AND c.company_email LIKE CONCAT('%', #{keyword}, '%')
-                </when>
-                <when test="keywordType == 'freelancer'">
-                    AND c.freelancer_email LIKE CONCAT('%', #{keyword}, '%')
-                </when>
-                <otherwise>
-                    AND (r.title LIKE CONCAT('%', #{keyword}, '%')
-                      OR c.company_email LIKE CONCAT('%', #{keyword}, '%')
-                      OR c.freelancer_email LIKE CONCAT('%', #{keyword}, '%'))
-                </otherwise>
-            </choose>
-        </if>
-        ORDER BY c.contract_id DESC
-        LIMIT #{size} OFFSET #{offset}
-    </select>
-
-
-    <!-- 계약 목록 총 개수 -->
-    <select id="countContracts" resultType="long">
-        SELECT COUNT(*)
-        FROM contract c
-        JOIN recruitment r ON c.recruitment_id = r.recruitment_id
-        WHERE (c.company_email = #{email} OR c.freelancer_email = #{email})
-        <if test="status != null and status != ''">
-            AND c.status = #{status}
-        </if>
-        <if test="keyword != null and keyword != ''">
-            <choose>
-                <when test="keywordType == 'title'">
-                    AND r.title LIKE CONCAT('%', #{keyword}, '%')
-                </when>
-                <when test="keywordType == 'company'">
-                    AND c.company_email LIKE CONCAT('%', #{keyword}, '%')
-                </when>
-                <when test="keywordType == 'freelancer'">
-                    AND c.freelancer_email LIKE CONCAT('%', #{keyword}, '%')
-                </when>
-                <otherwise>
-                    AND (r.title LIKE CONCAT('%', #{keyword}, '%')
-                      OR c.company_email LIKE CONCAT('%', #{keyword}, '%')
-                      OR c.freelancer_email LIKE CONCAT('%', #{keyword}, '%'))
-                </otherwise>
-            </choose>
-        </if>
-    </select>
+	<!-- 계약 목록 조회 (상태 필터 + 키워드 검색 + 페이지네이션) -->
+	<select id="searchContracts" resultType="java.util.Map">
+	    SELECT c.contract_id,
+	           c.status,
+	           c.company_email,
+	           c.freelancer_email,
+	           comp.company_name AS company_name,
+	           u.name             AS freelancer_name,
+	           r.title            AS recruitment_title,
+	           r.recruitment_id,
+	           cd.contract_start_date,
+	           cd.contract_end_date,
+	           cd.total_wage
+	    FROM contract c
+	    JOIN recruitment r        ON c.recruitment_id = r.recruitment_id
+	    JOIN company comp         ON c.company_email = comp.email
+	    JOIN user u                ON c.freelancer_email = u.email
+	    LEFT JOIN contract_document cd ON cd.contract_id = c.contract_id
+	    WHERE (c.company_email = #{email} OR c.freelancer_email = #{email})
+	    <if test="status != null and status != ''">
+	        AND c.status = #{status}
+	    </if>
+	    <if test="keyword != null and keyword != ''">
+	        <choose>
+	            <when test="keywordType == 'title'">
+	                AND r.title LIKE CONCAT('%', #{keyword}, '%')
+	            </when>
+	            <when test="keywordType == 'company'">
+	                AND comp.company_name LIKE CONCAT('%', #{keyword}, '%')
+	            </when>
+	            <when test="keywordType == 'freelancer'">
+	                AND u.name LIKE CONCAT('%', #{keyword}, '%')
+	            </when>
+	            <otherwise>
+	                AND (r.title LIKE CONCAT('%', #{keyword}, '%')
+	                  OR comp.company_name LIKE CONCAT('%', #{keyword}, '%')
+	                  OR u.name LIKE CONCAT('%', #{keyword}, '%'))
+	            </otherwise>
+	        </choose>
+	    </if>
+	    ORDER BY c.contract_id DESC
+	    LIMIT #{size} OFFSET #{offset}
+	</select>
+	
+	
+	<!-- 계약 목록 총 개수 -->
+	<select id="countContracts" resultType="long">
+	    SELECT COUNT(*)
+	    FROM contract c
+	    JOIN recruitment r        ON c.recruitment_id = r.recruitment_id
+	    JOIN company comp         ON c.company_email = comp.email
+	    JOIN user u                ON c.freelancer_email = u.email
+	    WHERE (c.company_email = #{email} OR c.freelancer_email = #{email})
+	    <if test="status != null and status != ''">
+	        AND c.status = #{status}
+	    </if>
+	    <if test="keyword != null and keyword != ''">
+	        <choose>
+	            <when test="keywordType == 'title'">
+	                AND r.title LIKE CONCAT('%', #{keyword}, '%')
+	            </when>
+	            <when test="keywordType == 'company'">
+	                AND comp.company_name LIKE CONCAT('%', #{keyword}, '%')
+	            </when>
+	            <when test="keywordType == 'freelancer'">
+	                AND u.name LIKE CONCAT('%', #{keyword}, '%')
+	            </when>
+	            <otherwise>
+	                AND (r.title LIKE CONCAT('%', #{keyword}, '%')
+	                  OR comp.company_name LIKE CONCAT('%', #{keyword}, '%')
+	                  OR u.name LIKE CONCAT('%', #{keyword}, '%'))
+	            </otherwise>
+	        </choose>
+	    </if>
+	</select>
 
 
     <!-- 계약 상세 조회 (계약 + 공고 + 채팅방) -->

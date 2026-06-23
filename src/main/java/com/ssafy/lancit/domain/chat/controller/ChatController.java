@@ -19,7 +19,7 @@ import com.ssafy.lancit.domain.chat.service.ChatService;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/contracts/{contractId}/messages")
+@RequestMapping("/api/contracts/{contractId}/messages")
 @RequiredArgsConstructor
 public class ChatController {
 

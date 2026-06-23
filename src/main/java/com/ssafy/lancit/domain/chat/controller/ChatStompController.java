@@ -22,7 +22,7 @@ public class ChatStompController {
 
 
     // 텍스트 메시지 전송  
-    @MessageMapping("/chat/send")
+    @MessageMapping("/api/chat/send")
     public void sendMessage(ChatMessageRequest request, Principal principal) {
 
         String senderEmail = principal.getName();
@@ -42,7 +42,7 @@ public class ChatStompController {
 
 
     // 파일 메시지 전송
-    @MessageMapping("/chat/file")
+    @MessageMapping("/api/chat/file")
     public void sendFile(ChatMessageRequest request, Principal principal) {
     	String senderEmail = principal.getName();
     	

@@ -1,9 +1,9 @@
 package com.ssafy.lancit.domain.contract.mapper;
 
 import java.util.List;
+import java.util.Map;
 
 import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Param;
 
 import com.ssafy.lancit.domain.contract.dto.ContractFileDTO;
 
@@ -31,9 +31,7 @@ public interface ContractFileMapper {
     );
 
     // 컨펌파일 목록 조회
-    List<ContractFileDTO> findConfirmFilesByContractId(
-            Integer contractId
-    );
+    List<Map<String, Object>> findConfirmFilesByContractId(Integer contractId);
 
     // 삭제
     int delete(

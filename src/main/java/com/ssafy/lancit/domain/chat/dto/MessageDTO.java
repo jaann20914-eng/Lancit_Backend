@@ -2,6 +2,7 @@ package com.ssafy.lancit.domain.chat.dto;
 
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.ssafy.lancit.global.enums.MessageType;
 
 import lombok.AllArgsConstructor;
@@ -26,10 +27,14 @@ public class MessageDTO {
     private MessageType messageType;
 
     private String message;
-
+    @JsonProperty("isDeleted")
     private boolean isDeleted;
-
+    @JsonProperty("isUpdated")
     private boolean isUpdated;
 
     private LocalDateTime createdAt;
+    
+    
+    private Integer fileId;   
+    private String fileName;  
 }

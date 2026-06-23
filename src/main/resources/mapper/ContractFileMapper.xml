@@ -50,13 +50,21 @@
 
 
     <!-- 컨펌파일 목록 조회 -->
-    <select id="findConfirmFilesByContractId" resultType="ContractFileDTO">
-        SELECT *
-        FROM contract_file
-        WHERE contract_id = #{contractId}
-          AND type = 'CONFIRM'
-        ORDER BY created_at DESC
-    </select>
+    <select id="findConfirmFilesByContractId" resultType="java.util.HashMap">
+	    SELECT
+	        cf.contract_file_id  AS contractFileId,
+	        cf.contract_id       AS contractId,
+	        cf.file_id           AS fileId,
+	        cf.type              AS type,
+	        cf.created_at        AS createdAt,
+	        cf.uploader_email    AS uploaderEmail,
+	        f.ori_name           AS oriName
+	    FROM contract_file cf
+	    JOIN file f ON cf.file_id = f.file_id
+	    WHERE cf.contract_id = #{contractId}
+	    AND cf.type = 'CONFIRM'
+	    ORDER BY cf.created_at DESC
+	</select>
 
 
     <!-- 삭제 -->

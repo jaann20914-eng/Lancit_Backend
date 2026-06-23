@@ -27,24 +27,35 @@
 
 
     <!-- 무한스크롤 조회 (lastMessageId 없으면 최신부터) -->
-    <select id="findMessages" resultType="MessageDTO">
-        SELECT *
-        FROM message
-        WHERE chat_room_id = #{chatRoomId}
-        <if test="lastMessageId != null">
-            AND message_id &lt; #{lastMessageId}
-        </if>
-        ORDER BY message_id DESC
-        LIMIT #{size}
-    </select>
+	<select id="findMessages" resultType="MessageDTO">
+	    SELECT * FROM (
+	        SELECT m.*,
+	               mf.file_id AS fileId,
+	               f.ori_name AS fileName
+	        FROM message m
+	        LEFT JOIN message_file mf ON m.message_id = mf.message_id
+	        LEFT JOIN file f ON mf.file_id = f.file_id
+	        WHERE m.chat_room_id = #{chatRoomId}
+	        <if test="lastMessageId != null">
+	            AND m.message_id &lt; #{lastMessageId}
+	        </if>
+	        ORDER BY m.message_id DESC
+	        LIMIT #{size}
+	    ) sub
+	    ORDER BY message_id ASC
+	</select>
 
 
     <!-- 단건 조회 -->
-    <select id="findById"  resultType="MessageDTO">
-        SELECT *
-        FROM message
-        WHERE message_id = #{messageId}
-    </select>
+	<select id="findById" resultType="MessageDTO">
+	    SELECT m.*,
+	           mf.file_id AS fileId,
+	           f.ori_name AS fileName
+	    FROM message m
+	    LEFT JOIN message_file mf ON m.message_id = mf.message_id
+	    LEFT JOIN file f ON mf.file_id = f.file_id
+	    WHERE m.message_id = #{messageId}
+	</select>
 
 
     <!-- 소프트 삭제 -->
