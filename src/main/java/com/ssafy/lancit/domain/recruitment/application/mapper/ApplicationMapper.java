@@ -13,9 +13,6 @@ import com.ssafy.lancit.global.enums.ApplicationStatus;
 public interface ApplicationMapper {
     void insert(ApplicationDTO dto);
 
-    boolean existsByRecruitmentAndApplicant(@Param("recruitmentId") int recruitmentId,
-                                            @Param("applicantEmail") String applicantEmail);
-
     ApplicationDTO findByRecruitmentAndApplicant(@Param("recruitmentId") int recruitmentId,
                                                  @Param("applicantEmail") String applicantEmail);
 
@@ -35,6 +32,9 @@ public interface ApplicationMapper {
                     @Param("intro") String intro);
 
     int cancel(@Param("applicationId") int applicationId);
+
+    int reactivateCancelled(@Param("applicationId") int applicationId,
+                            @Param("intro") String intro);
 
     int updateStatusIfPending(@Param("applicationId") int applicationId,
                               @Param("status") ApplicationStatus status);

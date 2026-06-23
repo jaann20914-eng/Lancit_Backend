@@ -17,6 +17,10 @@ import lombok.Setter;
 @Setter
 public class PageRequest {
 
+    private static final int DEFAULT_PAGE = 1;
+    private static final int DEFAULT_SIZE = 10;
+    private static final int MAX_SIZE = 100;
+
     private int page = 1;               // 현재 페이지 (1부터 시작)  -- 디폴트 값으로 일단 넣어놓기
     private int size = 10;              // 페이지당 항목 수
     private String sort = "created_at"; // 정렬 기준 컬럼 (DB 컬럼명)
@@ -24,8 +28,20 @@ public class PageRequest {
 
     
     // 몇번째 id~ 몇번째 id 를 뽑아야지 페이지에 맞게 뽑는건지 계산 함
+    public int getPage() {
+        return page < DEFAULT_PAGE ? DEFAULT_PAGE : page;
+    }
+
+    public int getSize() {
+        if (size <= 0) {
+            return DEFAULT_SIZE;
+        }
+        return Math.min(size, MAX_SIZE);
+    }
+
     public int getOffset() {
-        return (page - 1) * size; //// page=2, size=10 이면 10번째부터 10개 가져와라
+        long offset = (long) (getPage() - 1) * getSize();
+        return offset > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) offset;
     }
     
     
@@ -41,7 +57,7 @@ public class PageRequest {
     public String getSafeSort() {
     	// 프론트에서 sort=created_at -> created_at 반환해서 이대로 정렬
     	// 프론트에서 sort=DROP TABLE user -> 허용목록에 없으니 디폴트 값인 created_at 반환해서 sql 인젝션 막기
-        return ALLOWED_SORT_COLUMNS.contains(sort) ? sort : "created_at";
+        return sort != null && ALLOWED_SORT_COLUMNS.contains(sort) ? sort : "created_at";
     }
     
     // TODO 영은: 나중에 정렬 가능하도록 허용할 칼럼들 이곳에 넣으면 됨

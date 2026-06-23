@@ -19,5 +19,9 @@ public interface ApplicationProfileSnapshotMapper {
 
     List<String> findTechStacksByApplicationId(@Param("applicationId") int applicationId);
 
+    void deleteTechStacksByApplicationId(@Param("applicationId") int applicationId);
+
+    void deleteByApplicationId(@Param("applicationId") int applicationId);
+
     boolean isProfileFileReferenced(@Param("fileId") int fileId);
 }

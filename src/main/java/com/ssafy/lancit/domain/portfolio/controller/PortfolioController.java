@@ -23,6 +23,7 @@ import com.ssafy.lancit.common.exception.CustomException;
 import com.ssafy.lancit.common.exception.ErrorCode;
 import com.ssafy.lancit.common.util.SecurityUtil;
 import com.ssafy.lancit.domain.portfolio.dto.PortfolioDTO;
+import com.ssafy.lancit.domain.portfolio.dto.PortfolioCreateResponse;
 import com.ssafy.lancit.domain.portfolio.dto.PortfolioProfileDTO;
 import com.ssafy.lancit.domain.portfolio.dto.PortfolioProfileUpdateRequest;
 import com.ssafy.lancit.domain.portfolio.dto.PortfolioSearchCondition;
@@ -92,13 +93,13 @@ public class PortfolioController {
     //   1. POST /api/files/upload → bannerFileId 반환
     //   2. dto.bannerFileId 에 담아서 이 API 호출
     @PostMapping
-    public ResponseEntity<ApiResponse<Void>> createPortfolio(@RequestBody PortfolioDTO dto) {
+    public ResponseEntity<ApiResponse<PortfolioCreateResponse>> createPortfolio(@RequestBody PortfolioDTO dto) {
         String email = SecurityUtil.getCurrentEmail();
         if (!"USER".equals(SecurityUtil.getCurrentRole())) {
             throw new CustomException(ErrorCode.FREELANCER_ONLY);
         }
-        portfolioService.create(dto, email);
-        return ResponseEntity.ok(ApiResponse.ok(null));
+        Integer portfolioId = portfolioService.create(dto, email);
+        return ResponseEntity.ok(ApiResponse.ok(new PortfolioCreateResponse(portfolioId)));
     }
 
     // PORT-03 포트폴리오 수정 (@OwnerCheck 서비스에서 처리)

@@ -32,7 +32,7 @@
         </if>
         <if test="rangeStart != null and rangeEndExclusive != null">
           AND start_at &lt; #{rangeEndExclusive}
-          AND end_at &gt;= #{rangeStart}
+          AND end_at &gt; #{rangeStart}
         </if>
         ORDER BY start_at ASC, task_id ASC
     </select>

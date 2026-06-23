@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import org.springframework.stereotype.Service;
@@ -102,7 +103,11 @@ public class PortfolioService {
                 .build();
 
         portfolioProfileMapper.updateProfile(profile);
-        // TODO: 이전 사진이 어떤 지원 스냅샷에서도 참조되지 않을 때만 고아 파일을 정리한다.
+
+        Integer oldProfileFileId = existing.getProfileFileId();
+        if (oldProfileFileId != null && !oldProfileFileId.equals(request.getProfileFileId())) {
+            fileService.deleteProfileIfUnreferenced(oldProfileFileId);
+        }
 
         List<String> techStacks = normalizeTechStacks(request == null ? null : request.getTechStacks());
         portfolioProfileMapper.deleteTechStacks(email);
@@ -141,10 +146,18 @@ public class PortfolioService {
     // PORT-03 포트폴리오 등록
     // 배너 이미지는 컨트롤러 호출 전 POST /api/files/upload 로 먼저 업로드
     @Transactional
-    public void create(PortfolioDTO dto, String email) {
+    public Integer create(PortfolioDTO dto, String email) {
         validateForSave(dto);
         dto.setEmail(email);
         portfolioMapper.insert(dto);
+        if (dto.getBannerFileId() != null) {
+            fileService.attachToParent(
+                    dto.getBannerFileId(),
+                    FileParentType.PORTFOLIO_BANNER,
+                    dto.getPortfolioId(),
+                    email);
+        }
+        return dto.getPortfolioId();
     }
 
     // PORT-03 포트폴리오 수정 (@OwnerCheck 로 소유자 검증)
@@ -157,9 +170,24 @@ public class PortfolioService {
             throw new CustomException(ErrorCode.NOT_FOUND);
         }
 
+        Integer oldBannerFileId = existing.getBannerFileId();
+        Integer newBannerFileId = dto.getBannerFileId();
+        boolean bannerChanged = !Objects.equals(oldBannerFileId, newBannerFileId);
+        if (newBannerFileId != null) {
+            fileService.attachToParent(
+                    newBannerFileId,
+                    FileParentType.PORTFOLIO_BANNER,
+                    portfolioId,
+                    existing.getEmail());
+        }
+
         int updated = portfolioMapper.update(portfolioId, dto);
         if (updated == 0) {
             throw new CustomException(ErrorCode.NOT_FOUND);
+        }
+
+        if (bannerChanged && oldBannerFileId != null) {
+            fileService.deletePortfolioFileIfUnreferenced(oldBannerFileId);
         }
     }
 
@@ -168,6 +196,16 @@ public class PortfolioService {
     @OwnerCheck(resourceType = "PORTFOLIO")
     @Transactional
     public void delete(int portfolioId) {
+        PortfolioDTO portfolio = portfolioMapper.findById(portfolioId);
+        if (portfolio == null) {
+            throw new CustomException(ErrorCode.NOT_FOUND);
+        }
+
+        if (portfolio.getBannerFileId() != null) {
+            fileService.deleteBySystem(portfolio.getBannerFileId());
+        }
+        fileService.deleteByParent(FileParentType.PORTFOLIO_FILE, portfolioId);
+
         int deleted = portfolioMapper.softDelete(portfolioId);
         if (deleted == 0) {
             throw new CustomException(ErrorCode.NOT_FOUND);

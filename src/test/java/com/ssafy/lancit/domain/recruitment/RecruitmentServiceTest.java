@@ -25,6 +25,7 @@ import com.ssafy.lancit.common.page.dto.PageRequest;
 import com.ssafy.lancit.common.page.dto.PageResponse;
 import com.ssafy.lancit.domain.bookmark.freelancer.mapper.FreelancerBookmarkMapper;
 import com.ssafy.lancit.domain.file.service.FileService;
+import com.ssafy.lancit.domain.recruitment.post.dto.MyApplicationSummaryDTO;
 import com.ssafy.lancit.domain.recruitment.post.dto.RecruitmentCreateRequest;
 import com.ssafy.lancit.domain.recruitment.post.dto.RecruitmentDTO;
 import com.ssafy.lancit.domain.recruitment.post.dto.RecruitmentDetailResponse;
@@ -36,6 +37,7 @@ import com.ssafy.lancit.domain.recruitment.post.dto.RecruitmentUpdateRequest;
 import com.ssafy.lancit.domain.recruitment.post.mapper.RecruitmentMapper;
 import com.ssafy.lancit.domain.recruitment.post.service.RecruitmentService;
 import com.ssafy.lancit.global.enums.FileParentType;
+import com.ssafy.lancit.global.enums.ApplicationStatus;
 import com.ssafy.lancit.global.enums.JobCategory;
 import com.ssafy.lancit.global.enums.RecruitmentCategory;
 import com.ssafy.lancit.global.enums.RecruitmentSortType;
@@ -147,8 +149,56 @@ class RecruitmentServiceTest {
         assertThat(result.getImageFileId()).isEqualTo(20);
         verify(recruitmentMapper).deleteTechStacks(1);
         verify(recruitmentMapper).insertTechStacks(1, List.of("React", "Spring"));
-        verify(fileService).detach(10);
         verify(fileService).attachToParent(20, FileParentType.RECRUITMENT_IMAGE, 1, COMPANY_EMAIL);
+        verify(fileService).deleteRecruitmentImageIfUnreferenced(10);
+    }
+
+    @Test
+    @DisplayName("공고 이미지 제거 시 분리된 실제 파일을 정리한다")
+    void update_removeImage_success() {
+        RecruitmentUpdateRequest request = baseUpdateRequest();
+        request.setImageFileId(null);
+        RecruitmentDTO existing = baseRecruitment(1);
+        existing.setImageFileId(10);
+        RecruitmentDTO updated = baseRecruitment(1);
+
+        given(recruitmentMapper.findById(1)).willReturn(existing, updated);
+        given(recruitmentMapper.countActiveApplications(1)).willReturn(0);
+        given(recruitmentMapper.updateRecruitment(eq(1), any(RecruitmentDTO.class))).willReturn(1);
+        given(recruitmentMapper.findTechStacksByRecruitmentId(1)).willReturn(List.of());
+
+        recruitmentService.update(1, request, COMPANY_EMAIL, "COMPANY");
+
+        verify(fileService).deleteRecruitmentImageIfUnreferenced(10);
+        verify(fileService, never()).attachToParent(any(), eq(FileParentType.RECRUITMENT_IMAGE), eq(1), eq(COMPANY_EMAIL));
+    }
+
+    @Test
+    @DisplayName("공고 삭제 시 연결되던 이미지를 실제 파일 정리 대상으로 넘긴다")
+    void delete_withImage_success() {
+        RecruitmentDTO existing = baseRecruitment(1);
+        existing.setImageFileId(10);
+        given(recruitmentMapper.findById(1)).willReturn(existing);
+        given(recruitmentMapper.countActiveApplications(1)).willReturn(0);
+        given(recruitmentMapper.softDeleteRecruitment(1)).willReturn(1);
+
+        recruitmentService.delete(1, COMPANY_EMAIL, "COMPANY");
+
+        verify(fileService).deleteRecruitmentImageIfUnreferenced(10);
+    }
+
+    @Test
+    @DisplayName("공고 복사 원본에는 기존 이미지 ID를 포함하지 않는다")
+    void getCopySource_excludesImage_success() {
+        RecruitmentDTO existing = baseRecruitment(1);
+        existing.setImageFileId(10);
+        given(recruitmentMapper.findById(1)).willReturn(existing);
+        given(recruitmentMapper.findTechStacksByRecruitmentId(1)).willReturn(List.of("Java"));
+
+        RecruitmentCreateRequest result = recruitmentService.getCopySource(1, COMPANY_EMAIL, "COMPANY");
+
+        assertThat(result.getImageFileId()).isNull();
+        assertThat(result.getTechStacks()).containsExactly("Java");
     }
 
     @Test
@@ -276,19 +326,21 @@ class RecruitmentServiceTest {
         given(recruitmentMapper.findList(condition, pageRequest)).willReturn(List.of(dto));
         given(recruitmentMapper.countList(condition)).willReturn(1L);
         given(recruitmentMapper.findTechStacksByRecruitmentIds(List.of(1))).willReturn(List.of());
-        given(recruitmentMapper.findAppliedRecruitmentIds(USER_EMAIL, List.of(1)))
-                .willReturn(List.of(1));
+        given(recruitmentMapper.findMyApplicationSummaries(USER_EMAIL, List.of(1)))
+                .willReturn(List.of(myApplication(1, ApplicationStatus.PENDING)));
 
         PageResponse<RecruitmentListItemResponse> result =
                 recruitmentService.getList(condition, pageRequest, USER_EMAIL, "USER");
 
         assertThat(result.getContent().get(0).getIsApplied()).isTrue();
         assertThat(result.getContent().get(0).getCanApply()).isFalse();
+        assertThat(result.getContent().get(0).getMyApplicationStatus()).isEqualTo(ApplicationStatus.PENDING);
+        assertThat(result.getContent().get(0).getMyApplicationId()).isEqualTo(101);
     }
 
     @Test
-    @DisplayName("공고 목록 조회 - 취소 지원도 지원 이력으로 보아 지원 불가")
-    void getList_cancelledApplicationHistoryBlocksApply_success() {
+    @DisplayName("공고 목록 조회 - 취소 지원은 상태와 ID를 반환하고 열린 공고에 재지원 가능")
+    void getList_cancelledApplicationCanReapply_success() {
         PageRequest pageRequest = new PageRequest();
         RecruitmentSearchCondition condition = new RecruitmentSearchCondition();
         RecruitmentDTO dto = baseRecruitment(1);
@@ -296,15 +348,17 @@ class RecruitmentServiceTest {
         given(recruitmentMapper.findList(condition, pageRequest)).willReturn(List.of(dto));
         given(recruitmentMapper.countList(condition)).willReturn(1L);
         given(recruitmentMapper.findTechStacksByRecruitmentIds(List.of(1))).willReturn(List.of());
-        given(recruitmentMapper.findAppliedRecruitmentIds(USER_EMAIL, List.of(1)))
-                .willReturn(List.of(1));
+        given(recruitmentMapper.findMyApplicationSummaries(USER_EMAIL, List.of(1)))
+                .willReturn(List.of(myApplication(1, ApplicationStatus.CANCELLED)));
 
         PageResponse<RecruitmentListItemResponse> result =
                 recruitmentService.getList(condition, pageRequest, USER_EMAIL, "USER");
 
         RecruitmentListItemResponse item = result.getContent().get(0);
-        assertThat(item.getIsApplied()).isTrue();
-        assertThat(item.getCanApply()).isFalse();
+        assertThat(item.getIsApplied()).isFalse();
+        assertThat(item.getCanApply()).isTrue();
+        assertThat(item.getMyApplicationStatus()).isEqualTo(ApplicationStatus.CANCELLED);
+        assertThat(item.getMyApplicationId()).isEqualTo(101);
     }
 
     @Test
@@ -357,8 +411,8 @@ class RecruitmentServiceTest {
         given(recruitmentMapper.findList(condition, pageRequest)).willReturn(List.of(dto));
         given(recruitmentMapper.countList(condition)).willReturn(1L);
         given(recruitmentMapper.findTechStacksByRecruitmentIds(List.of(1))).willReturn(List.of());
-        given(recruitmentMapper.findAppliedRecruitmentIds(USER_EMAIL, List.of(1)))
-                .willReturn(List.of(1));
+        given(recruitmentMapper.findMyApplicationSummaries(USER_EMAIL, List.of(1)))
+                .willReturn(List.of(myApplication(1, ApplicationStatus.PENDING)));
 
         PageResponse<RecruitmentListItemResponse> result =
                 recruitmentService.getList(condition, pageRequest, USER_EMAIL, "USER");
@@ -457,8 +511,8 @@ class RecruitmentServiceTest {
         given(recruitmentMapper.findList(condition, pageRequest)).willReturn(List.of(dto));
         given(recruitmentMapper.countList(condition)).willReturn(1L);
         given(recruitmentMapper.findTechStacksByRecruitmentIds(List.of(1))).willReturn(List.of());
-        given(recruitmentMapper.findAppliedRecruitmentIds(USER_EMAIL, List.of(1)))
-                .willReturn(List.of(1));
+        given(recruitmentMapper.findMyApplicationSummaries(USER_EMAIL, List.of(1)))
+                .willReturn(List.of(myApplication(1, ApplicationStatus.PENDING)));
 
         recruitmentService.getList(condition, pageRequest, USER_EMAIL, "USER");
 
@@ -577,6 +631,44 @@ class RecruitmentServiceTest {
         assertThat(result.getIsBookmarked()).isTrue();
     }
 
+    @Test
+    @DisplayName("공고 상세 조회 - 진행 중인 내 지원 상태와 ID 반환")
+    void getOne_pendingApplicationStatus_success() {
+        RecruitmentDTO dto = baseRecruitment(1);
+        given(recruitmentMapper.findById(1)).willReturn(dto);
+        given(recruitmentMapper.findTechStacksByRecruitmentId(1)).willReturn(List.of());
+        given(recruitmentMapper.findMyApplicationSummaries(USER_EMAIL, List.of(1)))
+                .willReturn(List.of(myApplication(1, ApplicationStatus.PENDING)));
+
+        RecruitmentDetailResponse result = recruitmentService.getOne(1, USER_EMAIL, "USER");
+
+        assertThat(result.getIsApplied()).isTrue();
+        assertThat(result.getCanApply()).isFalse();
+        assertThat(result.getMyApplicationStatus()).isEqualTo(ApplicationStatus.PENDING);
+        assertThat(result.getMyApplicationId()).isEqualTo(101);
+        assertThat(result.getPermission().getMyApplicationStatus()).isEqualTo(ApplicationStatus.PENDING);
+        assertThat(result.getPermission().getMyApplicationId()).isEqualTo(101);
+    }
+
+    @Test
+    @DisplayName("공고 상세 조회 - 취소한 내 지원 상태와 ID를 유지하고 재지원 허용")
+    void getOne_cancelledApplicationStatus_success() {
+        RecruitmentDTO dto = baseRecruitment(1);
+        given(recruitmentMapper.findById(1)).willReturn(dto);
+        given(recruitmentMapper.findTechStacksByRecruitmentId(1)).willReturn(List.of());
+        given(recruitmentMapper.findMyApplicationSummaries(USER_EMAIL, List.of(1)))
+                .willReturn(List.of(myApplication(1, ApplicationStatus.CANCELLED)));
+
+        RecruitmentDetailResponse result = recruitmentService.getOne(1, USER_EMAIL, "USER");
+
+        assertThat(result.getIsApplied()).isFalse();
+        assertThat(result.getCanApply()).isTrue();
+        assertThat(result.getMyApplicationStatus()).isEqualTo(ApplicationStatus.CANCELLED);
+        assertThat(result.getMyApplicationId()).isEqualTo(101);
+        assertThat(result.getPermission().getIsApplied()).isFalse();
+        assertThat(result.getPermission().getCanApply()).isTrue();
+    }
+
     private RecruitmentCreateRequest baseCreateRequest() {
         RecruitmentCreateRequest request = new RecruitmentCreateRequest();
         request.setTitle("공고 제목");
@@ -632,6 +724,10 @@ class RecruitmentServiceTest {
                 .createdAt(LocalDateTime.of(2026, 6, 1, 0, 0))
                 .applicantCount(0)
                 .build();
+    }
+
+    private MyApplicationSummaryDTO myApplication(int recruitmentId, ApplicationStatus status) {
+        return new MyApplicationSummaryDTO(recruitmentId, recruitmentId + 100, status);
     }
 
     private void assertCustomException(Runnable action, ErrorCode expected) {

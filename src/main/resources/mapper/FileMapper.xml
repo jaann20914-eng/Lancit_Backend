@@ -90,6 +90,42 @@
 	    SET parent_id = NULL
 	    WHERE file_id = #{fileId}
 	</update>
+
+	<select id="isCurrentProfileFileReferenced" resultType="boolean">
+	    SELECT (
+	        EXISTS (SELECT 1 FROM `user` WHERE profile_file_id = #{fileId})
+	        OR EXISTS (SELECT 1 FROM company WHERE profile_file_id = #{fileId})
+	        OR EXISTS (SELECT 1 FROM portfolio_profile WHERE profile_file_id = #{fileId})
+	    )
+	</select>
+
+	<select id="isCurrentPortfolioFileReferenced" resultType="boolean">
+	    SELECT (
+	        EXISTS (
+	            SELECT 1
+	            FROM portfolio
+	            WHERE banner_file_id = #{fileId}
+	              AND is_deleted = 0
+	        )
+	        OR EXISTS (
+	            SELECT 1
+	            FROM file f
+	            INNER JOIN portfolio p ON p.portfolio_id = f.parent_id
+	            WHERE f.file_id = #{fileId}
+	              AND f.parent_type = 'PORTFOLIO_FILE'
+	              AND p.is_deleted = 0
+	        )
+	    )
+	</select>
+
+	<select id="isCurrentRecruitmentImageReferenced" resultType="boolean">
+	    SELECT EXISTS (
+	        SELECT 1
+	        FROM recruitment
+	        WHERE image_file_id = #{fileId}
+	          AND is_deleted = 0
+	    )
+	</select>
 	
 	
 	<!-- 유저 소유 파일 전체 조회 (탈퇴 시 GCS 삭제용) -->
@@ -126,4 +162,3 @@
 	
 	
 </mapper>
-

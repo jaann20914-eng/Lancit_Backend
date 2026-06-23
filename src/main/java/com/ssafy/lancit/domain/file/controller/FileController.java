@@ -37,7 +37,8 @@ public class FileController {
 
     // 파일 업로드 - GCS 업로드 + DB 저장
     // 프로필 사진: parentType=PROFILE, parentId=null
-    // 포트폴리오 배너/결과물: parentType=PORTFOLIO_BANNER 또는 PORTFOLIO_FILE, parentId=portfolioId
+    // 포트폴리오 배너: 생성 전에는 parentType=TEMP, parentId=null
+    // 포트폴리오 결과물(또는 기존 포트폴리오 배너): parentId=본인 portfolioId
     //    @PostMapping("/upload")
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<List<FileDTO>> > upload(

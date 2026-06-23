@@ -1,0 +1,314 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ssafy.lancit.domain.dashboard.mapper.DashboardMapper">
+
+    <resultMap id="FreelancerSummaryMap"
+               type="com.ssafy.lancit.domain.dashboard.dto.FreelancerDashboardResponse$Summary">
+        <result property="inProgressContractCount" column="in_progress_contract_count"/>
+        <result property="receivedProposalCount" column="received_proposal_count"/>
+        <result property="appliedRecruitmentCount" column="applied_recruitment_count"/>
+        <result property="portfolioCount" column="portfolio_count"/>
+    </resultMap>
+
+    <resultMap id="FreelancerContractMap"
+               type="com.ssafy.lancit.domain.dashboard.dto.FreelancerDashboardResponse$RecentContract">
+        <id property="contractId" column="contract_id"/>
+        <result property="recruitmentId" column="recruitment_id"/>
+        <result property="title" column="title"/>
+        <result property="companyName" column="company_name"/>
+        <result property="companyEmail" column="company_email"/>
+        <result property="deadline" column="deadline"/>
+        <result property="status" column="status"/>
+    </resultMap>
+
+    <resultMap id="FreelancerProposalMap"
+               type="com.ssafy.lancit.domain.dashboard.dto.FreelancerDashboardResponse$RecentProposal">
+        <id property="contractId" column="contract_id"/>
+        <result property="recruitmentId" column="recruitment_id"/>
+        <result property="title" column="title"/>
+        <result property="companyName" column="company_name"/>
+        <result property="companyEmail" column="company_email"/>
+        <result property="proposedAt" column="proposed_at"/>
+        <result property="status" column="status"/>
+    </resultMap>
+
+    <resultMap id="FreelancerApplicationMap"
+               type="com.ssafy.lancit.domain.dashboard.dto.FreelancerDashboardResponse$RecentApplication">
+        <id property="applicationId" column="application_id"/>
+        <result property="recruitmentId" column="recruitment_id"/>
+        <result property="title" column="title"/>
+        <result property="companyName" column="company_name"/>
+        <result property="appliedAt" column="applied_at"/>
+        <result property="status" column="status"/>
+    </resultMap>
+
+    <resultMap id="FreelancerPortfolioMap"
+               type="com.ssafy.lancit.domain.dashboard.dto.FreelancerDashboardResponse$RecentPortfolio">
+        <id property="portfolioId" column="portfolio_id"/>
+        <result property="title" column="title"/>
+        <result property="summary" column="summary"/>
+        <result property="category" column="category"/>
+        <result property="updatedAt" column="updated_at"/>
+        <result property="isPublic" column="is_public"/>
+    </resultMap>
+
+    <resultMap id="CompanySummaryMap"
+               type="com.ssafy.lancit.domain.dashboard.dto.CompanyDashboardResponse$Summary">
+        <result property="inProgressContractCount" column="in_progress_contract_count"/>
+        <result property="receivedApplicationCount" column="received_application_count"/>
+        <result property="recruitmentCount" column="recruitment_count"/>
+        <result property="proposedTalentCount" column="proposed_talent_count"/>
+    </resultMap>
+
+    <resultMap id="CompanyContractMap"
+               type="com.ssafy.lancit.domain.dashboard.dto.CompanyDashboardResponse$RecentContract">
+        <id property="contractId" column="contract_id"/>
+        <result property="recruitmentId" column="recruitment_id"/>
+        <result property="title" column="title"/>
+        <result property="freelancerName" column="freelancer_name"/>
+        <result property="freelancerEmail" column="freelancer_email"/>
+        <result property="deadline" column="deadline"/>
+        <result property="status" column="status"/>
+    </resultMap>
+
+    <resultMap id="CompanyApplicationMap"
+               type="com.ssafy.lancit.domain.dashboard.dto.CompanyDashboardResponse$RecentApplication">
+        <id property="applicationId" column="application_id"/>
+        <result property="recruitmentId" column="recruitment_id"/>
+        <result property="recruitmentTitle" column="recruitment_title"/>
+        <result property="applicantName" column="applicant_name"/>
+        <result property="applicantEmail" column="applicant_email"/>
+        <result property="jobCategory" column="job_category"/>
+        <result property="appliedAt" column="applied_at"/>
+        <result property="status" column="status"/>
+    </resultMap>
+
+    <resultMap id="CompanyRecruitmentMap"
+               type="com.ssafy.lancit.domain.dashboard.dto.CompanyDashboardResponse$RecentRecruitment">
+        <id property="recruitmentId" column="recruitment_id"/>
+        <result property="title" column="title"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="applicantCount" column="applicant_count"/>
+        <result property="status" column="status"/>
+    </resultMap>
+
+    <sql id="ActiveRecruitmentFilter">
+        AND r.is_deleted = 0
+        AND r.status &lt;&gt; 'CANCELLED'
+    </sql>
+
+    <select id="findFreelancerSummary" resultMap="FreelancerSummaryMap">
+        SELECT
+            (
+                SELECT COUNT(*)
+                FROM contract c
+                INNER JOIN recruitment r ON r.recruitment_id = c.recruitment_id
+                WHERE c.freelancer_email = #{email}
+                  AND c.status = 'IN_PROGRESS'
+                  AND r.is_deleted = 0
+                  AND r.status &lt;&gt; 'CANCELLED'
+            ) AS in_progress_contract_count,
+            (
+                SELECT COUNT(*)
+                FROM contract c
+                INNER JOIN recruitment r ON r.recruitment_id = c.recruitment_id
+                WHERE c.freelancer_email = #{email}
+                  AND c.status = 'WAITING'
+                  AND r.is_deleted = 0
+                  AND r.status &lt;&gt; 'CANCELLED'
+            ) AS received_proposal_count,
+            (
+                SELECT COUNT(*)
+                FROM recruitment_application ra
+                INNER JOIN recruitment r ON r.recruitment_id = ra.recruitment_id
+                WHERE ra.applicant_email = #{email}
+                  AND ra.status &lt;&gt; 'CANCELLED'
+                  AND r.is_deleted = 0
+                  AND r.status &lt;&gt; 'CANCELLED'
+            ) AS applied_recruitment_count,
+            (
+                SELECT COUNT(*)
+                FROM portfolio p
+                WHERE p.email = #{email}
+                  AND p.is_deleted = 0
+            ) AS portfolio_count
+    </select>
+
+    <select id="findRecentFreelancerContracts" resultMap="FreelancerContractMap">
+        SELECT
+            c.contract_id,
+            c.recruitment_id,
+            r.title,
+            company.company_name,
+            c.company_email,
+            cd.contract_end_date AS deadline,
+            c.status
+        FROM contract c
+        INNER JOIN recruitment r ON r.recruitment_id = c.recruitment_id
+        INNER JOIN company ON company.email = c.company_email
+        LEFT JOIN contract_document cd ON cd.contract_id = c.contract_id
+        WHERE c.freelancer_email = #{email}
+          AND c.status = 'IN_PROGRESS'
+        <include refid="ActiveRecruitmentFilter"/>
+        ORDER BY COALESCE(cd.confirmed_at, cd.contract_written_at) DESC, c.contract_id DESC
+        LIMIT 2
+    </select>
+
+    <select id="findRecentFreelancerProposals" resultMap="FreelancerProposalMap">
+        SELECT
+            c.contract_id,
+            c.recruitment_id,
+            r.title,
+            company.company_name,
+            c.company_email,
+            proposal_notification.proposed_at,
+            c.status
+        FROM contract c
+        INNER JOIN recruitment r ON r.recruitment_id = c.recruitment_id
+        INNER JOIN company ON company.email = c.company_email
+        INNER JOIN (
+            SELECT receiver_email, target_id, MAX(created_at) AS proposed_at
+            FROM notification
+            WHERE type = 'PROPOSAL'
+            GROUP BY receiver_email, target_id
+        ) proposal_notification
+          ON proposal_notification.receiver_email = c.freelancer_email
+         AND proposal_notification.target_id = c.contract_id
+        WHERE c.freelancer_email = #{email}
+          AND c.status = 'WAITING'
+        <include refid="ActiveRecruitmentFilter"/>
+        ORDER BY proposal_notification.proposed_at DESC, c.contract_id DESC
+        LIMIT 2
+    </select>
+
+    <select id="findRecentFreelancerApplications" resultMap="FreelancerApplicationMap">
+        SELECT
+            ra.application_id,
+            ra.recruitment_id,
+            r.title,
+            company.company_name,
+            ra.applied_at,
+            ra.status
+        FROM recruitment_application ra
+        INNER JOIN recruitment r ON r.recruitment_id = ra.recruitment_id
+        INNER JOIN company ON company.email = r.company_email
+        WHERE ra.applicant_email = #{email}
+          AND ra.status &lt;&gt; 'CANCELLED'
+        <include refid="ActiveRecruitmentFilter"/>
+        ORDER BY ra.applied_at DESC, ra.application_id DESC
+        LIMIT 2
+    </select>
+
+    <select id="findRecentFreelancerPortfolios" resultMap="FreelancerPortfolioMap">
+        SELECT
+            p.portfolio_id,
+            p.title,
+            p.summary,
+            p.category,
+            p.updated_at,
+            p.is_public
+        FROM portfolio p
+        WHERE p.email = #{email}
+          AND p.is_deleted = 0
+        ORDER BY p.updated_at DESC, p.portfolio_id DESC
+        LIMIT 2
+    </select>
+
+    <select id="findCompanySummary" resultMap="CompanySummaryMap">
+        SELECT
+            (
+                SELECT COUNT(*)
+                FROM contract c
+                INNER JOIN recruitment r ON r.recruitment_id = c.recruitment_id
+                WHERE c.company_email = #{email}
+                  AND c.status = 'IN_PROGRESS'
+                  AND r.is_deleted = 0
+                  AND r.status &lt;&gt; 'CANCELLED'
+            ) AS in_progress_contract_count,
+            (
+                SELECT COUNT(*)
+                FROM recruitment_application ra
+                INNER JOIN recruitment r ON r.recruitment_id = ra.recruitment_id
+                WHERE r.company_email = #{email}
+                  AND ra.status &lt;&gt; 'CANCELLED'
+                  AND r.is_deleted = 0
+                  AND r.status &lt;&gt; 'CANCELLED'
+            ) AS received_application_count,
+            (
+                SELECT COUNT(*)
+                FROM recruitment r
+                WHERE r.company_email = #{email}
+                  AND r.is_deleted = 0
+                  AND r.status &lt;&gt; 'CANCELLED'
+            ) AS recruitment_count,
+            (
+                SELECT COUNT(*)
+                FROM contract c
+                INNER JOIN recruitment r ON r.recruitment_id = c.recruitment_id
+                WHERE c.company_email = #{email}
+                  AND c.status = 'WAITING'
+                  AND r.is_deleted = 0
+                  AND r.status &lt;&gt; 'CANCELLED'
+            ) AS proposed_talent_count
+    </select>
+
+    <select id="findRecentCompanyContracts" resultMap="CompanyContractMap">
+        SELECT
+            c.contract_id,
+            c.recruitment_id,
+            r.title,
+            freelancer.name AS freelancer_name,
+            c.freelancer_email,
+            cd.contract_end_date AS deadline,
+            c.status
+        FROM contract c
+        INNER JOIN recruitment r ON r.recruitment_id = c.recruitment_id
+        INNER JOIN user freelancer ON freelancer.email = c.freelancer_email
+        LEFT JOIN contract_document cd ON cd.contract_id = c.contract_id
+        WHERE c.company_email = #{email}
+          AND c.status = 'IN_PROGRESS'
+        <include refid="ActiveRecruitmentFilter"/>
+        ORDER BY COALESCE(cd.confirmed_at, cd.contract_written_at) DESC, c.contract_id DESC
+        LIMIT 2
+    </select>
+
+    <select id="findRecentCompanyApplications" resultMap="CompanyApplicationMap">
+        SELECT
+            ra.application_id,
+            ra.recruitment_id,
+            r.title AS recruitment_title,
+            applicant.name AS applicant_name,
+            ra.applicant_email,
+            applicant.job_category,
+            ra.applied_at,
+            ra.status
+        FROM recruitment_application ra
+        INNER JOIN recruitment r ON r.recruitment_id = ra.recruitment_id
+        INNER JOIN user applicant ON applicant.email = ra.applicant_email
+        WHERE r.company_email = #{email}
+          AND ra.status &lt;&gt; 'CANCELLED'
+        <include refid="ActiveRecruitmentFilter"/>
+        ORDER BY ra.applied_at DESC, ra.application_id DESC
+        LIMIT 2
+    </select>
+
+    <select id="findRecentCompanyRecruitments" resultMap="CompanyRecruitmentMap">
+        SELECT
+            r.recruitment_id,
+            r.title,
+            r.created_at,
+            COUNT(CASE WHEN ra.status &lt;&gt; 'CANCELLED' THEN 1 END) AS applicant_count,
+            r.status
+        FROM recruitment r
+        LEFT JOIN recruitment_application ra ON ra.recruitment_id = r.recruitment_id
+        WHERE r.company_email = #{email}
+          AND r.is_deleted = 0
+          AND r.status &lt;&gt; 'CANCELLED'
+        GROUP BY r.recruitment_id, r.title, r.created_at, r.status
+        ORDER BY r.created_at DESC, r.recruitment_id DESC
+        LIMIT 2
+    </select>
+
+</mapper>

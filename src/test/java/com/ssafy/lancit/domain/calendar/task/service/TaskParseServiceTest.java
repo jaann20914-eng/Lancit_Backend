@@ -9,6 +9,7 @@ import com.ssafy.lancit.global.enums.TaskStatus;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -21,8 +22,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class TaskParseServiceTest {
 
     private static final ZoneId SEOUL_ZONE = ZoneId.of("Asia/Seoul");
+    private static final LocalDate FIXED_TODAY = LocalDate.of(2026, 6, 22);
+    private static final Clock FIXED_CLOCK = Clock.fixed(
+            FIXED_TODAY.atStartOfDay(SEOUL_ZONE).toInstant(),
+            SEOUL_ZONE
+    );
 
-    private final TaskParseService taskParseService = new TaskParseService();
+    private final TaskParseService taskParseService = new TaskParseService(null, FIXED_CLOCK);
 
     @Test
     void parseThrowsInvalidInputWhenSourceTextIsNull() {
@@ -57,7 +63,7 @@ class TaskParseServiceTest {
                 .paidAt(null)
                 .confidence(0.92)
                 .warnings(List.of())
-                .build());
+                .build(), FIXED_CLOCK);
 
         TaskParseResponseDTO result = parse(service, "내일 오후 3시에 삼성전자 미팅");
 
@@ -74,13 +80,13 @@ class TaskParseServiceTest {
     void parseFallsBackToRulesWhenAiClientFails() {
         TaskParseService service = new TaskParseService(sourceText -> {
             throw new IllegalStateException("AI unavailable");
-        });
+        }, FIXED_CLOCK);
 
         TaskParseResponseDTO result = parse(service, "내일 오후 3시에 삼성전자 미팅");
 
         assertThat(result.getTitle()).isEqualTo("삼성전자 미팅");
-        assertThat(result.getStartAt()).isEqualTo(LocalDate.now(SEOUL_ZONE).plusDays(1).atTime(15, 0));
-        assertThat(result.getStartDate()).isEqualTo(LocalDate.now(SEOUL_ZONE).plusDays(1));
+        assertThat(result.getStartAt()).isEqualTo(FIXED_TODAY.plusDays(1).atTime(15, 0));
+        assertThat(result.getStartDate()).isEqualTo(FIXED_TODAY.plusDays(1));
         assertThat(result.getStartTime()).isEqualTo(LocalTime.of(15, 0));
         assertThat(result.getStartPrecision()).isEqualTo(DateTimePrecision.DATE_TIME);
         assertThat(result.getClientCompany()).isEqualTo("삼성전자");
@@ -88,12 +94,12 @@ class TaskParseServiceTest {
 
     @Test
     void parseFallsBackToRulesWhenGmsKeyIsMissing() {
-        TaskParseService service = new TaskParseService(new GmsGeminiTaskParseClient(new ObjectMapper()));
+        TaskParseService service = new TaskParseService(new GmsGeminiTaskParseClient(new ObjectMapper(), FIXED_CLOCK), FIXED_CLOCK);
 
         TaskParseResponseDTO result = parse(service, "내일 오후 3시에 삼성전자 미팅");
 
         assertThat(result.getTitle()).isEqualTo("삼성전자 미팅");
-        assertThat(result.getStartAt()).isEqualTo(LocalDate.now(SEOUL_ZONE).plusDays(1).atTime(15, 0));
+        assertThat(result.getStartAt()).isEqualTo(FIXED_TODAY.plusDays(1).atTime(15, 0));
         assertThat(result.getStartPrecision()).isEqualTo(DateTimePrecision.DATE_TIME);
         assertThat(result.getClientCompany()).isEqualTo("삼성전자");
     }
@@ -103,7 +109,7 @@ class TaskParseServiceTest {
         TaskParseResponseDTO result = parse("내일 오후 3시에 삼성전자 미팅");
 
         assertThat(result.getTitle()).isEqualTo("삼성전자 미팅");
-        assertThat(result.getStartAt()).isEqualTo(LocalDate.now(SEOUL_ZONE).plusDays(1).atTime(15, 0));
+        assertThat(result.getStartAt()).isEqualTo(FIXED_TODAY.plusDays(1).atTime(15, 0));
         assertThat(result.getStartPrecision()).isEqualTo(DateTimePrecision.DATE_TIME);
         assertThat(result.getClientCompany()).isEqualTo("삼성전자");
         assertThat(result.getCategoryId()).isNull();
@@ -116,7 +122,7 @@ class TaskParseServiceTest {
         TaskParseResponseDTO result = parse(sourceText);
 
         assertThat(result.getSourceText()).isEqualTo(sourceText);
-        assertThat(result.getStartAt()).isEqualTo(LocalDate.now(SEOUL_ZONE).plusDays(1).atTime(15, 0));
+        assertThat(result.getStartAt()).isEqualTo(FIXED_TODAY.plusDays(1).atTime(15, 0));
         assertThat(result.getStartText()).isEqualTo("내일 오후 3시");
         assertThat(result.getStartPrecision()).isEqualTo(DateTimePrecision.DATE_TIME);
         assertThat(result.getTitle()).isEqualTo("팀 회의");
@@ -170,7 +176,7 @@ class TaskParseServiceTest {
                 .paidAt(null)
                 .confidence(0.9)
                 .warnings(List.of())
-                .build());
+                .build(), FIXED_CLOCK);
 
         TaskParseResponseDTO result = parse(service, "내일 오후 3시에 SSAFY 1층 회의실에서 팀 회의");
 
@@ -352,9 +358,9 @@ class TaskParseServiceTest {
         TaskParseResponseDTO result = parse("내일 오후 3시부터 2시간 동안 포트폴리오 수정");
 
         assertThat(result.getTitle()).isEqualTo("포트폴리오 수정");
-        assertThat(result.getStartAt()).isEqualTo(LocalDate.now(SEOUL_ZONE).plusDays(1).atTime(15, 0));
+        assertThat(result.getStartAt()).isEqualTo(FIXED_TODAY.plusDays(1).atTime(15, 0));
         assertThat(result.getStartPrecision()).isEqualTo(DateTimePrecision.DATE_TIME);
-        assertThat(result.getEndAt()).isEqualTo(LocalDate.now(SEOUL_ZONE).plusDays(1).atTime(17, 0));
+        assertThat(result.getEndAt()).isEqualTo(FIXED_TODAY.plusDays(1).atTime(17, 0));
         assertThat(result.getEndText()).isEqualTo("2시간 동안");
         assertThat(result.getEndPrecision()).isEqualTo(DateTimePrecision.DATE_TIME);
     }
@@ -388,8 +394,8 @@ class TaskParseServiceTest {
 
         assertThat(result.getTitle()).isEqualTo("무신사 화보 회의");
         assertThat(result.getClientCompany()).isEqualTo("무신사");
-        assertThat(result.getStartAt()).isEqualTo(LocalDate.now(SEOUL_ZONE).plusDays(1).atTime(10, 0));
-        assertThat(result.getPaidAt()).isEqualTo(LocalDate.of(2026, 6, 20).atTime(15, 0));
+        assertThat(result.getStartAt()).isEqualTo(FIXED_TODAY.plusDays(1).atTime(10, 0));
+        assertThat(result.getPaidAt()).isEqualTo(LocalDate.of(2027, 6, 20).atTime(15, 0));
         assertThat(result.getPaidPrecision()).isEqualTo(DateTimePrecision.DATE_TIME);
         assertThat(result.getPaidAmount()).isEqualTo(500_000);
         assertThat(result.getBalanceAmount()).isEqualTo(500_000);
@@ -402,7 +408,7 @@ class TaskParseServiceTest {
         assertThat(result.getTitle()).isEqualTo("잔금 받기");
         assertThat(result.getStartPrecision()).isEqualTo(DateTimePrecision.NONE);
         assertThat(result.getStartAt()).isNull();
-        assertThat(result.getPaidAt()).isEqualTo(LocalDate.now(SEOUL_ZONE).atTime(17, 0));
+        assertThat(result.getPaidAt()).isEqualTo(FIXED_TODAY.atTime(17, 0));
         assertThat(result.getPaidPrecision()).isEqualTo(DateTimePrecision.DATE_TIME);
         assertThat(result.getPaidAmount()).isEqualTo(800_000);
         assertThat(result.getBalanceAmount()).isEqualTo(800_000);

@@ -3,13 +3,14 @@ package com.ssafy.lancit.domain.file.service;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.ssafy.lancit.common.annotation.OwnerCheck;
@@ -22,15 +23,19 @@ import com.ssafy.lancit.domain.file.mapper.FileDeleteQueueMapper;
 import com.ssafy.lancit.domain.file.mapper.FileMapper;
 import com.ssafy.lancit.domain.portfolio.dto.PortfolioDTO;
 import com.ssafy.lancit.domain.portfolio.mapper.PortfolioMapper;
+import com.ssafy.lancit.domain.recruitment.application.mapper.ApplicationPortfolioSnapshotMapper;
+import com.ssafy.lancit.domain.recruitment.application.mapper.ApplicationProfileSnapshotMapper;
 import com.ssafy.lancit.global.enums.FileParentType;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 // 파일 업로드 / 조회 / 삭제
 // ★ Redis: @Cacheable(signedUrl, 6일) / @CacheEvict(삭제 시 자동 제거)
 // ★ GCS: 업로드/삭제 처리, 삭제는 FileDeleteEvent → 트랜잭션 커밋 후 실행
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class FileService {
 
     private final FileMapper fileMapper;
@@ -39,15 +44,18 @@ public class FileService {
     private final ApplicationEventPublisher eventPublisher;
     private final FileDeleteQueueMapper fileDeleteQueueMapper;
     private final PortfolioMapper portfolioMapper;
+    private final ApplicationPortfolioSnapshotMapper applicationPortfolioSnapshotMapper;
+    private final ApplicationProfileSnapshotMapper applicationProfileSnapshotMapper;
     
-    @Autowired
-    private CacheManager cacheManager;
+    private final CacheManager cacheManager;
     
     // 파일 업로드 - GCS 먼저 업로드 후 DB 저장
     // GCS 성공 + DB 실패 시 GCS 수동 롤백 처리
     @Transactional
     public List<FileDTO> upload(List<MultipartFile> files, FileParentType parentType,
                           Integer parentId, String email, String role) {
+
+        validatePortfolioUpload(parentType, parentId, email, role);
     	
     	// TEMP 업로드 시 기존 TEMP 파일 삭제 큐에 추가
         // (여러 번 바꿨을 때 이전 TEMP 파일 정리)
@@ -92,6 +100,28 @@ public class FileService {
 			}
     	}
         return result;
+    }
+
+    private void validatePortfolioUpload(FileParentType parentType, Integer parentId,
+                                         String email, String role) {
+        if (!FileParentType.PORTFOLIO_FILE.equals(parentType)
+                && !FileParentType.PORTFOLIO_BANNER.equals(parentType)) {
+            return;
+        }
+        if (!"USER".equalsIgnoreCase(role)) {
+            throw new CustomException(ErrorCode.FORBIDDEN);
+        }
+        if (parentId == null) {
+            throw new CustomException(ErrorCode.INVALID_INPUT);
+        }
+
+        PortfolioDTO portfolio = portfolioMapper.findById(parentId);
+        if (portfolio == null) {
+            throw new CustomException(ErrorCode.PORTFOLIO_NOT_FOUND);
+        }
+        if (!email.equals(portfolio.getEmail())) {
+            throw new CustomException(ErrorCode.FORBIDDEN);
+        }
     }
 
     
@@ -183,11 +213,7 @@ public class FileService {
         
         FileDTO dto = fileMapper.findById(fileId);
         if(dto == null) return;
-        // TODO: 지원 프로필 스냅샷 참조 파일은 직접 삭제 대신 보존/지연 삭제한다.
-        
-        eventPublisher.publishEvent(  new FileDeleteEvent(dto.getUploadPath()) ); // 커밋 성공하면 이 파일 삭제 예약
-        fileMapper.delete(fileId);
-        cacheManager.getCache("signedUrl").evict(dto.getFileId());//Redis signedUrl 캐시 제거
+        deleteOrDetachSnapshotFile(dto);
         // 트랜잭션이 정상적으로 COMMIT 된 후 실행됨
         // 단, gcs까지는 삭제를 보장하지 않고 트랜잭션 처리가 안됨. 삭제 실패한 파일 목록들 저장해서 배치로 재시도
     }
@@ -196,14 +222,12 @@ public class FileService {
 	 // 시스템(도메인 서비스) 주도 삭제 - OwnerCheck 미적용 : 개인것만 지워야하는 상화에서는 사용 금지
 	 // 계약 파기/완료 등 계약 도메인이 자신의 PDF/첨부파일을 정리할 때 사용
 	 @Transactional
-	 public void deleteBySystem(int fileId) {
+    public void deleteBySystem(int fileId) {
 	
 	     FileDTO dto = fileMapper.findById(fileId);
 	     if (dto == null) return;
 	
-	     eventPublisher.publishEvent(new FileDeleteEvent(dto.getUploadPath()));
-	     fileMapper.delete(fileId);
-	     cacheManager.getCache("signedUrl").evict(dto.getFileId());
+         deleteOrDetachSnapshotFile(dto);
 	 }
     
 
@@ -223,9 +247,55 @@ public class FileService {
         if (files == null || files.isEmpty()) return;
         
         for (FileDTO dto : files) {
-            eventPublisher.publishEvent(new FileDeleteEvent(dto.getUploadPath()));
-            fileMapper.delete(dto.getFileId());
-            cacheManager.getCache("signedUrl").evict(dto.getFileId());//Redis signedUrl 캐시 제거
+            deleteOrDetachSnapshotFile(dto);
+        }
+    }
+
+    @Transactional
+    public void deleteProfileIfUnreferenced(int fileId) {
+        if (fileMapper.isCurrentProfileFileReferenced(fileId)) {
+            return;
+        }
+        deleteBySystem(fileId);
+    }
+
+    @Transactional
+    public void deletePortfolioFileIfUnreferenced(int fileId) {
+        if (fileMapper.isCurrentPortfolioFileReferenced(fileId)
+                || applicationPortfolioSnapshotMapper.isFileReferenced(fileId)) {
+            return;
+        }
+        deleteBySystem(fileId);
+    }
+
+    @Transactional
+    public void deleteRecruitmentImageIfUnreferenced(int fileId) {
+        if (fileMapper.isCurrentRecruitmentImageReferenced(fileId)) {
+            return;
+        }
+        FileDTO dto = fileMapper.findById(fileId);
+        if (dto == null) {
+            return;
+        }
+        deleteFile(dto);
+    }
+
+    private void deleteOrDetachSnapshotFile(FileDTO dto) {
+        boolean snapshotReferenced = applicationProfileSnapshotMapper.isProfileFileReferenced(dto.getFileId())
+                || applicationPortfolioSnapshotMapper.isFileReferenced(dto.getFileId());
+        if (snapshotReferenced) {
+            fileMapper.detach(dto.getFileId());
+            return;
+        }
+
+        deleteFile(dto);
+    }
+
+    private void deleteFile(FileDTO dto) {
+        eventPublisher.publishEvent(new FileDeleteEvent(dto.getUploadPath()));
+        fileMapper.delete(dto.getFileId());
+        if (cacheManager.getCache("signedUrl") != null) {
+            cacheManager.getCache("signedUrl").evict(dto.getFileId());
         }
     }
     
@@ -272,36 +342,70 @@ public class FileService {
     
     
     @Transactional
-    public void attachToParent(Integer fileId, FileParentType targetType, int parentId,String ownerEmail) {
-        if (fileId == null) { return;}
+    public void attachToParent(Integer fileId, FileParentType targetType, int parentId, String ownerEmail) {
+        if (fileId == null) { return; }
 
         FileDTO file = findById(fileId);
 
-        String fileOwnerEmail =file.getUserEmail() != null? file.getUserEmail(): file.getCompanyEmail();
+        String fileOwnerEmail = file.getUserEmail() != null ? file.getUserEmail() : file.getCompanyEmail();
         if (!ownerEmail.equals(fileOwnerEmail)) {
             throw new CustomException(ErrorCode.FORBIDDEN);
         }
 
-        if (file.getParentId() != null&& !file.getParentId().equals(parentId)) {
+        if (file.getParentId() != null && !file.getParentId().equals(parentId)) {
             throw new CustomException(ErrorCode.FORBIDDEN);
         }
 
         // TEMP 또는 TEMP_SIGNATURE 에서만 승격 가능
         // 이미 targetType 이면 재호출 허용
-        if (!FileParentType.TEMP.equals(file.getParentType()) && !FileParentType.TEMP_SIGNATURE.equals(file.getParentType())&& !targetType.equals(file.getParentType())) {
+        if (!FileParentType.TEMP.equals(file.getParentType())
+                && !FileParentType.TEMP_SIGNATURE.equals(file.getParentType())
+                && !targetType.equals(file.getParentType())) {
             throw new CustomException(ErrorCode.INVALID_INPUT);
         }
 
         // TEMP 계열이면 GCS 경로도 이동
-        if (FileParentType.TEMP.equals(file.getParentType()) || FileParentType.TEMP_SIGNATURE.equals(file.getParentType())) {
-            String newPath = gcsService.move(file.getSysName(),targetType);
-            fileMapper.updatePath(fileId, newPath);
+        if (FileParentType.TEMP.equals(file.getParentType())
+                || FileParentType.TEMP_SIGNATURE.equals(file.getParentType())) {
+            String newPath = gcsService.move(file.getSysName(), targetType);
+            try {
+                fileMapper.updatePath(fileId, newPath);
+                fileMapper.updateParent(fileId, targetType, parentId);
+            } catch (RuntimeException e) {
+                restoreTempPath(newPath);
+                throw e;
+            }
+            registerMoveRollback(newPath);
+            return;
         }
 
         fileMapper.updateParent(fileId, targetType, parentId);
     }
+
     
     
+
+    private void registerMoveRollback(String promotedPath) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCompletion(int status) {
+                if (status == TransactionSynchronization.STATUS_ROLLED_BACK) {
+                    restoreTempPath(promotedPath);
+                }
+            }
+        });
+    }
+
+    private void restoreTempPath(String promotedPath) {
+        try {
+            gcsService.move(promotedPath, FileParentType.TEMP);
+        } catch (RuntimeException rollbackException) {
+            log.error("[GCS] TEMP 파일 승격 롤백 실패: {}", promotedPath, rollbackException);
+        }
+    }
 
     @Transactional
     public void detachByParent(FileParentType parentType, int parentId) {
