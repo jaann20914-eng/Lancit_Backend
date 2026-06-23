@@ -145,12 +145,13 @@ public class TaskParseService {
         }
 
         String sourceText = requestDTO.getSourceText().trim();
-        TaskParseResponseDTO aiResult = tryParseWithAi(sourceText);
-        if (aiResult != null) {
-            return aiResult;
+        TaskParseResponseDTO result = tryParseWithAi(sourceText);
+        if (result == null) {
+            result = parseByRules(sourceText);
         }
 
-        return parseByRules(sourceText);
+        markDraftConfirmation(result);
+        return result;
     }
 
     private TaskParseResponseDTO tryParseWithAi(String sourceText) {
@@ -277,6 +278,34 @@ public class TaskParseService {
 
         if (startDetail.precision() == DateTimePrecision.TIME_ONLY && StringUtils.hasText(startDetail.text())) {
             aiResult.setMemo(appendMemo(aiResult.getMemo(), "시간만 명시됨: " + startDetail.text()));
+        }
+    }
+
+    private void markDraftConfirmation(TaskParseResponseDTO result) {
+        List<String> warnings = new ArrayList<>(result.getWarnings() == null ? List.of() : result.getWarnings());
+        boolean requiresConfirmation = Boolean.TRUE.equals(result.getRequiresConfirmation());
+
+        if (result.getStartAt() == null) {
+            requiresConfirmation = true;
+            addWarningIfAbsent(warnings, "일정 시작 일시가 확정되지 않아 저장 전 시작일시 확인이 필요합니다.");
+        }
+        if (result.getEndAt() == null) {
+            requiresConfirmation = true;
+            addWarningIfAbsent(warnings, "일정 종료 일시가 확정되지 않아 저장 전 종료일시 확인이 필요합니다.");
+        }
+        if (result.getPaidAt() == null
+                && result.getPaidPrecision() != null
+                && result.getPaidPrecision() != DateTimePrecision.NONE) {
+            addWarningIfAbsent(warnings, "지급 일시는 일부만 인식되어 기존 저장 필드 paidAt에는 자동 입력하지 않습니다.");
+        }
+
+        result.setRequiresConfirmation(requiresConfirmation);
+        result.setWarnings(List.copyOf(warnings));
+    }
+
+    private void addWarningIfAbsent(List<String> warnings, String warning) {
+        if (!warnings.contains(warning)) {
+            warnings.add(warning);
         }
     }
 

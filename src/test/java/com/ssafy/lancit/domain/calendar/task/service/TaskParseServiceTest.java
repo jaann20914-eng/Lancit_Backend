@@ -73,6 +73,7 @@ class TaskParseServiceTest {
         assertThat(result.getStartPrecision()).isEqualTo(DateTimePrecision.DATE_TIME);
         assertThat(result.getClientCompany()).isEqualTo("랜싯");
         assertThat(result.getConfidence()).isEqualTo(0.92);
+        assertThat(result.getRequiresConfirmation()).isFalse();
     }
 
     @Test
@@ -89,6 +90,8 @@ class TaskParseServiceTest {
         assertThat(result.getStartTime()).isEqualTo(LocalTime.of(15, 0));
         assertThat(result.getStartPrecision()).isEqualTo(DateTimePrecision.DATE_TIME);
         assertThat(result.getClientCompany()).isEqualTo("삼성전자");
+        assertThat(result.getRequiresConfirmation()).isTrue();
+        assertThat(result.getWarnings()).contains("일정 종료 일시가 확정되지 않아 저장 전 종료일시 확인이 필요합니다.");
     }
 
     @Test
@@ -100,6 +103,8 @@ class TaskParseServiceTest {
         assertThat(result.getStartPrecision()).isEqualTo(DateTimePrecision.DATE_TIME);
         assertThat(result.getClientCompany()).isEqualTo("삼성전자");
         assertThat(result.getCategoryId()).isNull();
+        assertThat(result.getRequiresConfirmation()).isTrue();
+        assertThat(result.getWarnings()).contains("일정 종료 일시가 확정되지 않아 저장 전 종료일시 확인이 필요합니다.");
     }
 
     @Test
@@ -311,6 +316,7 @@ class TaskParseServiceTest {
         assertThat(result.getStartAt().toLocalDate().getDayOfMonth()).isEqualTo(12);
         assertThat(result.getStartAt().toLocalTime()).isEqualTo(LocalTime.of(14, 0));
         assertThat(result.getEndAt().toLocalTime()).isEqualTo(LocalTime.of(16, 0));
+        assertThat(result.getRequiresConfirmation()).isFalse();
     }
 
     @Test
@@ -324,7 +330,9 @@ class TaskParseServiceTest {
         assertThat(result.getStartTime()).isNull();
         assertThat(result.getStartText()).isEqualTo("7월 3일");
         assertThat(result.getStartPrecision()).isEqualTo(DateTimePrecision.DATE_ONLY);
+        assertThat(result.getRequiresConfirmation()).isTrue();
         assertThat(result.getWarnings()).anyMatch(warning -> warning.contains("날짜만 보존"));
+        assertThat(result.getWarnings()).contains("일정 시작 일시가 확정되지 않아 저장 전 시작일시 확인이 필요합니다.");
     }
 
     @Test
@@ -337,7 +345,9 @@ class TaskParseServiceTest {
         assertThat(result.getStartText()).isEqualTo("오후 3시");
         assertThat(result.getStartPrecision()).isEqualTo(DateTimePrecision.TIME_ONLY);
         assertThat(result.getMemo()).isEqualTo("시간만 명시됨: 오후 3시");
+        assertThat(result.getRequiresConfirmation()).isTrue();
         assertThat(result.getWarnings()).anyMatch(warning -> warning.contains("시간만 보존"));
+        assertThat(result.getWarnings()).contains("일정 시작 일시가 확정되지 않아 저장 전 시작일시 확인이 필요합니다.");
     }
 
     @Test
