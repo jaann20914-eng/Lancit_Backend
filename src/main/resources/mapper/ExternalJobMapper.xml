@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ssafy.lancit.domain.externaljob.mapper.ExternalJobMapper">
+
+    <resultMap id="ExternalJobResultMap" type="com.ssafy.lancit.domain.externaljob.dto.ExternalJobDTO">
+        <id property="id" column="id"/>
+        <result property="source" column="source"/>
+        <result property="sourceJobId" column="source_job_id"/>
+        <result property="sourceUrl" column="source_url"/>
+        <result property="title" column="title"/>
+        <result property="companyName" column="company_name"/>
+        <result property="location" column="location"/>
+        <result property="jobCategoryRaw" column="job_category_raw"/>
+        <result property="employmentTypeRaw" column="employment_type_raw"/>
+        <result property="salaryRaw" column="salary_raw"/>
+        <result property="postedAt" column="posted_at"/>
+        <result property="deadlineAt" column="deadline_at"/>
+        <result property="description" column="description"/>
+        <result property="originalPayloadJson" column="original_payload_json"/>
+        <result property="payloadHash" column="payload_hash"/>
+        <result property="freelanceType" column="freelance_type"/>
+        <result property="recommendationType" column="recommendation_type"/>
+        <result property="collectedAt" column="collected_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <sql id="ExternalJobColumns">
+        id,
+        source,
+        source_job_id,
+        source_url,
+        title,
+        company_name,
+        location,
+        job_category_raw,
+        employment_type_raw,
+        salary_raw,
+        posted_at,
+        deadline_at,
+        description,
+        original_payload_json,
+        payload_hash,
+        freelance_type,
+        recommendation_type,
+        collected_at,
+        updated_at
+    </sql>
+
+    <sql id="VisibleExternalJobFilters">
+        AND freelance_type &lt;&gt; 'NOT_FREELANCE'
+        AND recommendation_type &lt;&gt; 'EXCLUDED'
+        <if test="condition == null or condition.includeExpired == null or condition.includeExpired == false">
+            AND (
+                deadline_at IS NULL
+                OR deadline_at &gt;= NOW()
+            )
+        </if>
+    </sql>
+
+    <sql id="SearchFilters">
+        <if test="condition != null and condition.keyword != null and condition.keyword != ''">
+            AND (
+                title LIKE CONCAT('%', #{condition.keyword}, '%')
+                OR company_name LIKE CONCAT('%', #{condition.keyword}, '%')
+                OR description LIKE CONCAT('%', #{condition.keyword}, '%')
+            )
+        </if>
+        <if test="condition != null and condition.source != null">
+            AND source = #{condition.source}
+        </if>
+        <if test="condition != null and condition.recommendationType != null">
+            AND recommendation_type = #{condition.recommendationType}
+        </if>
+    </sql>
+
+    <sql id="ExternalJobOrderBy">
+        ORDER BY
+        <choose>
+            <when test="condition != null and condition.safeSort == 'DEADLINE'">
+                CASE WHEN deadline_at IS NULL THEN 1 ELSE 0 END,
+                deadline_at ASC,
+                id DESC
+            </when>
+            <otherwise>
+                collected_at DESC,
+                id DESC
+            </otherwise>
+        </choose>
+    </sql>
+
+    <sql id="Pagination">
+        <bind name="limit" value="pageRequest.size &lt;= 0 ? 10 : pageRequest.size"/>
+        <bind name="offset" value="pageRequest.offset &lt; 0 ? 0 : pageRequest.offset"/>
+        LIMIT #{limit} OFFSET #{offset}
+    </sql>
+
+    <insert id="upsertExternalJob">
+        INSERT INTO external_job (
+            source,
+            source_job_id,
+            source_url,
+            title,
+            company_name,
+            location,
+            job_category_raw,
+            employment_type_raw,
+            salary_raw,
+            posted_at,
+            deadline_at,
+            description,
+            original_payload_json,
+            payload_hash,
+            freelance_type,
+            recommendation_type,
+            collected_at,
+            updated_at
+        ) VALUES (
+            #{source},
+            #{sourceJobId},
+            #{sourceUrl},
+            #{title},
+            #{companyName},
+            #{location},
+            #{jobCategoryRaw},
+            #{employmentTypeRaw},
+            #{salaryRaw},
+            #{postedAt},
+            #{deadlineAt},
+            #{description},
+            #{originalPayloadJson},
+            #{payloadHash},
+            #{freelanceType},
+            #{recommendationType},
+            #{collectedAt},
+            #{updatedAt}
+        )
+        ON DUPLICATE KEY UPDATE
+            title = VALUES(title),
+            source_url = VALUES(source_url),
+            company_name = VALUES(company_name),
+            location = VALUES(location),
+            job_category_raw = VALUES(job_category_raw),
+            employment_type_raw = VALUES(employment_type_raw),
+            salary_raw = VALUES(salary_raw),
+            posted_at = VALUES(posted_at),
+            deadline_at = VALUES(deadline_at),
+            description = VALUES(description),
+            original_payload_json = VALUES(original_payload_json),
+            payload_hash = VALUES(payload_hash),
+            freelance_type = VALUES(freelance_type),
+            recommendation_type = VALUES(recommendation_type),
+            updated_at = VALUES(updated_at)
+    </insert>
+
+    <select id="findExternalJobs" resultMap="ExternalJobResultMap">
+        SELECT
+        <include refid="ExternalJobColumns"/>
+        FROM external_job
+        WHERE 1 = 1
+        <include refid="VisibleExternalJobFilters"/>
+        <include refid="SearchFilters"/>
+        <include refid="ExternalJobOrderBy"/>
+        <include refid="Pagination"/>
+    </select>
+
+    <select id="countExternalJobs" resultType="long">
+        SELECT COUNT(*)
+        FROM external_job
+        WHERE 1 = 1
+        <include refid="VisibleExternalJobFilters"/>
+        <include refid="SearchFilters"/>
+    </select>
+
+    <select id="findById" resultMap="ExternalJobResultMap">
+        SELECT
+        <include refid="ExternalJobColumns"/>
+        FROM external_job
+        WHERE id = #{id}
+          AND freelance_type &lt;&gt; 'NOT_FREELANCE'
+          AND recommendation_type &lt;&gt; 'EXCLUDED'
+          AND (
+              deadline_at IS NULL
+              OR deadline_at &gt;= NOW()
+          )
+    </select>
+</mapper>

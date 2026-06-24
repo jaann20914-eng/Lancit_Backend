@@ -83,7 +83,11 @@ public enum ErrorCode {
     INVALID_APPLICATION_STATUS(HttpStatus.CONFLICT, "현재 상태에서는 지원을 수정하거나 취소할 수 없습니다."),
     INVALID_APPLICATION_STATUS_CHANGE(HttpStatus.CONFLICT, "현재 상태에서는 지원을 수락하거나 거절할 수 없습니다."),
     INVALID_APPLICATION_STATUS_VALUE(HttpStatus.BAD_REQUEST, "지원 상태는 ACCEPTED 또는 REJECTED만 가능합니다."),
-    INVALID_APPLICATION_PORTFOLIO(HttpStatus.BAD_REQUEST, "지원에 사용할 수 없는 포트폴리오입니다.");
+    INVALID_APPLICATION_PORTFOLIO(HttpStatus.BAD_REQUEST, "지원에 사용할 수 없는 포트폴리오입니다."),
+
+    // 외부 공고
+    EXTERNAL_JOB_NOT_FOUND(HttpStatus.NOT_FOUND, "외부 공고를 찾을 수 없습니다."),
+    SEOUL_API_KEY_MISSING(HttpStatus.BAD_REQUEST, "서울시 API 키가 설정되지 않았습니다.");
 	
 	
     // TODO 영은: 기능 구현 중 필요한 에러코드 생기면 여기에 추가
