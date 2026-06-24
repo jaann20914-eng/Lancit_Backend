@@ -7,14 +7,18 @@ import com.ssafy.lancit.domain.calendar.task.dto.TaskParseResponseDTO;
 import com.ssafy.lancit.global.enums.DateTimePrecision;
 import com.ssafy.lancit.global.enums.TaskStatus;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
+import java.io.InputStream;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -22,12 +26,15 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class TaskParseServiceTest {
 
     private static final ZoneId SEOUL_ZONE = ZoneId.of("Asia/Seoul");
-    private static final LocalDate FIXED_TODAY = LocalDate.of(2026, 6, 22);
+    private static final LocalDate FIXED_TODAY = LocalDate.of(2026, 6, 24);
     private static final Clock FIXED_CLOCK = Clock.fixed(
             FIXED_TODAY.atStartOfDay(SEOUL_ZONE).toInstant(),
             SEOUL_ZONE
     );
+    private static final String RULE_GOLDEN_SET_RESOURCE = "/calendar-task-parse-rule-golden-set.json";
+    private static final String AI_CONTRACT_SET_RESOURCE = "/calendar-task-parse-ai-contract-set.json";
 
+    private final ObjectMapper objectMapper = new ObjectMapper();
     private final TaskParseService taskParseService = new TaskParseService(null, FIXED_CLOCK);
 
     @Test
@@ -74,6 +81,7 @@ class TaskParseServiceTest {
         assertThat(result.getStartPrecision()).isEqualTo(DateTimePrecision.DATE_TIME);
         assertThat(result.getClientCompany()).isEqualTo("랜싯");
         assertThat(result.getConfidence()).isEqualTo(0.92);
+        assertThat(result.getRequiresConfirmation()).isFalse();
     }
 
     @Test
@@ -90,18 +98,8 @@ class TaskParseServiceTest {
         assertThat(result.getStartTime()).isEqualTo(LocalTime.of(15, 0));
         assertThat(result.getStartPrecision()).isEqualTo(DateTimePrecision.DATE_TIME);
         assertThat(result.getClientCompany()).isEqualTo("삼성전자");
-    }
-
-    @Test
-    void parseFallsBackToRulesWhenGmsKeyIsMissing() {
-        TaskParseService service = new TaskParseService(new GmsGeminiTaskParseClient(new ObjectMapper(), FIXED_CLOCK), FIXED_CLOCK);
-
-        TaskParseResponseDTO result = parse(service, "내일 오후 3시에 삼성전자 미팅");
-
-        assertThat(result.getTitle()).isEqualTo("삼성전자 미팅");
-        assertThat(result.getStartAt()).isEqualTo(FIXED_TODAY.plusDays(1).atTime(15, 0));
-        assertThat(result.getStartPrecision()).isEqualTo(DateTimePrecision.DATE_TIME);
-        assertThat(result.getClientCompany()).isEqualTo("삼성전자");
+        assertThat(result.getRequiresConfirmation()).isTrue();
+        assertThat(result.getWarnings()).contains("일정 종료 일시가 확정되지 않아 저장 전 종료일시 확인이 필요합니다.");
     }
 
     @Test
@@ -113,6 +111,8 @@ class TaskParseServiceTest {
         assertThat(result.getStartPrecision()).isEqualTo(DateTimePrecision.DATE_TIME);
         assertThat(result.getClientCompany()).isEqualTo("삼성전자");
         assertThat(result.getCategoryId()).isNull();
+        assertThat(result.getRequiresConfirmation()).isTrue();
+        assertThat(result.getWarnings()).contains("일정 종료 일시가 확정되지 않아 저장 전 종료일시 확인이 필요합니다.");
     }
 
     @Test
@@ -138,8 +138,7 @@ class TaskParseServiceTest {
         assertThat(result.getClientCompany()).isEqualTo("삼성전자");
         assertThat(result.getCategoryId()).isNull();
         assertThat(result.getStartAt()).isNull();
-        assertThat(result.getStartDate().getMonthValue()).isEqualTo(7);
-        assertThat(result.getStartDate().getDayOfMonth()).isEqualTo(1);
+        assertThat(result.getStartDate()).isEqualTo(LocalDate.of(2026, 7, 1));
         assertThat(result.getStartPrecision()).isEqualTo(DateTimePrecision.DATE_ONLY);
         assertThat(result.getMemo()).isNull();
     }
@@ -183,7 +182,7 @@ class TaskParseServiceTest {
         assertThat(result.getCategoryId()).isNull();
         assertThat(result.getClientCompany()).isNull();
         assertThat(result.getMemo()).isEqualTo("장소: SSAFY 1층 회의실");
-        assertThat(result.getContent()).isEqualTo("팀 회의");
+        assertThat(result.getContent()).isNull();
         assertThat(result.getStartPrecision()).isEqualTo(DateTimePrecision.DATE_TIME);
     }
 
@@ -198,11 +197,11 @@ class TaskParseServiceTest {
     }
 
     @Test
-    void parseKnownCompanyContainingRelativeDateWordWithoutDroppingTitle() {
+    void parseKnownCompanyInterviewKeepsCompanyInTitleOnly() {
         TaskParseResponseDTO result = parse("다음 주 화요일 15시 오늘의집 UX 인터뷰");
 
         assertThat(result.getTitle()).isEqualTo("오늘의집 UX 인터뷰");
-        assertThat(result.getClientCompany()).isEqualTo("오늘의집");
+        assertThat(result.getClientCompany()).isNull();
         assertThat(result.getStartPrecision()).isEqualTo(DateTimePrecision.DATE_TIME);
     }
 
@@ -223,6 +222,7 @@ class TaskParseServiceTest {
         assertThat(result.getTitle()).isEqualTo("면담");
         assertThat(result.getClientCompany()).isNull();
         assertThat(result.getMemo()).isEqualTo("장소: 카카오 판교오피스");
+        assertThat(result.getStartAt()).isEqualTo(LocalDate.of(2027, 6, 12).atTime(10, 0));
         assertThat(result.getStartPrecision()).isEqualTo(DateTimePrecision.DATE_TIME);
     }
 
@@ -233,8 +233,7 @@ class TaskParseServiceTest {
         assertThat(result.getTitle()).isEqualTo("자료 리뷰");
         assertThat(result.getClientCompany()).isNull();
         assertThat(result.getMemo()).isEqualTo("장소: 토스 본사 3층");
-        assertThat(result.getStartAt().toLocalDate().getMonthValue()).isEqualTo(6);
-        assertThat(result.getStartAt().toLocalDate().getDayOfMonth()).isEqualTo(15);
+        assertThat(result.getStartAt().toLocalDate()).isEqualTo(LocalDate.of(2027, 6, 15));
         assertThat(result.getStartTime()).isEqualTo(LocalTime.of(14, 0));
         assertThat(result.getStartPrecision()).isEqualTo(DateTimePrecision.DATE_TIME);
     }
@@ -264,6 +263,7 @@ class TaskParseServiceTest {
 
         assertThat(result.getTitle()).isEqualTo("발표");
         assertThat(result.getMemo()).isEqualTo("장소: 회의실 B, 준비물: 노트북");
+        assertThat(result.getStartAt()).isEqualTo(LocalDate.of(2027, 6, 12).atTime(10, 0));
         assertThat(result.getStartPrecision()).isEqualTo(DateTimePrecision.DATE_TIME);
     }
 
@@ -282,6 +282,7 @@ class TaskParseServiceTest {
 
         assertThat(result.getTitle()).isEqualTo("Figma 링크 확인");
         assertThat(result.getMemo()).isEqualTo("자료: PDF로 준비");
+        assertThat(result.getStartAt()).isEqualTo(LocalDate.of(2027, 6, 18).atTime(14, 0));
         assertThat(result.getStartPrecision()).isEqualTo(DateTimePrecision.DATE_TIME);
     }
 
@@ -320,10 +321,167 @@ class TaskParseServiceTest {
         TaskParseResponseDTO result = parse("6월 12일 14:00~16:00 랜싯 프로젝트 회의");
 
         assertThat(result.getTitle()).isEqualTo("랜싯 프로젝트 회의");
-        assertThat(result.getStartAt().toLocalDate().getMonthValue()).isEqualTo(6);
-        assertThat(result.getStartAt().toLocalDate().getDayOfMonth()).isEqualTo(12);
+        assertThat(result.getStartAt().toLocalDate()).isEqualTo(LocalDate.of(2027, 6, 12));
         assertThat(result.getStartAt().toLocalTime()).isEqualTo(LocalTime.of(14, 0));
+        assertThat(result.getEndAt().toLocalDate()).isEqualTo(LocalDate.of(2027, 6, 12));
         assertThat(result.getEndAt().toLocalTime()).isEqualTo(LocalTime.of(16, 0));
+        assertThat(result.getRequiresConfirmation()).isFalse();
+    }
+
+    @Test
+    void parseSimpleDateTimeRangeKeepsContentNull() {
+        TaskParseResponseDTO result = parse("2026년 7월 12일 14:00~16:00 회의");
+
+        assertThat(result.getTitle()).isEqualTo("회의");
+        assertThat(result.getStartAt()).isEqualTo(LocalDate.of(2026, 7, 12).atTime(14, 0));
+        assertThat(result.getEndAt()).isEqualTo(LocalDate.of(2026, 7, 12).atTime(16, 0));
+        assertThat(result.getContent()).isNull();
+        assertThat(result.getMemo()).isNull();
+        assertThat(result.getRequiresConfirmation()).isFalse();
+    }
+
+    @Test
+    void parsePlaceOnlySentenceStoresPlaceInMemoAndKeepsContentNull() {
+        TaskParseResponseDTO result = parse("내일 오후 2시 역삼역에서 점심식사");
+
+        assertThat(result.getTitle()).isEqualTo("점심식사");
+        assertThat(result.getStartAt()).isEqualTo(FIXED_TODAY.plusDays(1).atTime(14, 0));
+        assertThat(result.getContent()).isNull();
+        assertThat(result.getMemo()).isEqualTo("장소: 역삼역");
+    }
+
+    @Test
+    void parseInterviewKeepsCompanyInTitleWithoutDuplicatingClientCompany() {
+        TaskParseResponseDTO result = parse("삼성전자 면접 6월 25일 오후 3시");
+
+        assertThat(result.getTitle()).isEqualTo("삼성전자 면접");
+        assertThat(result.getClientCompany()).isNull();
+        assertThat(result.getStartAt()).isEqualTo(LocalDate.of(2026, 6, 25).atTime(15, 0));
+        assertThat(result.getContent()).isNull();
+        assertThat(result.getMemo()).isNull();
+    }
+
+    @Test
+    void parseKeepsAiContentWhenAgendaIsExplicit() {
+        LocalDateTime aiStartAt = LocalDateTime.of(2026, 6, 23, 15, 0);
+        TaskParseService service = new TaskParseService(sourceText -> TaskParseResponseDTO.builder()
+                .sourceText(sourceText)
+                .categoryId(null)
+                .title("기획 회의")
+                .content("랜딩페이지 개선안 논의")
+                .memo(null)
+                .startAt(aiStartAt)
+                .endAt(null)
+                .status(TaskStatus.IN_PROGRESS)
+                .clientCompany(null)
+                .confidence(0.91)
+                .warnings(List.of())
+                .build(), FIXED_CLOCK);
+
+        TaskParseResponseDTO result = parse(service, "내일 오후 3시 줌으로 기획 회의, 랜딩페이지 개선안 논의");
+
+        assertThat(result.getTitle()).isEqualTo("기획 회의");
+        assertThat(result.getContent()).isEqualTo("랜딩페이지 개선안 논의");
+        assertThat(result.getMemo()).isEqualTo("온라인: Zoom");
+        assertThat(result.getStartAt()).isEqualTo(aiStartAt);
+    }
+
+    @Test
+    void parseTrimsRepeatedDateTimeAndTitleFromAiContentWhenAgendaRemains() {
+        LocalDateTime aiStartAt = LocalDateTime.of(2026, 6, 23, 15, 0);
+        TaskParseService service = new TaskParseService(sourceText -> TaskParseResponseDTO.builder()
+                .sourceText(sourceText)
+                .categoryId(null)
+                .title("기획 회의")
+                .content("내일 오후 3시 기획 회의에서 랜딩페이지 개선안 논의")
+                .memo(null)
+                .startAt(aiStartAt)
+                .endAt(null)
+                .status(TaskStatus.IN_PROGRESS)
+                .clientCompany(null)
+                .confidence(0.91)
+                .warnings(List.of())
+                .build(), FIXED_CLOCK);
+
+        TaskParseResponseDTO result = parse(service, "내일 오후 3시 줌으로 기획 회의, 랜딩페이지 개선안 논의");
+
+        assertThat(result.getContent()).isEqualTo("랜딩페이지 개선안 논의");
+        assertThat(result.getMemo()).isEqualTo("온라인: Zoom");
+    }
+
+    @Test
+    void parseRemovesAiGeneratedSummaryContent() {
+        LocalDateTime aiStartAt = LocalDateTime.of(2026, 7, 12, 14, 0);
+        TaskParseService service = new TaskParseService(sourceText -> TaskParseResponseDTO.builder()
+                .sourceText(sourceText)
+                .categoryId(null)
+                .title("회의")
+                .content("2026년 7월 12일 14:00~16:00 회의 진행")
+                .memo(null)
+                .startAt(aiStartAt)
+                .endAt(aiStartAt.plusHours(2))
+                .status(TaskStatus.IN_PROGRESS)
+                .clientCompany(null)
+                .confidence(0.9)
+                .warnings(List.of())
+                .build(), FIXED_CLOCK);
+
+        TaskParseResponseDTO result = parse(service, "2026년 7월 12일 14:00~16:00 회의");
+
+        assertThat(result.getContent()).isNull();
+        assertThat(result.getMemo()).isNull();
+        assertThat(result.getStartAt()).isEqualTo(aiStartAt);
+        assertThat(result.getEndAt()).isEqualTo(aiStartAt.plusHours(2));
+    }
+
+    @Test
+    void parsePrependsClientCompanyToPersonalInterviewAiTitle() {
+        LocalDateTime aiStartAt = LocalDateTime.of(2026, 6, 25, 15, 0);
+        TaskParseService service = new TaskParseService(sourceText -> TaskParseResponseDTO.builder()
+                .sourceText(sourceText)
+                .categoryId(null)
+                .title("면접")
+                .content("6월 25일 오후 3시 삼성전자 면접 진행")
+                .memo(null)
+                .startAt(aiStartAt)
+                .endAt(null)
+                .status(TaskStatus.IN_PROGRESS)
+                .clientCompany("삼성전자")
+                .confidence(0.88)
+                .warnings(List.of())
+                .build(), FIXED_CLOCK);
+
+        TaskParseResponseDTO result = parse(service, "삼성전자 면접 6월 25일 오후 3시");
+
+        assertThat(result.getTitle()).isEqualTo("삼성전자 면접");
+        assertThat(result.getClientCompany()).isNull();
+        assertThat(result.getContent()).isNull();
+        assertThat(result.getMemo()).isNull();
+    }
+
+    @Test
+    void parseRemovesDuplicatedClientCompanyWhenPersonalInterviewAiTitleAlreadyContainsCompany() {
+        LocalDateTime aiStartAt = LocalDateTime.of(2026, 6, 25, 15, 0);
+        TaskParseService service = new TaskParseService(sourceText -> TaskParseResponseDTO.builder()
+                .sourceText(sourceText)
+                .categoryId(null)
+                .title("삼성전자 면접")
+                .content("삼성전자 면접 진행")
+                .memo(null)
+                .startAt(aiStartAt)
+                .endAt(null)
+                .status(TaskStatus.IN_PROGRESS)
+                .clientCompany("삼성전자")
+                .confidence(0.88)
+                .warnings(List.of())
+                .build(), FIXED_CLOCK);
+
+        TaskParseResponseDTO result = parse(service, "삼성전자 면접 6월 25일 오후 3시");
+
+        assertThat(result.getTitle()).isEqualTo("삼성전자 면접");
+        assertThat(result.getClientCompany()).isNull();
+        assertThat(result.getContent()).isNull();
+        assertThat(result.getMemo()).isNull();
     }
 
     @Test
@@ -337,7 +495,9 @@ class TaskParseServiceTest {
         assertThat(result.getStartTime()).isNull();
         assertThat(result.getStartText()).isEqualTo("7월 3일");
         assertThat(result.getStartPrecision()).isEqualTo(DateTimePrecision.DATE_ONLY);
+        assertThat(result.getRequiresConfirmation()).isTrue();
         assertThat(result.getWarnings()).anyMatch(warning -> warning.contains("날짜만 보존"));
+        assertThat(result.getWarnings()).contains("일정 시작 일시가 확정되지 않아 저장 전 시작일시 확인이 필요합니다.");
     }
 
     @Test
@@ -350,7 +510,9 @@ class TaskParseServiceTest {
         assertThat(result.getStartText()).isEqualTo("오후 3시");
         assertThat(result.getStartPrecision()).isEqualTo(DateTimePrecision.TIME_ONLY);
         assertThat(result.getMemo()).isEqualTo("시간만 명시됨: 오후 3시");
+        assertThat(result.getRequiresConfirmation()).isTrue();
         assertThat(result.getWarnings()).anyMatch(warning -> warning.contains("시간만 보존"));
+        assertThat(result.getWarnings()).contains("일정 시작 일시가 확정되지 않아 저장 전 시작일시 확인이 필요합니다.");
     }
 
     @Test
@@ -380,9 +542,7 @@ class TaskParseServiceTest {
         assertThat(result.getBudget()).isEqualTo(3_000_000);
         assertThat(result.getPaidAmount()).isEqualTo(3_000_000);
         assertThat(result.getPaidAt()).isNull();
-        assertThat(result.getPaidDate()).isNotNull();
-        assertThat(result.getPaidDate().getMonthValue()).isEqualTo(7);
-        assertThat(result.getPaidDate().getDayOfMonth()).isEqualTo(1);
+        assertThat(result.getPaidDate()).isEqualTo(LocalDate.of(2026, 7, 1));
         assertThat(result.getPaidPrecision()).isEqualTo(DateTimePrecision.DATE_ONLY);
         assertThat(result.getStartAt()).isNull();
         assertThat(result.getWarnings()).anyMatch(warning -> warning.contains("지급일"));
@@ -465,11 +625,78 @@ class TaskParseServiceTest {
         assertThat(result.getMemo()).isNull();
     }
 
+    @Test
+    void parseActiveRuleGoldenSetWithAiFailureFallbackAsExactDto() throws Exception {
+        TaskParseService service = new TaskParseService(sourceText -> {
+            throw new IllegalStateException("AI unavailable");
+        }, FIXED_CLOCK);
+
+        JsonNode testCases = loadJsonArray(RULE_GOLDEN_SET_RESOURCE);
+        int activeCount = 0;
+        for (JsonNode testCase : testCases) {
+            if (!testCase.path("active").asBoolean(false)) {
+                continue;
+            }
+
+            activeCount++;
+            String id = testCase.path("id").asString();
+            String sourceText = testCase.path("sourceText").asString();
+            TaskParseResponseDTO expected = objectMapper.readValue(
+                    testCase.path("expected").toString(),
+                    TaskParseResponseDTO.class
+            );
+            TaskParseResponseDTO actual = parse(service, sourceText);
+
+            assertThat(actual)
+                    .as(id)
+                    .usingRecursiveComparison()
+                    .isEqualTo(expected);
+        }
+
+        assertThat(activeCount).isPositive();
+    }
+
+    @Test
+    void ruleAndAiContractGoldenSetsHaveSameIdsAndSourceText() throws Exception {
+        Map<String, String> ruleSourceTextById = sourceTextById(loadJsonArray(RULE_GOLDEN_SET_RESOURCE));
+        Map<String, String> aiSourceTextById = sourceTextById(loadJsonArray(AI_CONTRACT_SET_RESOURCE));
+
+        assertThat(aiSourceTextById.keySet())
+                .containsExactlyElementsOf(ruleSourceTextById.keySet());
+        ruleSourceTextById.forEach((id, sourceText) ->
+                assertThat(aiSourceTextById)
+                        .as(id)
+                        .containsEntry(id, sourceText));
+    }
+
     private TaskParseResponseDTO parse(String sourceText) {
         return parse(taskParseService, sourceText);
     }
 
     private TaskParseResponseDTO parse(TaskParseService service, String sourceText) {
         return service.parse(TaskParseRequestDTO.builder().sourceText(sourceText).build());
+    }
+
+    private JsonNode loadJsonArray(String resourceName) throws Exception {
+        try (InputStream inputStream = getClass().getResourceAsStream(resourceName)) {
+            assertThat(inputStream)
+                    .as("Test resource must exist: " + resourceName)
+                    .isNotNull();
+            JsonNode root = objectMapper.readTree(inputStream);
+            assertThat(root.isArray()).isTrue();
+            return root;
+        }
+    }
+
+    private Map<String, String> sourceTextById(JsonNode testCases) {
+        Map<String, String> sourceTextById = new LinkedHashMap<>();
+        for (JsonNode testCase : testCases) {
+            String id = testCase.path("id").asString();
+            assertThat(sourceTextById)
+                    .as("Duplicate golden-set id: " + id)
+                    .doesNotContainKey(id);
+            sourceTextById.put(id, testCase.path("sourceText").asString());
+        }
+        return sourceTextById;
     }
 }

@@ -20,6 +20,7 @@ DROP TABLE IF EXISTS contract_document;
 DROP TABLE IF EXISTS contract;
 DROP TABLE IF EXISTS recruitment_bookmark;
 DROP TABLE IF EXISTS bookmark;
+DROP TABLE IF EXISTS external_job;
 DROP TABLE IF EXISTS recruitment_application_portfolio_snapshot_file;
 DROP TABLE IF EXISTS recruitment_application_portfolio_snapshot;
 DROP TABLE IF EXISTS recruitment_application_profile_snapshot_tech_stack;
@@ -219,6 +220,36 @@ INSERT INTO holiday (date, name, year, is_holiday) VALUES
     ('2026-10-05', '개천절 대체공휴일',           2026, 0),
     ('2026-10-09', '한글날',                     2026, 1),
     ('2026-12-25', '기독탄신일',                 2026, 1);
+
+-- ============================================================
+--  6-1. external_job
+-- ============================================================
+CREATE TABLE external_job (
+    id                      BIGINT          NOT NULL    AUTO_INCREMENT,
+    source                  VARCHAR(30)     NOT NULL,
+    source_job_id           VARCHAR(100)    NOT NULL,
+    source_url              VARCHAR(1000)   NULL,
+    title                   VARCHAR(300)    NOT NULL,
+    company_name            VARCHAR(200)    NULL,
+    location                VARCHAR(300)    NULL,
+    job_category_raw        VARCHAR(200)    NULL,
+    employment_type_raw     VARCHAR(200)    NULL,
+    salary_raw              VARCHAR(300)    NULL,
+    posted_at               DATETIME        NULL,
+    deadline_at             DATETIME        NULL,
+    description             TEXT            NULL,
+    original_payload_json   LONGTEXT        NULL,
+    payload_hash            VARCHAR(128)    NULL,
+    freelance_type          VARCHAR(40)     NOT NULL,
+    recommendation_type     VARCHAR(40)     NOT NULL,
+    collected_at            DATETIME        NOT NULL,
+    updated_at              DATETIME        NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_external_job_source_job_id (source, source_job_id),
+    INDEX idx_external_job_source_collected_at (source, collected_at),
+    INDEX idx_external_job_recommendation_type (recommendation_type),
+    INDEX idx_external_job_deadline_at (deadline_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='외부 공고';
 
 -- ============================================================
 --  7. portfolio
