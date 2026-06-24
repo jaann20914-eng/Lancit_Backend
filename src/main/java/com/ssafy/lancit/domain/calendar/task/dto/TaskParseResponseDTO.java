@@ -45,6 +45,7 @@ public class TaskParseResponseDTO {
     private LocalTime paidTime;
     private String paidText;
     private DateTimePrecision paidPrecision;
+    private Boolean requiresConfirmation;
     private Double confidence;
     private List<String> warnings;
 }

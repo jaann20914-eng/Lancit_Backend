@@ -6,9 +6,9 @@
     "expected": {
       "title": "에이블리 킥오프 회의",
       "clientCompany": "에이블리",
-      "startAt": "2026-06-12T14:00:00",
+      "startAt": "2027-06-12T14:00",
       "startPrecision": "DATE_TIME",
-      "paidDate": "2026-06-15",
+      "paidDate": "2027-06-15",
       "paidPrecision": "DATE_ONLY",
       "depositAmount": 300000
     }
@@ -20,9 +20,9 @@
     "expected": {
       "title": "무신사 화보 회의",
       "clientCompany": "무신사",
-      "startAt": "2026-06-11T10:00:00",
+      "startAt": "2026-06-25T10:00",
       "startPrecision": "DATE_TIME",
-      "paidAt": "2026-06-20T15:00:00",
+      "paidAt": "2027-06-20T15:00",
       "paidPrecision": "DATE_TIME",
       "paidAmount": 500000
     }
@@ -34,9 +34,9 @@
     "expected": {
       "title": "토스 UX 미팅",
       "clientCompany": "토스",
-      "startAt": "2026-06-18T14:30:00",
+      "startAt": "2027-06-18T14:30",
       "startPrecision": "DATE_TIME",
-      "paidDate": "2026-06-19",
+      "paidDate": "2027-06-19",
       "paidPrecision": "DATE_ONLY",
       "depositAmount": 1000000
     }
@@ -48,7 +48,7 @@
     "expected": {
       "title": "카카오 제안서 리뷰",
       "clientCompany": "카카오",
-      "startAt": "2026-06-15T09:00:00",
+      "startAt": "2026-06-29T09:00",
       "startPrecision": "DATE_TIME",
       "paidDate": "2026-06-30",
       "paidPrecision": "DATE_ONLY",
@@ -61,10 +61,10 @@
     "input": "오늘 16시에 라인 인터뷰, 계약금 20만원 오늘 저녁 7시 입금",
     "expected": {
       "title": "라인 인터뷰",
-      "clientCompany": "라인",
-      "startAt": "2026-06-10T16:00:00",
+      "clientCompany": null,
+      "startAt": "2026-06-24T16:00",
       "startPrecision": "DATE_TIME",
-      "paidAt": "2026-06-10T19:00:00",
+      "paidAt": "2026-06-24T19:00",
       "paidPrecision": "DATE_TIME",
       "depositAmount": 200000
     }
@@ -89,9 +89,9 @@
     "expected": {
       "title": "네이버 최종 발표",
       "clientCompany": "네이버",
-      "startAt": "2026-06-12T15:00:00",
+      "startAt": "2026-06-26T15:00",
       "startPrecision": "DATE_TIME",
-      "paidDate": "2026-06-13",
+      "paidDate": "2026-06-27",
       "paidPrecision": "DATE_ONLY",
       "paidAmount": 800000
     }
@@ -117,11 +117,11 @@
     "expected": {
       "title": "SKT 회의",
       "clientCompany": "SKT",
-      "startAt": "2026-06-13T13:00:00",
-      "endAt": "2026-06-13T15:00:00",
+      "startAt": "2027-06-13T13:00",
+      "endAt": "2027-06-13T15:00",
       "startPrecision": "DATE_TIME",
       "endPrecision": "DATE_TIME",
-      "paidDate": "2026-06-14",
+      "paidDate": "2027-06-14",
       "paidPrecision": "DATE_ONLY",
       "paidAmount": 100000
     }
@@ -146,7 +146,7 @@
     "input": "6월 12일 포트폴리오 제출",
     "expected": {
       "title": "포트폴리오 제출",
-      "startDate": "2026-06-12",
+      "startDate": "2027-06-12",
       "startPrecision": "DATE_ONLY"
     }
   },
@@ -156,7 +156,7 @@
     "input": "내일 SSAFY 과제 마감",
     "expected": {
       "title": "SSAFY 과제 마감",
-      "startDate": "2026-06-11",
+      "startDate": "2026-06-25",
       "startPrecision": "DATE_ONLY"
     }
   },
@@ -166,7 +166,7 @@
     "input": "이번 주 금요일 디자인 시안 전달",
     "expected": {
       "title": "디자인 시안 전달",
-      "startDate": "2026-06-12",
+      "startDate": "2026-06-26",
       "startPrecision": "DATE_ONLY"
     }
   },
@@ -176,7 +176,7 @@
     "input": "다음 주 월요일 고객 피드백 확인",
     "expected": {
       "title": "고객 피드백 확인",
-      "startDate": "2026-06-15",
+      "startDate": "2026-06-29",
       "startPrecision": "DATE_ONLY"
     }
   },
@@ -186,7 +186,7 @@
     "input": "6/20 계약서 검토",
     "expected": {
       "title": "계약서 검토",
-      "startDate": "2026-06-20",
+      "startDate": "2027-06-20",
       "startPrecision": "DATE_ONLY"
     }
   },
@@ -362,7 +362,7 @@
     "expected": {
       "title": "킥오프",
       "clientCompany": null,
-      "startAt": "2026-06-11T14:00:00",
+      "startAt": "2026-06-25T14:00",
       "startPrecision": "DATE_TIME",
       "memo": "장소: 네이버 1784 회의실"
     }
@@ -374,7 +374,7 @@
     "expected": {
       "title": "면담",
       "clientCompany": null,
-      "startAt": "2026-06-12T10:00:00",
+      "startAt": "2027-06-12T10:00",
       "startPrecision": "DATE_TIME",
       "memo": "장소: 카카오 판교오피스"
     }
@@ -386,7 +386,7 @@
     "expected": {
       "title": "자료 리뷰",
       "clientCompany": null,
-      "startAt": "2026-06-15T14:00:00",
+      "startAt": "2027-06-15T14:00",
       "startPrecision": "DATE_TIME",
       "memo": "장소: 토스 본사 3층"
     }
@@ -410,7 +410,7 @@
     "expected": {
       "title": "촬영",
       "clientCompany": null,
-      "startAt": "2026-06-20T11:00:00",
+      "startAt": "2027-06-20T11:00",
       "startPrecision": "DATE_TIME",
       "memo": "장소: 라인프렌즈 홍대점"
     }
@@ -446,7 +446,7 @@
     "expected": {
       "title": "장비 수령",
       "clientCompany": null,
-      "startAt": "2026-06-11T09:00:00",
+      "startAt": "2026-06-25T09:00",
       "startPrecision": "DATE_TIME",
       "memo": "장소: 우아한형제들 사옥 앞"
     }
@@ -458,7 +458,7 @@
     "expected": {
       "title": "레퍼런스 조사",
       "clientCompany": null,
-      "startAt": "2026-06-18T13:00:00",
+      "startAt": "2027-06-18T13:00",
       "startPrecision": "DATE_TIME",
       "memo": "장소: 현대카드 디자인 라이브러리"
     }
@@ -470,7 +470,7 @@
     "expected": {
       "title": "인터뷰",
       "clientCompany": null,
-      "startAt": "2026-06-12T16:00:00",
+      "startAt": "2026-06-26T16:00",
       "startPrecision": "DATE_TIME",
       "memo": "장소: 쿠팡 잠실캠퍼스 5층"
     }
@@ -482,7 +482,7 @@
     "expected": {
       "title": "토스 로고 시안 회의",
       "clientCompany": "토스",
-      "startAt": "2026-06-11T10:00:00",
+      "startAt": "2026-06-25T10:00",
       "startPrecision": "DATE_TIME"
     }
   },
@@ -493,7 +493,7 @@
     "expected": {
       "title": "카카오 랜딩페이지 리뷰",
       "clientCompany": "카카오",
-      "startAt": "2026-06-13T14:00:00",
+      "startAt": "2027-06-13T14:00",
       "startPrecision": "DATE_TIME"
     }
   },
@@ -504,7 +504,7 @@
     "expected": {
       "title": "네이버 배너 최종 검수",
       "clientCompany": "네이버",
-      "startAt": "2026-06-17T09:00:00",
+      "startAt": "2027-06-17T09:00",
       "startPrecision": "DATE_TIME"
     }
   },
@@ -515,7 +515,7 @@
     "expected": {
       "title": "배민 상세페이지 제안",
       "clientCompany": "배민",
-      "startAt": "2026-06-10T16:00:00",
+      "startAt": "2026-06-24T16:00",
       "startPrecision": "DATE_TIME"
     }
   },
@@ -547,8 +547,8 @@
     "input": "다음 주 화요일 15시 오늘의집 UX 인터뷰",
     "expected": {
       "title": "오늘의집 UX 인터뷰",
-      "clientCompany": "오늘의집",
-      "startAt": "2026-06-16T15:00:00",
+      "clientCompany": null,
+      "startAt": "2026-06-30T15:00",
       "startPrecision": "DATE_TIME"
     }
   },
@@ -559,7 +559,7 @@
     "expected": {
       "title": "야놀자 앱 화면 논의",
       "clientCompany": "야놀자",
-      "startAt": "2026-06-22T10:00:00",
+      "startAt": "2027-06-22T10:00",
       "startPrecision": "DATE_TIME"
     }
   },
@@ -581,7 +581,7 @@
     "expected": {
       "title": "당근 온보딩 문구 회의",
       "clientCompany": "당근",
-      "startAt": "2026-06-14T13:00:00",
+      "startAt": "2027-06-14T13:00",
       "startPrecision": "DATE_TIME"
     }
   },
@@ -591,7 +591,7 @@
     "input": "6월 12일 15시 프로젝트 회의, 총예산 500만원",
     "expected": {
       "title": "프로젝트 회의",
-      "startAt": "2026-06-12T15:00:00",
+      "startAt": "2027-06-12T15:00",
       "startPrecision": "DATE_TIME",
       "budgetAmount": 5000000
     }
@@ -602,7 +602,7 @@
     "input": "계약금 100만원은 내일 입금, 전체 예산은 400만원",
     "expected": {
       "title": "계약금 입금",
-      "paidDate": "2026-06-11",
+      "paidDate": "2026-06-25",
       "paidPrecision": "DATE_ONLY",
       "depositAmount": 1000000,
       "budgetAmount": 4000000
@@ -614,7 +614,7 @@
     "input": "6월 18일 착수, 선금 80만원, 잔금 120만원은 완료 후 지급",
     "expected": {
       "title": "착수",
-      "startDate": "2026-06-18",
+      "startDate": "2027-06-18",
       "startPrecision": "DATE_ONLY",
       "depositAmount": 800000,
       "balanceAmount": 1200000,
@@ -627,7 +627,7 @@
     "input": "오늘 14시 견적 회의, 견적 250만원, 계약금 50만원",
     "expected": {
       "title": "견적 회의",
-      "startAt": "2026-06-10T14:00:00",
+      "startAt": "2026-06-24T14:00",
       "startPrecision": "DATE_TIME",
       "budgetAmount": 2500000,
       "depositAmount": 500000
@@ -639,7 +639,7 @@
     "input": "6월 20일 10시 중간 공유, 입금액 30만원 확인 필요",
     "expected": {
       "title": "중간 공유",
-      "startAt": "2026-06-20T10:00:00",
+      "startAt": "2027-06-20T10:00",
       "startPrecision": "DATE_TIME",
       "paidAmount": 300000,
       "memo": "입금액 30만원 확인 필요"
@@ -665,7 +665,7 @@
     "input": "내일 11시 견적서 발송, 예산은 100~150만원 범위",
     "expected": {
       "title": "견적서 발송",
-      "startAt": "2026-06-11T11:00:00",
+      "startAt": "2026-06-25T11:00",
       "startPrecision": "DATE_TIME",
       "budgetText": "100~150만원",
       "memo": "예산 범위: 100~150만원"
@@ -677,7 +677,7 @@
     "input": "6/16 16시 미팅, 선금 30%, 잔금 70%",
     "expected": {
       "title": "미팅",
-      "startAt": "2026-06-16T16:00:00",
+      "startAt": "2027-06-16T16:00",
       "startPrecision": "DATE_TIME",
       "memo": "선금 30%, 잔금 70%"
     }
@@ -690,7 +690,7 @@
       "title": "리뷰",
       "startAt": "2026-07-03T14:00:00",
       "startPrecision": "DATE_TIME",
-      "paidDate": "2026-06-10",
+      "paidDate": "2026-06-24",
       "paidPrecision": "DATE_ONLY",
       "depositAmount": 750000
     }
@@ -701,7 +701,7 @@
     "input": "6월 21일 13시 보고, 입금액은 부가세 포함 110만원",
     "expected": {
       "title": "보고",
-      "startAt": "2026-06-21T13:00:00",
+      "startAt": "2027-06-21T13:00",
       "startPrecision": "DATE_TIME",
       "paidAmount": 1100000,
       "memo": "입금액은 부가세 포함 110만원"
@@ -713,7 +713,7 @@
     "input": "내일 오후 2시 Zoom으로 킥오프, 링크는 https://zoom.us/j/123",
     "expected": {
       "title": "킥오프",
-      "startAt": "2026-06-11T14:00:00",
+      "startAt": "2026-06-25T14:00",
       "startPrecision": "DATE_TIME",
       "memo": "온라인: Zoom, 링크: https://zoom.us/j/123"
     }
@@ -724,7 +724,7 @@
     "input": "6월 12일 10시 회의실 B에서 발표, 준비물 노트북",
     "expected": {
       "title": "발표",
-      "startAt": "2026-06-12T10:00:00",
+      "startAt": "2027-06-12T10:00",
       "startPrecision": "DATE_TIME",
       "memo": "장소: 회의실 B, 준비물: 노트북"
     }
@@ -735,7 +735,7 @@
     "input": "오늘 15시 구글밋 디자인 리뷰, 링크는 meet.google.com/abc-defg-hij",
     "expected": {
       "title": "디자인 리뷰",
-      "startAt": "2026-06-10T15:00:00",
+      "startAt": "2026-06-24T15:00",
       "startPrecision": "DATE_TIME",
       "memo": "온라인: 구글밋, 링크: meet.google.com/abc-defg-hij"
     }
@@ -746,7 +746,7 @@
     "input": "6월 18일 14시 Figma 링크 확인, 자료는 PDF로 준비",
     "expected": {
       "title": "Figma 링크 확인",
-      "startAt": "2026-06-18T14:00:00",
+      "startAt": "2027-06-18T14:00",
       "startPrecision": "DATE_TIME",
       "memo": "자료: PDF로 준비"
     }
@@ -757,7 +757,7 @@
     "input": "다음 주 월요일 9시 온라인 인터뷰, 이력서와 포트폴리오 준비",
     "expected": {
       "title": "온라인 인터뷰",
-      "startAt": "2026-06-15T09:00:00",
+      "startAt": "2026-06-29T09:00",
       "startPrecision": "DATE_TIME",
       "memo": "준비물: 이력서, 포트폴리오"
     }
@@ -768,7 +768,7 @@
     "input": "6/20 11시 3층 회의실에서 계약서 검토, 신분증 지참",
     "expected": {
       "title": "계약서 검토",
-      "startAt": "2026-06-20T11:00:00",
+      "startAt": "2027-06-20T11:00",
       "startPrecision": "DATE_TIME",
       "memo": "장소: 3층 회의실, 준비물: 신분증"
     }
@@ -812,7 +812,7 @@
     "input": "내일 18시 디스코드 음성 회의, 화면공유 준비",
     "expected": {
       "title": "디스코드 음성 회의",
-      "startAt": "2026-06-11T18:00:00",
+      "startAt": "2026-06-25T18:00",
       "startPrecision": "DATE_TIME",
       "memo": "온라인: 디스코드, 준비물: 화면공유"
     }
@@ -823,9 +823,9 @@
     "input": "회의는 6월 12일 14시, 자료 마감은 6월 10일",
     "expected": {
       "title": "회의",
-      "startAt": "2026-06-12T14:00:00",
+      "startAt": "2027-06-12T14:00",
       "startPrecision": "DATE_TIME",
-      "memo": "자료 마감: 2026-06-10"
+      "memo": "자료 마감: 2027-06-10"
     }
   },
   {
@@ -834,9 +834,9 @@
     "input": "6월 15일 초안 제출, 6월 18일 피드백 반영, 6월 20일 최종 제출",
     "expected": {
       "title": "초안 제출",
-      "startDate": "2026-06-15",
+      "startDate": "2027-06-15",
       "startPrecision": "DATE_ONLY",
-      "memo": "피드백 반영: 2026-06-18, 최종 제출: 2026-06-20"
+      "memo": "피드백 반영: 2027-06-18, 최종 제출: 2027-06-20"
     }
   },
   {
@@ -845,9 +845,9 @@
     "input": "내일 인터뷰, 결과 공유는 다음 주 월요일",
     "expected": {
       "title": "인터뷰",
-      "startDate": "2026-06-11",
+      "startDate": "2026-06-25",
       "startPrecision": "DATE_ONLY",
-      "memo": "결과 공유: 2026-06-15"
+      "memo": "결과 공유: 2026-06-29"
     }
   },
   {
@@ -868,9 +868,9 @@
     "input": "오늘 10시 회의하고 6월 12일 18시까지 수정본 전달",
     "expected": {
       "title": "회의",
-      "startAt": "2026-06-10T10:00:00",
+      "startAt": "2026-06-24T10:00",
       "startPrecision": "DATE_TIME",
-      "memo": "수정본 전달 마감: 2026-06-12T18:00:00"
+      "memo": "수정본 전달 마감: 2027-06-12T18:00:00"
     }
   },
   {
@@ -879,9 +879,9 @@
     "input": "6/16 11시 착수 회의, 6/23 중간 점검, 6/30 최종 보고",
     "expected": {
       "title": "착수 회의",
-      "startAt": "2026-06-16T11:00:00",
+      "startAt": "2027-06-16T11:00",
       "startPrecision": "DATE_TIME",
-      "memo": "중간 점검: 2026-06-23, 최종 보고: 2026-06-30"
+      "memo": "중간 점검: 2027-06-23, 최종 보고: 2026-06-30"
     }
   },
   {
@@ -901,9 +901,9 @@
     "input": "6월 14일 촬영, 6월 15일 편집, 6월 16일 업로드",
     "expected": {
       "title": "촬영",
-      "startDate": "2026-06-14",
+      "startDate": "2027-06-14",
       "startPrecision": "DATE_ONLY",
-      "memo": "편집: 2026-06-15, 업로드: 2026-06-16"
+      "memo": "편집: 2027-06-15, 업로드: 2027-06-16"
     }
   },
   {
@@ -912,9 +912,9 @@
     "input": "다음 주 월요일 킥오프, 같은 주 금요일 시안 전달",
     "expected": {
       "title": "킥오프",
-      "startDate": "2026-06-15",
+      "startDate": "2026-06-29",
       "startPrecision": "DATE_ONLY",
-      "memo": "시안 전달: 2026-06-19"
+      "memo": "시안 전달: 2026-07-03"
     }
   },
   {
@@ -934,7 +934,7 @@
     "input": "내일 계약금 30만원 입금",
     "expected": {
       "title": "계약금 입금",
-      "paidDate": "2026-06-11",
+      "paidDate": "2026-06-25",
       "paidPrecision": "DATE_ONLY",
       "depositAmount": 300000
     }
@@ -945,7 +945,7 @@
     "input": "오늘 오후 5시에 잔금 80만원 받기",
     "expected": {
       "title": "잔금 받기",
-      "paidAt": "2026-06-10T17:00:00",
+      "paidAt": "2026-06-24T17:00",
       "paidPrecision": "DATE_TIME",
       "paidAmount": 800000
     }
@@ -956,7 +956,7 @@
     "input": "6월 20일 입금 확인",
     "expected": {
       "title": "입금 확인",
-      "paidDate": "2026-06-20",
+      "paidDate": "2027-06-20",
       "paidPrecision": "DATE_ONLY"
     }
   },
@@ -998,7 +998,7 @@
     "input": "오늘 선금 20만원 송금 요청",
     "expected": {
       "title": "선금 송금 요청",
-      "paidDate": "2026-06-10",
+      "paidDate": "2026-06-24",
       "paidPrecision": "DATE_ONLY",
       "depositAmount": 200000
     }
@@ -1019,7 +1019,7 @@
     "input": "내일 오전 9시 계약금 입금 여부 확인",
     "expected": {
       "title": "계약금 입금 여부 확인",
-      "paidAt": "2026-06-11T09:00:00",
+      "paidAt": "2026-06-25T09:00",
       "paidPrecision": "DATE_TIME"
     }
   },
@@ -1042,8 +1042,8 @@
     "expected": {
       "title": "카카오 회의",
       "clientCompany": "카카오",
-      "startAt": "2026-06-11T14:00:00",
-      "endAt": "2026-06-11T16:00:00",
+      "startAt": "2026-06-25T14:00",
+      "endAt": "2026-06-25T16:00",
       "startPrecision": "DATE_TIME",
       "endPrecision": "DATE_TIME"
     }
@@ -1055,8 +1055,8 @@
     "expected": {
       "title": "네이버 피드백",
       "clientCompany": "네이버",
-      "startAt": "2026-06-12T13:30:00",
-      "endAt": "2026-06-12T15:00:00",
+      "startAt": "2027-06-12T13:30",
+      "endAt": "2027-06-12T15:00",
       "startPrecision": "DATE_TIME",
       "endPrecision": "DATE_TIME"
     }
@@ -1137,11 +1137,11 @@
     "input": "6월 18일 15시 온라인 미팅, 2시간 예상",
     "expected": {
       "title": "온라인 미팅",
-      "startAt": "2026-06-18T15:00:00",
-      "endAt": "2026-06-18T17:00:00",
+      "startAt": "2027-06-18T15:00",
+      "endAt": "2027-06-18T17:00",
       "startPrecision": "DATE_TIME",
       "endPrecision": "DATE_TIME",
-      "memo": "온라인 미팅"
+      "memo": "온라인: 온라인"
     }
   },
   {

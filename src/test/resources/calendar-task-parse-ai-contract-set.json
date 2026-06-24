@@ -1,0 +1,5611 @@
+[
+  {
+    "id": "GT-001",
+    "category": "일정+지급일 동시 포함",
+    "sourceText": "6월 12일 오후 2시에 에이블리 킥오프 회의, 계약금 30만원은 6월 15일 입금",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "에이블리",
+        "킥오프",
+        "회의"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt",
+        "paidDate",
+        "depositAmount"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {},
+      "startAt": "2027-06-12T14:00",
+      "startPrecision": "DATE_TIME",
+      "paidDate": "2027-06-15",
+      "paidPrecision": "DATE_ONLY",
+      "depositAmount": 300000,
+      "startDate": "2027-06-12",
+      "startTime": "14:00:00"
+    }
+  },
+  {
+    "id": "GT-002",
+    "category": "일정+지급일 동시 포함",
+    "sourceText": "내일 오전 10시 무신사 화보 회의, 잔금 50만원은 6월 20일 오후 3시 지급",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "무신사",
+        "화보",
+        "회의"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt",
+        "paidAt",
+        "paidAmount"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {},
+      "startAt": "2026-06-25T10:00",
+      "startPrecision": "DATE_TIME",
+      "paidAt": "2027-06-20T15:00",
+      "paidPrecision": "DATE_TIME",
+      "paidAmount": 500000,
+      "startDate": "2026-06-25",
+      "startTime": "10:00:00",
+      "paidDate": "2027-06-20",
+      "paidTime": "15:00:00"
+    }
+  },
+  {
+    "id": "GT-003",
+    "category": "일정+지급일 동시 포함",
+    "sourceText": "6월 18일 14:30 토스 UX 미팅, 선금 100만원은 6월 19일까지",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "토스",
+        "UX",
+        "미팅"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt",
+        "paidDate",
+        "depositAmount"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {},
+      "startAt": "2027-06-18T14:30",
+      "startPrecision": "DATE_TIME",
+      "paidDate": "2027-06-19",
+      "paidPrecision": "DATE_ONLY",
+      "depositAmount": 1000000,
+      "startDate": "2027-06-18",
+      "startTime": "14:30:00"
+    }
+  },
+  {
+    "id": "GT-004",
+    "category": "일정+지급일 동시 포함",
+    "sourceText": "다음 주 월요일 9시 카카오 제안서 리뷰, 예산 300만원, 입금은 6월 30일",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract inactive until policy expectations are narrowed",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "카카오",
+        "제안서",
+        "리뷰"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt",
+        "paidDate",
+        "budgetAmount"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {},
+      "startAt": "2026-06-29T09:00",
+      "startPrecision": "DATE_TIME",
+      "paidDate": "2026-06-30",
+      "paidPrecision": "DATE_ONLY",
+      "budgetAmount": 3000000,
+      "startDate": "2026-06-29",
+      "startTime": "09:00:00"
+    }
+  },
+  {
+    "id": "GT-005",
+    "category": "일정+지급일 동시 포함",
+    "sourceText": "오늘 16시에 라인 인터뷰, 계약금 20만원 오늘 저녁 7시 입금",
+    "active": true,
+    "status": "active",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "라인",
+        "인터뷰"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt",
+        "paidAt",
+        "depositAmount",
+        "startDate",
+        "startTime",
+        "paidDate",
+        "paidTime"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {},
+      "startAt": "2026-06-24T16:00",
+      "startPrecision": "DATE_TIME",
+      "paidAt": "2026-06-24T19:00",
+      "paidPrecision": "DATE_TIME",
+      "depositAmount": 200000,
+      "startDate": "2026-06-24",
+      "startTime": "16:00:00",
+      "paidDate": "2026-06-24",
+      "paidTime": "19:00:00"
+    }
+  },
+  {
+    "id": "GT-006",
+    "category": "일정+지급일 동시 포함",
+    "sourceText": "6월 25일 오전 11시 배민 상세페이지 논의, 지급일은 다음 달 5일",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "배민",
+        "상세페이지",
+        "논의"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt",
+        "paidDate"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {},
+      "startAt": "2026-06-25T11:00:00",
+      "startPrecision": "DATE_TIME",
+      "paidDate": "2026-07-05",
+      "paidPrecision": "DATE_ONLY",
+      "startDate": "2026-06-25",
+      "startTime": "11:00:00"
+    }
+  },
+  {
+    "id": "GT-007",
+    "category": "일정+지급일 동시 포함",
+    "sourceText": "이번 금요일 15시 네이버 최종 발표, 비용 80만원은 발표 다음 날 입금",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "네이버",
+        "최종",
+        "발표"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt",
+        "paidDate",
+        "paidAmount"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {},
+      "startAt": "2026-06-26T15:00",
+      "startPrecision": "DATE_TIME",
+      "paidDate": "2026-06-27",
+      "paidPrecision": "DATE_ONLY",
+      "paidAmount": 800000,
+      "startDate": "2026-06-26",
+      "startTime": "15:00:00"
+    }
+  },
+  {
+    "id": "GT-008",
+    "category": "일정+지급일 동시 포함",
+    "sourceText": "7월 1일 10시 우아한형제들 착수 회의, 계약금 150만원은 6월 28일 선입금",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "우아한형제들",
+        "착수",
+        "회의"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt",
+        "paidDate",
+        "depositAmount"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {},
+      "startAt": "2026-07-01T10:00:00",
+      "startPrecision": "DATE_TIME",
+      "paidDate": "2026-06-28",
+      "paidPrecision": "DATE_ONLY",
+      "depositAmount": 1500000,
+      "startDate": "2026-07-01",
+      "startTime": "10:00:00"
+    }
+  },
+  {
+    "id": "GT-009",
+    "category": "일정+지급일 동시 포함",
+    "sourceText": "6월 13일 13시부터 2시간 SKT 회의, 6월 14일 10만원 입금",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "SKT",
+        "회의"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt",
+        "endAt",
+        "paidDate",
+        "paidAmount"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startDate",
+        "startTime",
+        "startText",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {},
+      "startAt": "2027-06-13T13:00",
+      "endAt": "2027-06-13T15:00",
+      "startPrecision": "DATE_TIME",
+      "endPrecision": "DATE_TIME",
+      "paidDate": "2027-06-14",
+      "paidPrecision": "DATE_ONLY",
+      "paidAmount": 100000,
+      "startDate": "2027-06-13",
+      "startTime": "13:00:00",
+      "endDate": "2027-06-13",
+      "endTime": "15:00:00"
+    }
+  },
+  {
+    "id": "GT-010",
+    "category": "일정+지급일 동시 포함",
+    "sourceText": "6월 30일 오후 5시 LG CNS 결과 공유, 잔금은 당일 오후 6시 지급",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract inactive until policy expectations are narrowed",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "LG",
+        "CNS",
+        "결과",
+        "공유"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt",
+        "paidAt"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {},
+      "startAt": "2026-06-30T17:00:00",
+      "startPrecision": "DATE_TIME",
+      "paidAt": "2026-06-30T18:00:00",
+      "paidPrecision": "DATE_TIME",
+      "startDate": "2026-06-30",
+      "startTime": "17:00:00",
+      "paidDate": "2026-06-30",
+      "paidTime": "18:00:00"
+    }
+  },
+  {
+    "id": "GT-011",
+    "category": "날짜만 있음",
+    "sourceText": "6월 12일 포트폴리오 제출",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "포트폴리오",
+        "제출"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startDate"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startAt",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {},
+      "startDate": "2027-06-12",
+      "startPrecision": "DATE_ONLY"
+    }
+  },
+  {
+    "id": "GT-012",
+    "category": "날짜만 있음",
+    "sourceText": "내일 SSAFY 과제 마감",
+    "active": true,
+    "status": "active",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "SSAFY",
+        "과제",
+        "마감"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startDate"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startAt",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {},
+      "startDate": "2026-06-25",
+      "startPrecision": "DATE_ONLY"
+    }
+  },
+  {
+    "id": "GT-013",
+    "category": "날짜만 있음",
+    "sourceText": "이번 주 금요일 디자인 시안 전달",
+    "active": false,
+    "status": "pending_policy",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "디자인",
+        "시안",
+        "전달"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startDate"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startAt",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {},
+      "startDate": "2026-06-26",
+      "startPrecision": "DATE_ONLY"
+    },
+    "policyReason": "AI contract inactive until policy expectations are narrowed"
+  },
+  {
+    "id": "GT-014",
+    "category": "날짜만 있음",
+    "sourceText": "다음 주 월요일 고객 피드백 확인",
+    "active": false,
+    "status": "pending_policy",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "고객",
+        "피드백",
+        "확인"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startDate"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startAt",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {},
+      "startDate": "2026-06-29",
+      "startPrecision": "DATE_ONLY"
+    },
+    "policyReason": "AI contract inactive until policy expectations are narrowed"
+  },
+  {
+    "id": "GT-015",
+    "category": "날짜만 있음",
+    "sourceText": "6/20 계약서 검토",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "계약서",
+        "검토"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startDate"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startAt",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {},
+      "startDate": "2027-06-20",
+      "startPrecision": "DATE_ONLY"
+    }
+  },
+  {
+    "id": "GT-016",
+    "category": "날짜만 있음",
+    "sourceText": "2026년 7월 3일 프로젝트 종료 보고",
+    "active": true,
+    "status": "active",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "프로젝트",
+        "종료",
+        "보고"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startDate"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startAt",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {},
+      "startDate": "2026-07-03",
+      "startPrecision": "DATE_ONLY"
+    }
+  },
+  {
+    "id": "GT-017",
+    "category": "날짜만 있음",
+    "sourceText": "이번 달 말 세금계산서 정리",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract inactive until policy expectations are narrowed",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "세금계산서",
+        "정리"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startDate"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startAt",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {},
+      "startDate": "2026-06-30",
+      "startPrecision": "DATE_ONLY"
+    }
+  },
+  {
+    "id": "GT-018",
+    "category": "날짜만 있음",
+    "sourceText": "7월 15일 중간 점검",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "중간",
+        "점검"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startDate"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startAt",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {},
+      "startDate": "2026-07-15",
+      "startPrecision": "DATE_ONLY"
+    }
+  },
+  {
+    "id": "GT-019",
+    "category": "날짜만 있음",
+    "sourceText": "6월 셋째 주 금요일 배너 검수",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "배너",
+        "검수"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startDate"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startAt",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {},
+      "startDate": "2026-06-19",
+      "startPrecision": "DATE_ONLY"
+    }
+  },
+  {
+    "id": "GT-020",
+    "category": "날짜만 있음",
+    "sourceText": "다음 달 첫째 월요일 팀 회고",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "회고"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startDate"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startAt",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {},
+      "startDate": "2026-07-06",
+      "startPrecision": "DATE_ONLY"
+    }
+  },
+  {
+    "id": "GT-021",
+    "category": "시간만 있음",
+    "sourceText": "오후 3시에 회의",
+    "active": true,
+    "status": "active",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "회의"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startTime",
+        "startText"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startAt",
+        "startDate",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "startText": [
+          "오후",
+          "3시"
+        ]
+      },
+      "startTime": "15:00:00",
+      "startPrecision": "TIME_ONLY"
+    }
+  },
+  {
+    "id": "GT-022",
+    "category": "시간만 있음",
+    "sourceText": "10시에 전화하기",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract inactive until policy expectations are narrowed",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "전화하기"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startTime",
+        "startText"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startAt",
+        "startDate",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "startText": [
+          "10시"
+        ]
+      },
+      "startTime": "10:00:00",
+      "startPrecision": "TIME_ONLY"
+    }
+  },
+  {
+    "id": "GT-023",
+    "category": "시간만 있음",
+    "sourceText": "오전 9시 반에 자료 확인",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract inactive until policy expectations are narrowed",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "자료",
+        "확인"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startTime",
+        "startText"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startAt",
+        "startDate",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "startText": [
+          "오전",
+          "9시"
+        ]
+      },
+      "startTime": "09:30:00",
+      "startPrecision": "TIME_ONLY"
+    }
+  },
+  {
+    "id": "GT-024",
+    "category": "시간만 있음",
+    "sourceText": "저녁 7시에 알림 확인",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract inactive until policy expectations are narrowed",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "알림",
+        "확인"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startTime",
+        "startText"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startAt",
+        "startDate",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "startText": [
+          "저녁",
+          "7시"
+        ]
+      },
+      "startTime": "19:00:00",
+      "startPrecision": "TIME_ONLY"
+    }
+  },
+  {
+    "id": "GT-025",
+    "category": "시간만 있음",
+    "sourceText": "14:30에 QA 체크",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract inactive until policy expectations are narrowed",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "QA",
+        "체크"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startTime",
+        "startText"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startAt",
+        "startDate",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "startText": [
+          "14:30"
+        ]
+      },
+      "startTime": "14:30:00",
+      "startPrecision": "TIME_ONLY"
+    }
+  },
+  {
+    "id": "GT-026",
+    "category": "시간만 있음",
+    "sourceText": "퇴근 후 8시에 포트폴리오 수정",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract inactive until policy expectations are narrowed",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "포트폴리오",
+        "수정"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startTime",
+        "startText"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startAt",
+        "startDate",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "startText": [
+          "퇴근",
+          "8시"
+        ]
+      },
+      "startTime": "20:00:00",
+      "startPrecision": "TIME_ONLY"
+    }
+  },
+  {
+    "id": "GT-027",
+    "category": "시간만 있음",
+    "sourceText": "정오에 계약서 초안 보내기",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract inactive until policy expectations are narrowed",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "계약서",
+        "초안",
+        "보내기"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startTime",
+        "startText"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startAt",
+        "startDate",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "startText": [
+          "정오"
+        ]
+      },
+      "startTime": "12:00:00",
+      "startPrecision": "TIME_ONLY"
+    }
+  },
+  {
+    "id": "GT-028",
+    "category": "시간만 있음",
+    "sourceText": "오후 4시부터 1시간 회의",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract inactive until policy expectations are narrowed",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "회의"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startTime",
+        "endTime",
+        "startText"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startAt",
+        "startDate",
+        "endAt",
+        "endDate",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "startText": [
+          "오후",
+          "4시"
+        ]
+      },
+      "startTime": "16:00:00",
+      "endTime": "17:00:00",
+      "startPrecision": "TIME_ONLY",
+      "endPrecision": "TIME_ONLY"
+    }
+  },
+  {
+    "id": "GT-029",
+    "category": "시간만 있음",
+    "sourceText": "오전 11시부터 오후 1시까지 미팅",
+    "active": true,
+    "status": "active",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "미팅"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startTime",
+        "endTime",
+        "startText",
+        "endText"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startAt",
+        "startDate",
+        "endAt",
+        "endDate",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "startText": [
+          "오전",
+          "11시"
+        ],
+        "endText": [
+          "오후",
+          "1시"
+        ]
+      },
+      "startTime": "11:00:00",
+      "endTime": "13:00:00",
+      "startPrecision": "TIME_ONLY",
+      "endPrecision": "TIME_ONLY"
+    }
+  },
+  {
+    "id": "GT-030",
+    "category": "시간만 있음",
+    "sourceText": "새벽 1시에 서버 점검",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract inactive until policy expectations are narrowed",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "서버",
+        "점검"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startTime",
+        "startText"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startAt",
+        "startDate",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "startText": [
+          "새벽",
+          "1시"
+        ]
+      },
+      "startTime": "01:00:00",
+      "startPrecision": "TIME_ONLY"
+    }
+  },
+  {
+    "id": "GT-031",
+    "category": "장소가 회사처럼 보임",
+    "sourceText": "내일 오후 2시 네이버 1784 회의실에서 킥오프",
+    "active": true,
+    "status": "active",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "킥오프"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt",
+        "memo",
+        "startDate",
+        "startTime"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "memo": [
+          "네이버",
+          "1784",
+          "회의실"
+        ]
+      },
+      "startAt": "2026-06-25T14:00",
+      "startPrecision": "DATE_TIME",
+      "startDate": "2026-06-25",
+      "startTime": "14:00:00"
+    }
+  },
+  {
+    "id": "GT-032",
+    "category": "장소가 회사처럼 보임",
+    "sourceText": "6월 12일 10시 카카오 판교오피스에서 면담",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "면담"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt",
+        "memo"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "memo": [
+          "카카오",
+          "판교오피스"
+        ]
+      },
+      "startAt": "2027-06-12T10:00",
+      "startPrecision": "DATE_TIME",
+      "startDate": "2027-06-12",
+      "startTime": "10:00:00"
+    }
+  },
+  {
+    "id": "GT-033",
+    "category": "장소가 회사처럼 보임",
+    "sourceText": "6/15 14시 토스 본사 3층에서 자료 리뷰",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "자료",
+        "리뷰"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt",
+        "memo"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "memo": [
+          "토스",
+          "본사",
+          "3층"
+        ]
+      },
+      "startAt": "2027-06-15T14:00",
+      "startPrecision": "DATE_TIME",
+      "startDate": "2027-06-15",
+      "startTime": "14:00:00"
+    }
+  },
+  {
+    "id": "GT-034",
+    "category": "장소가 회사처럼 보임",
+    "sourceText": "오늘 17시 삼성동 무신사 스튜디오 방문",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "무신사",
+        "스튜디오",
+        "방문"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt",
+        "memo"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "memo": [
+          "삼성동",
+          "무신사",
+          "스튜디오"
+        ]
+      },
+      "startAt": "2026-06-10T17:00:00",
+      "startPrecision": "DATE_TIME",
+      "startDate": "2026-06-10",
+      "startTime": "17:00:00"
+    }
+  },
+  {
+    "id": "GT-035",
+    "category": "장소가 회사처럼 보임",
+    "sourceText": "6월 20일 오전 11시 라인프렌즈 홍대점에서 촬영",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "촬영"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt",
+        "memo"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "memo": [
+          "라인프렌즈",
+          "홍대점"
+        ]
+      },
+      "startAt": "2027-06-20T11:00",
+      "startPrecision": "DATE_TIME",
+      "startDate": "2027-06-20",
+      "startTime": "11:00:00"
+    }
+  },
+  {
+    "id": "GT-036",
+    "category": "장소가 회사처럼 보임",
+    "sourceText": "오후 3시 LG사이언스파크 회의실 A에서 화상 테스트",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract inactive until policy expectations are narrowed",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "화상",
+        "테스트"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startTime",
+        "memo"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "startAt",
+        "startDate",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "memo": [
+          "LG사이언스파크",
+          "회의실"
+        ]
+      },
+      "startTime": "15:00:00",
+      "startPrecision": "TIME_ONLY"
+    }
+  },
+  {
+    "id": "GT-037",
+    "category": "장소가 회사처럼 보임",
+    "sourceText": "7월 2일 15시 SKT 타워 로비에서 미팅",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "미팅"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt",
+        "memo"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "memo": [
+          "SKT",
+          "타워",
+          "로비"
+        ]
+      },
+      "startAt": "2026-07-02T15:00:00",
+      "startPrecision": "DATE_TIME",
+      "startDate": "2026-07-02",
+      "startTime": "15:00:00"
+    }
+  },
+  {
+    "id": "GT-038",
+    "category": "장소가 회사처럼 보임",
+    "sourceText": "내일 9시 우아한형제들 사옥 앞에서 장비 수령",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract inactive until policy expectations are narrowed",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "장비",
+        "수령"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt",
+        "memo"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "memo": [
+          "우아한형제들",
+          "사옥"
+        ]
+      },
+      "startAt": "2026-06-25T09:00",
+      "startPrecision": "DATE_TIME",
+      "startDate": "2026-06-25",
+      "startTime": "09:00:00"
+    }
+  },
+  {
+    "id": "GT-039",
+    "category": "장소가 회사처럼 보임",
+    "sourceText": "6월 18일 13시 현대카드 디자인 라이브러리에서 레퍼런스 조사",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "레퍼런스",
+        "조사"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt",
+        "memo"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "memo": [
+          "현대카드",
+          "디자인",
+          "라이브러리"
+        ]
+      },
+      "startAt": "2027-06-18T13:00",
+      "startPrecision": "DATE_TIME",
+      "startDate": "2027-06-18",
+      "startTime": "13:00:00"
+    }
+  },
+  {
+    "id": "GT-040",
+    "category": "장소가 회사처럼 보임",
+    "sourceText": "이번 금요일 16시 쿠팡 잠실캠퍼스 5층에서 인터뷰",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "인터뷰"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt",
+        "memo"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "memo": [
+          "쿠팡",
+          "잠실캠퍼스",
+          "5층"
+        ]
+      },
+      "startAt": "2026-06-26T16:00",
+      "startPrecision": "DATE_TIME",
+      "startDate": "2026-06-26",
+      "startTime": "16:00:00"
+    }
+  },
+  {
+    "id": "GT-041",
+    "category": "회사명이 접미사 없이 등장",
+    "sourceText": "내일 10시 토스 로고 시안 회의",
+    "active": true,
+    "status": "active",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "토스",
+        "로고",
+        "시안",
+        "회의"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt",
+        "startDate",
+        "startTime"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {},
+      "startAt": "2026-06-25T10:00",
+      "startPrecision": "DATE_TIME",
+      "startDate": "2026-06-25",
+      "startTime": "10:00:00"
+    }
+  },
+  {
+    "id": "GT-042",
+    "category": "회사명이 접미사 없이 등장",
+    "sourceText": "6월 13일 14시 카카오 랜딩페이지 리뷰",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "카카오",
+        "랜딩페이지",
+        "리뷰"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {},
+      "startAt": "2027-06-13T14:00",
+      "startPrecision": "DATE_TIME",
+      "startDate": "2027-06-13",
+      "startTime": "14:00:00"
+    }
+  },
+  {
+    "id": "GT-043",
+    "category": "회사명이 접미사 없이 등장",
+    "sourceText": "6월 17일 오전 9시 네이버 배너 최종 검수",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "네이버",
+        "배너",
+        "최종",
+        "검수"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {},
+      "startAt": "2027-06-17T09:00",
+      "startPrecision": "DATE_TIME",
+      "startDate": "2027-06-17",
+      "startTime": "09:00:00"
+    }
+  },
+  {
+    "id": "GT-044",
+    "category": "회사명이 접미사 없이 등장",
+    "sourceText": "오늘 오후 4시 배민 상세페이지 제안",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract inactive until policy expectations are narrowed",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "배민",
+        "상세페이지",
+        "제안"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {},
+      "startAt": "2026-06-24T16:00",
+      "startPrecision": "DATE_TIME",
+      "startDate": "2026-06-24",
+      "startTime": "16:00:00"
+    }
+  },
+  {
+    "id": "GT-045",
+    "category": "회사명이 접미사 없이 등장",
+    "sourceText": "6월 25일 라인 채용페이지 수정 요청 확인",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "라인",
+        "채용페이지",
+        "수정",
+        "요청",
+        "확인"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startDate"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startAt",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {},
+      "startDate": "2026-06-25",
+      "startPrecision": "DATE_ONLY"
+    }
+  },
+  {
+    "id": "GT-046",
+    "category": "회사명이 접미사 없이 등장",
+    "sourceText": "7월 1일 11시 쿠팡 프로모션 기획 회의",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract inactive until policy expectations are narrowed",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "쿠팡",
+        "프로모션",
+        "기획",
+        "회의"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {},
+      "startAt": "2026-07-01T11:00:00",
+      "startPrecision": "DATE_TIME",
+      "startDate": "2026-07-01",
+      "startTime": "11:00:00"
+    }
+  },
+  {
+    "id": "GT-047",
+    "category": "회사명이 접미사 없이 등장",
+    "sourceText": "다음 주 화요일 15시 오늘의집 UX 인터뷰",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract inactive until policy expectations are narrowed",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "오늘의집",
+        "UX",
+        "인터뷰"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {},
+      "startAt": "2026-06-30T15:00",
+      "startPrecision": "DATE_TIME",
+      "startDate": "2026-06-30",
+      "startTime": "15:00:00"
+    }
+  },
+  {
+    "id": "GT-048",
+    "category": "회사명이 접미사 없이 등장",
+    "sourceText": "6/22 오전 10시 야놀자 앱 화면 논의",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "야놀자",
+        "화면",
+        "논의"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {},
+      "startAt": "2027-06-22T10:00",
+      "startPrecision": "DATE_TIME",
+      "startDate": "2027-06-22",
+      "startTime": "10:00:00"
+    }
+  },
+  {
+    "id": "GT-049",
+    "category": "회사명이 접미사 없이 등장",
+    "sourceText": "이번 달 말 17시 무신사 결과 보고",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract inactive until policy expectations are narrowed",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "무신사",
+        "결과",
+        "보고"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {},
+      "startAt": "2026-06-30T17:00:00",
+      "startPrecision": "DATE_TIME",
+      "startDate": "2026-06-30",
+      "startTime": "17:00:00"
+    }
+  },
+  {
+    "id": "GT-050",
+    "category": "회사명이 접미사 없이 등장",
+    "sourceText": "6월 14일 13시 당근 온보딩 문구 회의",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "당근",
+        "온보딩",
+        "문구",
+        "회의"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {},
+      "startAt": "2027-06-14T13:00",
+      "startPrecision": "DATE_TIME",
+      "startDate": "2027-06-14",
+      "startTime": "13:00:00"
+    }
+  },
+  {
+    "id": "GT-051",
+    "category": "예산/계약금/입금액이 섞임",
+    "sourceText": "6월 12일 15시 프로젝트 회의, 총예산 500만원",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "프로젝트",
+        "회의"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt",
+        "budgetAmount"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {},
+      "startAt": "2027-06-12T15:00",
+      "startPrecision": "DATE_TIME",
+      "budgetAmount": 5000000,
+      "startDate": "2027-06-12",
+      "startTime": "15:00:00"
+    }
+  },
+  {
+    "id": "GT-052",
+    "category": "예산/계약금/입금액이 섞임",
+    "sourceText": "계약금 100만원은 내일 입금, 전체 예산은 400만원",
+    "active": true,
+    "status": "active",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContainsAny": [
+        "입금",
+        "계약금",
+        "예산"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "paidDate",
+        "depositAmount",
+        "budgetAmount"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startAt",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {},
+      "paidDate": "2026-06-25",
+      "paidPrecision": "DATE_ONLY",
+      "depositAmount": 1000000,
+      "budgetAmount": 4000000
+    }
+  },
+  {
+    "id": "GT-053",
+    "category": "예산/계약금/입금액이 섞임",
+    "sourceText": "6월 18일 착수, 선금 80만원, 잔금 120만원은 완료 후 지급",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "착수"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startDate",
+        "depositAmount",
+        "balanceAmount",
+        "memo"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "startAt",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "paidAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "memo": [
+          "잔금",
+          "120만원은",
+          "완료",
+          "지급"
+        ]
+      },
+      "startDate": "2027-06-18",
+      "startPrecision": "DATE_ONLY",
+      "depositAmount": 800000,
+      "balanceAmount": 1200000
+    }
+  },
+  {
+    "id": "GT-054",
+    "category": "예산/계약금/입금액이 섞임",
+    "sourceText": "오늘 14시 견적 회의, 견적 250만원, 계약금 50만원",
+    "active": true,
+    "status": "active",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "견적",
+        "회의"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt",
+        "budgetAmount",
+        "depositAmount",
+        "startDate",
+        "startTime"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {},
+      "startAt": "2026-06-24T14:00",
+      "startPrecision": "DATE_TIME",
+      "budgetAmount": 2500000,
+      "depositAmount": 500000,
+      "startDate": "2026-06-24",
+      "startTime": "14:00:00"
+    }
+  },
+  {
+    "id": "GT-055",
+    "category": "예산/계약금/입금액이 섞임",
+    "sourceText": "6월 20일 10시 중간 공유, 입금액 30만원 확인 필요",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "중간",
+        "공유"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt",
+        "paidAmount",
+        "memo"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "memo": [
+          "입금액",
+          "30만원",
+          "확인",
+          "필요"
+        ]
+      },
+      "startAt": "2027-06-20T10:00",
+      "startPrecision": "DATE_TIME",
+      "paidAmount": 300000,
+      "startDate": "2027-06-20",
+      "startTime": "10:00:00"
+    }
+  },
+  {
+    "id": "GT-056",
+    "category": "예산/계약금/입금액이 섞임",
+    "sourceText": "6월 30일 최종 전달, 계약 총액 350만원, 잔금 150만원 7월 5일 입금",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "최종",
+        "전달"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startDate",
+        "contractAmount",
+        "paidAmount",
+        "paidDate"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startAt",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "balanceAmount",
+        "budgetText",
+        "paidAt",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {},
+      "startDate": "2026-06-30",
+      "startPrecision": "DATE_ONLY",
+      "contractAmount": 3500000,
+      "paidAmount": 1500000,
+      "paidDate": "2026-07-05",
+      "paidPrecision": "DATE_ONLY"
+    }
+  },
+  {
+    "id": "GT-057",
+    "category": "예산/계약금/입금액이 섞임",
+    "sourceText": "내일 11시 견적서 발송, 예산은 100~150만원 범위",
+    "active": true,
+    "status": "active",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "견적서",
+        "발송"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt",
+        "budgetText",
+        "startDate",
+        "startTime"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "budgetText": [
+          "100~150만원"
+        ]
+      },
+      "startAt": "2026-06-25T11:00",
+      "startPrecision": "DATE_TIME",
+      "startDate": "2026-06-25",
+      "startTime": "11:00:00"
+    }
+  },
+  {
+    "id": "GT-058",
+    "category": "예산/계약금/입금액이 섞임",
+    "sourceText": "6/16 16시 미팅, 선금 30%, 잔금 70%",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "미팅"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt",
+        "memo"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "memo": [
+          "선금",
+          "30%",
+          "잔금",
+          "70%"
+        ]
+      },
+      "startAt": "2027-06-16T16:00",
+      "startPrecision": "DATE_TIME",
+      "startDate": "2027-06-16",
+      "startTime": "16:00:00"
+    }
+  },
+  {
+    "id": "GT-059",
+    "category": "예산/계약금/입금액이 섞임",
+    "sourceText": "7월 3일 오후 2시 리뷰, 계약금 75만원 오늘 지급",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "리뷰"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt",
+        "paidDate",
+        "depositAmount"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {},
+      "startAt": "2026-07-03T14:00:00",
+      "startPrecision": "DATE_TIME",
+      "paidDate": "2026-06-24",
+      "paidPrecision": "DATE_ONLY",
+      "depositAmount": 750000,
+      "startDate": "2026-07-03",
+      "startTime": "14:00:00"
+    }
+  },
+  {
+    "id": "GT-060",
+    "category": "예산/계약금/입금액이 섞임",
+    "sourceText": "6월 21일 13시 보고, 입금액은 부가세 포함 110만원",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "보고"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt",
+        "paidAmount",
+        "memo"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "memo": [
+          "입금액은",
+          "부가세",
+          "포함",
+          "110만원"
+        ]
+      },
+      "startAt": "2027-06-21T13:00",
+      "startPrecision": "DATE_TIME",
+      "paidAmount": 1100000,
+      "startDate": "2027-06-21",
+      "startTime": "13:00:00"
+    }
+  },
+  {
+    "id": "GT-061",
+    "category": "온라인 링크/준비물/회의실 포함",
+    "sourceText": "내일 오후 2시 Zoom으로 킥오프, 링크는 https://zoom.us/j/123",
+    "active": true,
+    "status": "active",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "킥오프"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt",
+        "memo",
+        "startDate",
+        "startTime"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "memo": [
+          "Zoom",
+          "https://zoom.us/j/123"
+        ]
+      },
+      "startAt": "2026-06-25T14:00",
+      "startPrecision": "DATE_TIME",
+      "startDate": "2026-06-25",
+      "startTime": "14:00:00"
+    }
+  },
+  {
+    "id": "GT-062",
+    "category": "온라인 링크/준비물/회의실 포함",
+    "sourceText": "6월 12일 10시 회의실 B에서 발표, 준비물 노트북",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "발표"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt",
+        "memo"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "memo": [
+          "회의실",
+          "노트북"
+        ]
+      },
+      "startAt": "2027-06-12T10:00",
+      "startPrecision": "DATE_TIME",
+      "startDate": "2027-06-12",
+      "startTime": "10:00:00"
+    }
+  },
+  {
+    "id": "GT-063",
+    "category": "온라인 링크/준비물/회의실 포함",
+    "sourceText": "오늘 15시 구글밋 디자인 리뷰, 링크는 meet.google.com/abc-defg-hij",
+    "active": true,
+    "status": "active",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "디자인",
+        "리뷰"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt",
+        "memo",
+        "startDate",
+        "startTime"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "memo": [
+          "구글밋",
+          "meet.google.com/abc-defg-hij"
+        ]
+      },
+      "startAt": "2026-06-24T15:00",
+      "startPrecision": "DATE_TIME",
+      "startDate": "2026-06-24",
+      "startTime": "15:00:00"
+    }
+  },
+  {
+    "id": "GT-064",
+    "category": "온라인 링크/준비물/회의실 포함",
+    "sourceText": "6월 18일 14시 Figma 링크 확인, 자료는 PDF로 준비",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "Figma",
+        "링크",
+        "확인"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt",
+        "memo"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "memo": [
+          "PDF로",
+          "준비"
+        ]
+      },
+      "startAt": "2027-06-18T14:00",
+      "startPrecision": "DATE_TIME",
+      "startDate": "2027-06-18",
+      "startTime": "14:00:00"
+    }
+  },
+  {
+    "id": "GT-065",
+    "category": "온라인 링크/준비물/회의실 포함",
+    "sourceText": "다음 주 월요일 9시 온라인 인터뷰, 이력서와 포트폴리오 준비",
+    "active": false,
+    "status": "pending_policy",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "온라인",
+        "인터뷰"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt",
+        "memo"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "memo": [
+          "온라인",
+          "이력서",
+          "포트폴리오"
+        ]
+      },
+      "startAt": "2026-06-29T09:00",
+      "startPrecision": "DATE_TIME",
+      "startDate": "2026-06-29",
+      "startTime": "09:00:00"
+    },
+    "policyReason": "AI contract inactive until policy expectations are narrowed"
+  },
+  {
+    "id": "GT-066",
+    "category": "온라인 링크/준비물/회의실 포함",
+    "sourceText": "6/20 11시 3층 회의실에서 계약서 검토, 신분증 지참",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "계약서",
+        "검토"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt",
+        "memo"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "memo": [
+          "3층",
+          "회의실",
+          "신분증"
+        ]
+      },
+      "startAt": "2027-06-20T11:00",
+      "startPrecision": "DATE_TIME",
+      "startDate": "2027-06-20",
+      "startTime": "11:00:00"
+    }
+  },
+  {
+    "id": "GT-067",
+    "category": "온라인 링크/준비물/회의실 포함",
+    "sourceText": "오후 4시 Slack 허들, 사전 공유 문서 확인",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract inactive until policy expectations are narrowed",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "Slack",
+        "허들"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startTime",
+        "memo"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "startAt",
+        "startDate",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "memo": [
+          "사전",
+          "공유",
+          "문서",
+          "확인"
+        ]
+      },
+      "startTime": "16:00:00",
+      "startPrecision": "TIME_ONLY"
+    }
+  },
+  {
+    "id": "GT-068",
+    "category": "온라인 링크/준비물/회의실 포함",
+    "sourceText": "7월 1일 13시 Notion 회의록 정리, 링크는 notion.so/lancit",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "Notion",
+        "회의록",
+        "정리"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt",
+        "memo"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "memo": [
+          "notion.so/lancit"
+        ]
+      },
+      "startAt": "2026-07-01T13:00:00",
+      "startPrecision": "DATE_TIME",
+      "startDate": "2026-07-01",
+      "startTime": "13:00:00"
+    }
+  },
+  {
+    "id": "GT-069",
+    "category": "온라인 링크/준비물/회의실 포함",
+    "sourceText": "6월 25일 16시 회의실 A-2에서 QA, 테스트 계정 준비",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "QA"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt",
+        "memo"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "memo": [
+          "회의실",
+          "A-2",
+          "테스트",
+          "계정"
+        ]
+      },
+      "startAt": "2026-06-25T16:00:00",
+      "startPrecision": "DATE_TIME",
+      "startDate": "2026-06-25",
+      "startTime": "16:00:00"
+    }
+  },
+  {
+    "id": "GT-070",
+    "category": "온라인 링크/준비물/회의실 포함",
+    "sourceText": "내일 18시 디스코드 음성 회의, 화면공유 준비",
+    "active": true,
+    "status": "active",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "디스코드",
+        "음성",
+        "회의"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt",
+        "memo",
+        "startDate",
+        "startTime"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "memo": [
+          "디스코드",
+          "화면공유"
+        ]
+      },
+      "startAt": "2026-06-25T18:00",
+      "startPrecision": "DATE_TIME",
+      "startDate": "2026-06-25",
+      "startTime": "18:00:00"
+    }
+  },
+  {
+    "id": "GT-071",
+    "category": "여러 날짜가 한 문장에 있음",
+    "sourceText": "회의는 6월 12일 14시, 자료 마감은 6월 10일",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "회의"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt",
+        "memo"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "memo": [
+          "자료",
+          "마감:",
+          "2027-06-10"
+        ]
+      },
+      "startAt": "2027-06-12T14:00",
+      "startPrecision": "DATE_TIME",
+      "startDate": "2027-06-12",
+      "startTime": "14:00:00"
+    }
+  },
+  {
+    "id": "GT-072",
+    "category": "여러 날짜가 한 문장에 있음",
+    "sourceText": "6월 15일 초안 제출, 6월 18일 피드백 반영, 6월 20일 최종 제출",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "초안",
+        "제출"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startDate",
+        "memo"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "startAt",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "memo": [
+          "피드백",
+          "반영:",
+          "2027-06-18",
+          "최종",
+          "제출:",
+          "2027-06-20"
+        ]
+      },
+      "startDate": "2027-06-15",
+      "startPrecision": "DATE_ONLY"
+    }
+  },
+  {
+    "id": "GT-073",
+    "category": "여러 날짜가 한 문장에 있음",
+    "sourceText": "내일 인터뷰, 결과 공유는 다음 주 월요일",
+    "active": false,
+    "status": "pending_policy",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "인터뷰"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startDate",
+        "memo"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "startAt",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "memo": [
+          "결과",
+          "다음",
+          "월요일"
+        ]
+      },
+      "startDate": "2026-06-25",
+      "startPrecision": "DATE_ONLY"
+    },
+    "policyReason": "AI contract inactive until policy expectations are narrowed"
+  },
+  {
+    "id": "GT-074",
+    "category": "여러 날짜가 한 문장에 있음",
+    "sourceText": "6월 30일 프로젝트 종료, 7월 5일 잔금 입금",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "프로젝트",
+        "종료"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startDate",
+        "paidDate"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startAt",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {},
+      "startDate": "2026-06-30",
+      "startPrecision": "DATE_ONLY",
+      "paidDate": "2026-07-05",
+      "paidPrecision": "DATE_ONLY"
+    }
+  },
+  {
+    "id": "GT-075",
+    "category": "여러 날짜가 한 문장에 있음",
+    "sourceText": "오늘 10시 회의하고 6월 12일 18시까지 수정본 전달",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "회의"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt",
+        "memo"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "memo": [
+          "수정본",
+          "전달",
+          "마감:",
+          "2027-06-12T18:00:00"
+        ]
+      },
+      "startAt": "2026-06-24T10:00",
+      "startPrecision": "DATE_TIME",
+      "startDate": "2026-06-24",
+      "startTime": "10:00:00"
+    }
+  },
+  {
+    "id": "GT-076",
+    "category": "여러 날짜가 한 문장에 있음",
+    "sourceText": "6/16 11시 착수 회의, 6/23 중간 점검, 6/30 최종 보고",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "착수",
+        "회의"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt",
+        "memo"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "memo": [
+          "중간",
+          "점검:",
+          "2027-06-23",
+          "최종",
+          "보고:",
+          "2026-06-30"
+        ]
+      },
+      "startAt": "2027-06-16T11:00",
+      "startPrecision": "DATE_TIME",
+      "startDate": "2027-06-16",
+      "startTime": "11:00:00"
+    }
+  },
+  {
+    "id": "GT-077",
+    "category": "여러 날짜가 한 문장에 있음",
+    "sourceText": "7월 1일 오픈, 6월 25일 사전 검수",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "오픈"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startDate",
+        "memo"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "startAt",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "memo": [
+          "사전",
+          "검수:",
+          "2026-06-25"
+        ]
+      },
+      "startDate": "2026-07-01",
+      "startPrecision": "DATE_ONLY"
+    }
+  },
+  {
+    "id": "GT-078",
+    "category": "여러 날짜가 한 문장에 있음",
+    "sourceText": "6월 14일 촬영, 6월 15일 편집, 6월 16일 업로드",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "촬영"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startDate",
+        "memo"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "startAt",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "memo": [
+          "편집:",
+          "2027-06-15",
+          "업로드:",
+          "2027-06-16"
+        ]
+      },
+      "startDate": "2027-06-14",
+      "startPrecision": "DATE_ONLY"
+    }
+  },
+  {
+    "id": "GT-079",
+    "category": "여러 날짜가 한 문장에 있음",
+    "sourceText": "다음 주 월요일 킥오프, 같은 주 금요일 시안 전달",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "킥오프"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startDate",
+        "memo"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "startAt",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "memo": [
+          "시안",
+          "전달:",
+          "2026-07-03"
+        ]
+      },
+      "startDate": "2026-06-29",
+      "startPrecision": "DATE_ONLY"
+    }
+  },
+  {
+    "id": "GT-080",
+    "category": "여러 날짜가 한 문장에 있음",
+    "sourceText": "6월 28일 계약서 서명, 7월 1일 작업 시작",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "계약서",
+        "서명"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startDate",
+        "memo"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "startAt",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "memo": [
+          "작업",
+          "시작:",
+          "2026-07-01"
+        ]
+      },
+      "startDate": "2026-06-28",
+      "startPrecision": "DATE_ONLY"
+    }
+  },
+  {
+    "id": "GT-081",
+    "category": "지급 중심 문장",
+    "sourceText": "내일 계약금 30만원 입금",
+    "active": true,
+    "status": "active",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "계약금",
+        "입금"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "paidDate",
+        "depositAmount"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startAt",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {},
+      "paidDate": "2026-06-25",
+      "paidPrecision": "DATE_ONLY",
+      "depositAmount": 300000
+    }
+  },
+  {
+    "id": "GT-082",
+    "category": "지급 중심 문장",
+    "sourceText": "오늘 오후 5시에 잔금 80만원 받기",
+    "active": true,
+    "status": "active",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "잔금",
+        "받기"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "paidAt",
+        "paidAmount",
+        "paidDate",
+        "paidTime"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startAt",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {},
+      "paidAt": "2026-06-24T17:00",
+      "paidPrecision": "DATE_TIME",
+      "paidAmount": 800000,
+      "paidDate": "2026-06-24",
+      "paidTime": "17:00:00"
+    }
+  },
+  {
+    "id": "GT-083",
+    "category": "지급 중심 문장",
+    "sourceText": "6월 20일 입금 확인",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "입금",
+        "확인"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "paidDate"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startAt",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {},
+      "paidDate": "2027-06-20",
+      "paidPrecision": "DATE_ONLY"
+    }
+  },
+  {
+    "id": "GT-084",
+    "category": "지급 중심 문장",
+    "sourceText": "다음 달 5일까지 150만원 지급받기",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "지급받기"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "paidDate",
+        "paidAmount"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startAt",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {},
+      "paidDate": "2026-07-05",
+      "paidPrecision": "DATE_ONLY",
+      "paidAmount": 1500000
+    }
+  },
+  {
+    "id": "GT-085",
+    "category": "지급 중심 문장",
+    "sourceText": "금요일 오전 10시에 세금계산서 발행 후 입금 확인",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract inactive until policy expectations are narrowed",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "입금",
+        "확인"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "paidAt",
+        "memo"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "startAt",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "memo": [
+          "세금계산서",
+          "발행",
+          "입금",
+          "확인"
+        ]
+      },
+      "paidAt": "2026-06-12T10:00:00",
+      "paidPrecision": "DATE_TIME",
+      "paidDate": "2026-06-12",
+      "paidTime": "10:00:00"
+    }
+  },
+  {
+    "id": "GT-086",
+    "category": "지급 중심 문장",
+    "sourceText": "6월 말까지 잔금 정산",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "잔금",
+        "정산"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "paidDate"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startAt",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {},
+      "paidDate": "2026-06-30",
+      "paidPrecision": "DATE_ONLY"
+    }
+  },
+  {
+    "id": "GT-087",
+    "category": "지급 중심 문장",
+    "sourceText": "오늘 선금 20만원 송금 요청",
+    "active": false,
+    "status": "pending_policy",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "선금",
+        "송금",
+        "요청"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "paidDate",
+        "depositAmount"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startAt",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {},
+      "paidDate": "2026-06-24",
+      "paidPrecision": "DATE_ONLY",
+      "depositAmount": 200000
+    },
+    "policyReason": "AI contract inactive until policy expectations are narrowed"
+  },
+  {
+    "id": "GT-088",
+    "category": "지급 중심 문장",
+    "sourceText": "6/30 16:00 입금 예정",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "입금",
+        "예정"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "paidAt"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startAt",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {},
+      "paidAt": "2026-06-30T16:00:00",
+      "paidPrecision": "DATE_TIME",
+      "paidDate": "2026-06-30",
+      "paidTime": "16:00:00"
+    }
+  },
+  {
+    "id": "GT-089",
+    "category": "지급 중심 문장",
+    "sourceText": "내일 오전 9시 계약금 입금 여부 확인",
+    "active": false,
+    "status": "pending_policy",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "계약금",
+        "입금",
+        "여부",
+        "확인"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "paidAt"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startAt",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {},
+      "paidAt": "2026-06-25T09:00",
+      "paidPrecision": "DATE_TIME",
+      "paidDate": "2026-06-25",
+      "paidTime": "09:00:00"
+    },
+    "policyReason": "AI contract inactive until policy expectations are narrowed"
+  },
+  {
+    "id": "GT-090",
+    "category": "지급 중심 문장",
+    "sourceText": "7월 10일 부가세 포함 220만원 입금",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "입금"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "paidDate",
+        "paidAmount",
+        "memo"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "startAt",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "memo": [
+          "부가세",
+          "포함"
+        ]
+      },
+      "paidDate": "2026-07-10",
+      "paidPrecision": "DATE_ONLY",
+      "paidAmount": 2200000
+    }
+  },
+  {
+    "id": "GT-091",
+    "category": "복합/경계 케이스",
+    "sourceText": "내일 오후 2시부터 4시까지 카카오 회의",
+    "active": true,
+    "status": "active",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "카카오",
+        "회의"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt",
+        "endAt",
+        "startDate",
+        "startTime",
+        "endDate",
+        "endTime"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startText",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {},
+      "startAt": "2026-06-25T14:00",
+      "endAt": "2026-06-25T16:00",
+      "startPrecision": "DATE_TIME",
+      "endPrecision": "DATE_TIME",
+      "startDate": "2026-06-25",
+      "startTime": "14:00:00",
+      "endDate": "2026-06-25",
+      "endTime": "16:00:00"
+    }
+  },
+  {
+    "id": "GT-092",
+    "category": "복합/경계 케이스",
+    "sourceText": "6월 12일 13:30부터 90분간 네이버 피드백",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "네이버",
+        "피드백"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt",
+        "endAt"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startDate",
+        "startTime",
+        "startText",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {},
+      "startAt": "2027-06-12T13:30",
+      "endAt": "2027-06-12T15:00",
+      "startPrecision": "DATE_TIME",
+      "endPrecision": "DATE_TIME",
+      "startDate": "2027-06-12",
+      "startTime": "13:30:00",
+      "endDate": "2027-06-12",
+      "endTime": "15:00:00"
+    }
+  },
+  {
+    "id": "GT-093",
+    "category": "복합/경계 케이스",
+    "sourceText": "오늘 9시부터 내일 18시까지 서버 점검",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "pending_policy: cross-day or fuzzy date policy must be decided before Gemini contract enforcement",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "서버",
+        "점검"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt",
+        "endAt"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startDate",
+        "startTime",
+        "startText",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {},
+      "startAt": "2026-06-10T09:00:00",
+      "endAt": "2026-06-11T18:00:00",
+      "startPrecision": "DATE_TIME",
+      "endPrecision": "DATE_TIME",
+      "startDate": "2026-06-10",
+      "startTime": "09:00:00",
+      "endDate": "2026-06-11",
+      "endTime": "18:00:00"
+    }
+  },
+  {
+    "id": "GT-094",
+    "category": "복합/경계 케이스",
+    "sourceText": "6월 15일 오후 3시부터 6월 16일 오전 11시까지 워크숍",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "pending_policy: cross-day or fuzzy date policy must be decided before Gemini contract enforcement",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "워크숍"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt",
+        "endAt"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "memo",
+        "startDate",
+        "startTime",
+        "startText",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {},
+      "startAt": "2026-06-15T15:00:00",
+      "endAt": "2026-06-16T11:00:00",
+      "startPrecision": "DATE_TIME",
+      "endPrecision": "DATE_TIME",
+      "startDate": "2026-06-15",
+      "startTime": "15:00:00",
+      "endDate": "2026-06-16",
+      "endTime": "11:00:00"
+    }
+  },
+  {
+    "id": "GT-095",
+    "category": "복합/경계 케이스",
+    "sourceText": "6월 20일 오전 회의",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "회의"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startDate",
+        "startText",
+        "memo"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "startAt",
+        "startTime",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "startText": [
+          "6월",
+          "20일",
+          "오전"
+        ],
+        "memo": [
+          "시간",
+          "표현이",
+          "오전으로만",
+          "제공됨"
+        ]
+      },
+      "startDate": "2026-06-20",
+      "startPrecision": "DATE_ONLY"
+    }
+  },
+  {
+    "id": "GT-096",
+    "category": "복합/경계 케이스",
+    "sourceText": "다음 주 중으로 제안서 정리",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "pending_policy: cross-day or fuzzy date policy must be decided before Gemini contract enforcement",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "제안서",
+        "정리"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startText",
+        "memo"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "startAt",
+        "startDate",
+        "startTime",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "startText": [
+          "다음"
+        ],
+        "memo": [
+          "정확한",
+          "날짜",
+          "없음"
+        ]
+      },
+      "startPrecision": "NONE"
+    }
+  },
+  {
+    "id": "GT-097",
+    "category": "복합/경계 케이스",
+    "sourceText": "이번 주 안에 견적서 보내기",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "pending_policy: cross-day or fuzzy date policy must be decided before Gemini contract enforcement",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "견적서",
+        "보내기"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startText",
+        "memo"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "startAt",
+        "startDate",
+        "startTime",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "startText": [
+          "이번"
+        ],
+        "memo": [
+          "정확한",
+          "날짜",
+          "없음"
+        ]
+      },
+      "startPrecision": "NONE"
+    }
+  },
+  {
+    "id": "GT-098",
+    "category": "복합/경계 케이스",
+    "sourceText": "6월 12일 오후쯤 통화",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "통화"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startDate",
+        "startText",
+        "memo"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "startAt",
+        "startTime",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "startText": [
+          "6월",
+          "12일",
+          "오후쯤"
+        ],
+        "memo": [
+          "시간이",
+          "오후쯤으로만",
+          "제공됨"
+        ]
+      },
+      "startDate": "2026-06-12",
+      "startPrecision": "DATE_ONLY"
+    }
+  },
+  {
+    "id": "GT-099",
+    "category": "복합/경계 케이스",
+    "sourceText": "6월 18일 15시 온라인 미팅, 2시간 예상",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "온라인",
+        "미팅"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "startAt",
+        "endAt",
+        "memo"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "startDate",
+        "startTime",
+        "startText",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidDate",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "memo": [
+          "온라인"
+        ]
+      },
+      "startAt": "2027-06-18T15:00",
+      "endAt": "2027-06-18T17:00",
+      "startPrecision": "DATE_TIME",
+      "endPrecision": "DATE_TIME",
+      "startDate": "2027-06-18",
+      "startTime": "15:00:00",
+      "endDate": "2027-06-18",
+      "endTime": "17:00:00"
+    }
+  },
+  {
+    "id": "GT-100",
+    "category": "복합/경계 케이스",
+    "sourceText": "회의 시간은 미정이고 6월 30일 입금 예정",
+    "active": false,
+    "status": "pending_policy",
+    "policyReason": "AI contract excludes no-year date correction or unresolved parser policy case",
+    "expected": {
+      "allowTextVariation": true,
+      "titleContains": [
+        "입금",
+        "예정"
+      ],
+      "requiredFields": [
+        "sourceText",
+        "title",
+        "status",
+        "warnings",
+        "paidDate",
+        "memo"
+      ],
+      "nullableFields": [
+        "categoryId",
+        "content",
+        "startAt",
+        "startDate",
+        "startTime",
+        "startText",
+        "endAt",
+        "endDate",
+        "endTime",
+        "endText",
+        "clientCompany",
+        "budget",
+        "budgetAmount",
+        "depositAmount",
+        "paidAmount",
+        "balanceAmount",
+        "contractAmount",
+        "budgetText",
+        "paidAt",
+        "paidTime",
+        "paidText",
+        "confidence",
+        "requiresConfirmation"
+      ],
+      "requiredKeywords": {
+        "memo": [
+          "회의",
+          "시간",
+          "미정"
+        ]
+      },
+      "paidDate": "2026-06-30",
+      "paidPrecision": "DATE_ONLY",
+      "startPrecision": "NONE"
+    }
+  }
+]
