@@ -96,16 +96,23 @@ public class GeminiExternalJobClassifier implements ExternalJobClassifier {
                 - recommendationType: HIGHLY_RECOMMENDED, RECOMMENDED, POSSIBLE, EXCLUDED
 
                 기준:
-                - 프리랜서, 외주, 위탁, 용역, 프로젝트 단위, 재택/원격 가능성이 명확하면 TRUE_FREELANCE
-                - 결과물 중심 디자인/개발/영상/콘텐츠/마케팅/글쓰기/교육/기획 업무는 PROJECT_LIKE
+                - 실제 직무/계약 조건에 프리랜서 또는 외주 수행이 명확하면 TRUE_FREELANCE
+                - 프로젝트 단위, 결과물 중심 디자인/개발/영상/콘텐츠/마케팅/글쓰기/교육/기획 업무는 PROJECT_LIKE
+                - 재택/원격 가능성만 명확하면 TRUE_FREELANCE가 아니라 PROJECT_LIKE 또는 CONTRACT_LIKE 중 더 가까운 값
                 - 계약직, 기간제, 단기 근무이나 프리랜서가 관심 가질 수 있으면 CONTRACT_LIKE
                 - 정규직, 상근 필수, 교대근무, 생산/노무/영업점 상주 업무는 NOT_FREELANCE
+                - 청소/미화/조리/주차/물류/배송/요양/간병/경비/조립/용접/영업/판매/경리/생산/건설현장 업무는 NOT_FREELANCE
+                - 회사명, 사업요약, 발주 설명에만 "개발", "위탁", "용역", "소프트웨어"가 있으면 추천 근거로 쓰지 말 것
+                - 실제 직무가 제외 업무이면 회사명/사업명과 무관하게 NOT_FREELANCE
+                - freelanceType이 NOT_FREELANCE이거나 recommendationType이 EXCLUDED이면 recommendationScore는 0
+                - HIGHLY_RECOMMENDED 점수는 90~100, RECOMMENDED는 65~89, POSSIBLE은 30~64, EXCLUDED는 0
                 - 명확히 부적합하지 않으면 UNKNOWN이어도 recommendationType은 POSSIBLE 가능
 
                 응답 형식:
                 {
                   "freelanceType": "PROJECT_LIKE",
                   "recommendationType": "RECOMMENDED",
+                  "recommendationScore": 75,
                   "label": "프로젝트형 공고",
                   "confidence": 0.0,
                   "reason": "내부 디버깅용 한 문장"
@@ -139,18 +146,22 @@ public class GeminiExternalJobClassifier implements ExternalJobClassifier {
         ExternalJobRecommendationType recommendationType = parseEnum(
                 ExternalJobRecommendationType.class,
                 root.path("recommendationType").asText(null),
-                defaultRecommendation(freelanceType));
+                ExternalJobClassificationPolicy.defaultRecommendation(freelanceType));
         double confidence = root.path("confidence").isNumber()
                 ? Math.max(0.0, Math.min(1.0, root.path("confidence").asDouble()))
                 : 0.5;
+        Integer recommendationScore = root.path("recommendationScore").isNumber()
+                ? Math.max(0, Math.min(100, root.path("recommendationScore").asInt()))
+                : null;
 
-        return ExternalJobClassification.builder()
+        return ExternalJobClassificationPolicy.normalize(ExternalJobClassification.builder()
                 .freelanceType(freelanceType)
                 .recommendationType(recommendationType)
+                .recommendationScore(recommendationScore)
                 .label(trimToNull(root.path("label").asText(null)))
                 .confidence(confidence)
                 .reason(trimToNull(root.path("reason").asText(null)))
-                .build();
+                .build());
     }
 
     private String extractGenerateContentText(String responseBody) throws Exception {
@@ -237,16 +248,6 @@ public class GeminiExternalJobClassifier implements ExternalJobClassifier {
         } catch (IllegalArgumentException e) {
             return defaultValue;
         }
-    }
-
-    private static ExternalJobRecommendationType defaultRecommendation(ExternalFreelanceType freelanceType) {
-        return switch (freelanceType) {
-            case TRUE_FREELANCE -> ExternalJobRecommendationType.RECOMMENDED;
-            case PROJECT_LIKE -> ExternalJobRecommendationType.RECOMMENDED;
-            case CONTRACT_LIKE -> ExternalJobRecommendationType.POSSIBLE;
-            case NOT_FREELANCE -> ExternalJobRecommendationType.EXCLUDED;
-            case UNKNOWN -> ExternalJobRecommendationType.POSSIBLE;
-        };
     }
 
     private static boolean isConfigured(String value) {

@@ -21,6 +21,9 @@
         <result property="payloadHash" column="payload_hash"/>
         <result property="freelanceType" column="freelance_type"/>
         <result property="recommendationType" column="recommendation_type"/>
+        <result property="recommendationScore" column="recommendation_score"/>
+        <result property="visible" column="is_visible"/>
+        <result property="visibilityReason" column="visibility_reason"/>
         <result property="collectedAt" column="collected_at"/>
         <result property="updatedAt" column="updated_at"/>
     </resultMap>
@@ -43,19 +46,16 @@
         payload_hash,
         freelance_type,
         recommendation_type,
+        recommendation_score,
+        is_visible,
+        visibility_reason,
         collected_at,
         updated_at
     </sql>
 
     <sql id="VisibleExternalJobFilters">
-        AND freelance_type &lt;&gt; 'NOT_FREELANCE'
-        AND recommendation_type &lt;&gt; 'EXCLUDED'
-        <if test="condition == null or condition.includeExpired == null or condition.includeExpired == false">
-            AND (
-                deadline_at IS NULL
-                OR deadline_at &gt;= NOW()
-            )
-        </if>
+        AND source = 'SEOUL'
+        AND is_visible = 1
     </sql>
 
     <sql id="SearchFilters">
@@ -66,9 +66,6 @@
                 OR description LIKE CONCAT('%', #{condition.keyword}, '%')
             )
         </if>
-        <if test="condition != null and condition.source != null">
-            AND source = #{condition.source}
-        </if>
         <if test="condition != null and condition.recommendationType != null">
             AND recommendation_type = #{condition.recommendationType}
         </if>
@@ -77,12 +74,20 @@
     <sql id="ExternalJobOrderBy">
         ORDER BY
         <choose>
-            <when test="condition != null and condition.safeSort == 'DEADLINE'">
-                CASE WHEN deadline_at IS NULL THEN 1 ELSE 0 END,
-                deadline_at ASC,
+            <when test="condition != null and condition.safeSort == 'LATEST'">
+                posted_at DESC,
+                collected_at DESC,
                 id DESC
             </when>
             <otherwise>
+                recommendation_score DESC,
+                CASE recommendation_type
+                    WHEN 'HIGHLY_RECOMMENDED' THEN 1
+                    WHEN 'RECOMMENDED' THEN 2
+                    WHEN 'POSSIBLE' THEN 3
+                    ELSE 4
+                END ASC,
+                posted_at DESC,
                 collected_at DESC,
                 id DESC
             </otherwise>
@@ -113,6 +118,9 @@
             payload_hash,
             freelance_type,
             recommendation_type,
+            recommendation_score,
+            is_visible,
+            visibility_reason,
             collected_at,
             updated_at
         ) VALUES (
@@ -132,6 +140,9 @@
             #{payloadHash},
             #{freelanceType},
             #{recommendationType},
+            #{recommendationScore},
+            COALESCE(#{visible}, 1),
+            COALESCE(#{visibilityReason}, 'VISIBLE'),
             #{collectedAt},
             #{updatedAt}
         )
@@ -150,8 +161,33 @@
             payload_hash = VALUES(payload_hash),
             freelance_type = VALUES(freelance_type),
             recommendation_type = VALUES(recommendation_type),
+            recommendation_score = VALUES(recommendation_score),
+            is_visible = VALUES(is_visible),
+            visibility_reason = VALUES(visibility_reason),
             updated_at = VALUES(updated_at)
     </insert>
+
+    <update id="refreshVisibilityByPolicy">
+        UPDATE external_job
+        SET
+            is_visible = CASE
+                WHEN freelance_type = 'NOT_FREELANCE' THEN 0
+                WHEN recommendation_type = 'EXCLUDED' THEN 0
+                WHEN deadline_at IS NOT NULL AND deadline_at &lt; #{now} THEN 0
+                WHEN deadline_at IS NULL
+                    AND COALESCE(posted_at, collected_at, updated_at) &lt; #{staleBefore} THEN 0
+                ELSE 1
+            END,
+            visibility_reason = CASE
+                WHEN freelance_type = 'NOT_FREELANCE' THEN 'NOT_FREELANCE'
+                WHEN recommendation_type = 'EXCLUDED' THEN 'EXCLUDED'
+                WHEN deadline_at IS NOT NULL AND deadline_at &lt; #{now} THEN 'EXPIRED'
+                WHEN deadline_at IS NULL
+                    AND COALESCE(posted_at, collected_at, updated_at) &lt; #{staleBefore} THEN 'NO_DEADLINE_STALE'
+                ELSE 'VISIBLE'
+            END
+        WHERE source = #{source}
+    </update>
 
     <select id="findExternalJobs" resultMap="ExternalJobResultMap">
         SELECT
@@ -177,11 +213,74 @@
         <include refid="ExternalJobColumns"/>
         FROM external_job
         WHERE id = #{id}
-          AND freelance_type &lt;&gt; 'NOT_FREELANCE'
-          AND recommendation_type &lt;&gt; 'EXCLUDED'
-          AND (
-              deadline_at IS NULL
-              OR deadline_at &gt;= NOW()
-          )
+          AND source = 'SEOUL'
+          AND is_visible = 1
     </select>
+
+    <insert id="insertCollectionLog">
+        INSERT INTO external_job_collection_log (
+            source,
+            collection_type,
+            status,
+            requested_page_size,
+            requested_max_pages,
+            fetched_count,
+            upserted_count,
+            skipped_count,
+            failed_count,
+            succeeded_pages,
+            failed_pages,
+            first_failed_page,
+            message,
+            started_at,
+            ended_at,
+            created_at
+        ) VALUES (
+            #{source},
+            #{collectionType},
+            #{status},
+            #{requestedPageSize},
+            #{requestedMaxPages},
+            #{fetchedCount},
+            #{upsertedCount},
+            #{skippedCount},
+            #{failedCount},
+            #{succeededPages},
+            #{failedPages},
+            #{firstFailedPage},
+            #{message},
+            #{startedAt},
+            #{endedAt},
+            #{createdAt}
+        )
+    </insert>
+
+    <insert id="tryAcquireCollectionLock">
+        INSERT INTO external_job_collection_lock (
+            source,
+            locked_by,
+            locked_at,
+            locked_until,
+            updated_at
+        ) VALUES (
+            #{source},
+            #{lockedBy},
+            #{lockedAt},
+            #{lockedUntil},
+            #{updatedAt}
+        )
+        ON DUPLICATE KEY UPDATE
+            locked_by = IF(locked_until &lt;= #{lockedAt}, VALUES(locked_by), locked_by),
+            locked_at = IF(locked_until &lt;= #{lockedAt}, VALUES(locked_at), locked_at),
+            updated_at = IF(locked_until &lt;= #{lockedAt}, VALUES(updated_at), updated_at),
+            locked_until = IF(locked_until &lt;= #{lockedAt}, VALUES(locked_until), locked_until)
+    </insert>
+
+    <update id="releaseCollectionLock">
+        UPDATE external_job_collection_lock
+        SET locked_until = #{releasedAt},
+            updated_at = #{releasedAt}
+        WHERE source = #{source}
+          AND locked_by = #{lockedBy}
+    </update>
 </mapper>

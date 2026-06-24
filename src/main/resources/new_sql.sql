@@ -20,6 +20,8 @@ DROP TABLE IF EXISTS contract_document;
 DROP TABLE IF EXISTS contract;
 DROP TABLE IF EXISTS recruitment_bookmark;
 DROP TABLE IF EXISTS bookmark;
+DROP TABLE IF EXISTS external_job_collection_lock;
+DROP TABLE IF EXISTS external_job_collection_log;
 DROP TABLE IF EXISTS external_job;
 DROP TABLE IF EXISTS recruitment_application_portfolio_snapshot_file;
 DROP TABLE IF EXISTS recruitment_application_portfolio_snapshot;
@@ -242,14 +244,52 @@ CREATE TABLE external_job (
     payload_hash            VARCHAR(128)    NULL,
     freelance_type          VARCHAR(40)     NOT NULL,
     recommendation_type     VARCHAR(40)     NOT NULL,
+    recommendation_score    INT             NOT NULL    DEFAULT 0,
+    is_visible              TINYINT(1)      NOT NULL    DEFAULT 1,
+    visibility_reason       VARCHAR(80)     NOT NULL    DEFAULT 'VISIBLE',
     collected_at            DATETIME        NOT NULL,
     updated_at              DATETIME        NOT NULL,
     PRIMARY KEY (id),
     UNIQUE KEY uk_external_job_source_job_id (source, source_job_id),
     INDEX idx_external_job_source_collected_at (source, collected_at),
+    INDEX idx_external_job_visibility (source, is_visible, deadline_at),
     INDEX idx_external_job_recommendation_type (recommendation_type),
+    INDEX idx_external_job_recommendation_order (recommendation_score, recommendation_type, posted_at, collected_at),
     INDEX idx_external_job_deadline_at (deadline_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='외부 공고';
+
+CREATE TABLE external_job_collection_log (
+    id                      BIGINT          NOT NULL    AUTO_INCREMENT,
+    source                  VARCHAR(30)     NOT NULL,
+    collection_type         VARCHAR(30)     NOT NULL,
+    status                  VARCHAR(30)     NOT NULL,
+    requested_page_size     INT             NOT NULL,
+    requested_max_pages     INT             NOT NULL,
+    fetched_count           INT             NOT NULL    DEFAULT 0,
+    upserted_count          INT             NOT NULL    DEFAULT 0,
+    skipped_count           INT             NOT NULL    DEFAULT 0,
+    failed_count            INT             NOT NULL    DEFAULT 0,
+    succeeded_pages         INT             NOT NULL    DEFAULT 0,
+    failed_pages            INT             NOT NULL    DEFAULT 0,
+    first_failed_page       INT             NULL,
+    message                 VARCHAR(1000)   NULL,
+    started_at              DATETIME        NOT NULL,
+    ended_at                DATETIME        NOT NULL,
+    created_at              DATETIME        NOT NULL,
+    PRIMARY KEY (id),
+    INDEX idx_external_job_collection_log_source_started_at (source, started_at),
+    INDEX idx_external_job_collection_log_status_started_at (status, started_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='외부 공고 수집 실행 로그';
+
+CREATE TABLE external_job_collection_lock (
+    source                  VARCHAR(30)     NOT NULL,
+    locked_by               VARCHAR(120)    NOT NULL,
+    locked_at               DATETIME        NOT NULL,
+    locked_until            DATETIME        NOT NULL,
+    updated_at              DATETIME        NOT NULL,
+    PRIMARY KEY (source),
+    INDEX idx_external_job_collection_lock_until (locked_until)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='외부 공고 수집 실행 락';
 
 -- ============================================================
 --  7. portfolio

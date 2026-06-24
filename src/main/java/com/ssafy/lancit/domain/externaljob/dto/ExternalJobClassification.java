@@ -14,6 +14,7 @@ import lombok.NoArgsConstructor;
 public class ExternalJobClassification {
     private ExternalFreelanceType freelanceType;
     private ExternalJobRecommendationType recommendationType;
+    private Integer recommendationScore;
     private String label;
     private Double confidence;
     private String reason;

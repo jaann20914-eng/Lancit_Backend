@@ -22,12 +22,12 @@ public class FallbackExternalJobClassifier implements ExternalJobClassifier {
         GeminiExternalJobClassifier geminiClassifier = geminiClassifierProvider.getIfAvailable();
         if (geminiClassifier != null) {
             try {
-                return geminiClassifier.classify(input);
+                return ExternalJobClassificationPolicy.normalize(geminiClassifier.classify(input));
             } catch (RuntimeException e) {
                 log.warn("Gemini external job classification failed. Falling back to rules. reason={}",
                         e.getClass().getSimpleName());
             }
         }
-        return ruleBasedExternalJobClassifier.classify(input);
+        return ExternalJobClassificationPolicy.normalize(ruleBasedExternalJobClassifier.classify(input));
     }
 }

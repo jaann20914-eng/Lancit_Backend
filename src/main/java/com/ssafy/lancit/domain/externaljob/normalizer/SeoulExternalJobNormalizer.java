@@ -29,7 +29,6 @@ import java.util.regex.Pattern;
 public class SeoulExternalJobNormalizer {
 
     private static final int SOURCE_JOB_ID_MAX_LENGTH = 100;
-    private static final int SOURCE_URL_MAX_LENGTH = 1000;
     private static final int TITLE_MAX_LENGTH = 300;
     private static final int COMPANY_MAX_LENGTH = 200;
     private static final int LOCATION_MAX_LENGTH = 300;
@@ -51,16 +50,17 @@ public class SeoulExternalJobNormalizer {
             "기업명칭", "회사명", "CMPNY_NM", "COMPANY_NAME", "companyName"
     );
     private static final List<String> DESCRIPTION_FIELDS = List.of(
-            "사업요약내용", "직무내용", "공고내용", "BSNS_SUMRY_CN", "DTY_CN", "JOB_CN",
-            "JO_CN", "DESCRIPTION", "description"
+            "직무내용", "공고내용", "DTY_CN", "JOB_CN", "JO_CN",
+            "사업요약내용", "BSNS_SUMRY_CN",
+            "DESCRIPTION", "description"
     );
     private static final List<String> CATEGORY_FIELDS = List.of(
-            "모집직종명", "모집직종코드", "RCRIT_JSSFC_CMMN_CODE_SE_NM",
-            "RCRIT_JSSFC_CMMN_CODE_SE", "JOB_CATEGORY", "jobCategoryRaw"
+            "JOBCODE_NM", "모집직종명", "RCRIT_JSSFC_CMMN_CODE_SE_NM",
+            "JOB_CATEGORY", "jobCategoryRaw"
     );
     private static final List<String> EMPLOYMENT_FIELDS = List.of(
-            "고용형태", "고용형태명", "EMPLYM_STLE_CMMN_CODE_SE_NM",
-            "EMPLYM_STLE_CMMN_CODE_SE", "EMPLOYMENT_TYPE", "employmentTypeRaw"
+            "EMPLYM_STLE_CMMN_MM", "고용형태", "고용형태명", "EMPLYM_STLE_CMMN_CODE_SE_NM",
+            "EMPLOYMENT_TYPE", "employmentTypeRaw"
     );
     private static final List<String> LOCATION_FIELDS = List.of(
             "근무예정지 주소", "근무예정지주소", "WORK_PARAR_BASS_ADRES_CN",
@@ -75,10 +75,6 @@ public class SeoulExternalJobNormalizer {
     private static final List<String> DEADLINE_FIELDS = List.of(
             "마감일", "접수마감일", "RCEPT_CLOS_DT", "RCEPT_CLOS_NM", "DEADLINE", "deadlineAt"
     );
-    private static final List<String> SOURCE_URL_FIELDS = List.of(
-            "상세URL", "상세 URL", "JO_URL", "DETAIL_URL", "URL", "sourceUrl"
-    );
-
     private final ObjectMapper objectMapper;
     private final Clock clock;
 
@@ -107,7 +103,7 @@ public class SeoulExternalJobNormalizer {
         return Optional.of(ExternalJobUpsertCommand.builder()
                 .source(ExternalJobSource.SEOUL)
                 .sourceJobId(sourceJobId)
-                .sourceUrl(truncate(firstText(row, SOURCE_URL_FIELDS), SOURCE_URL_MAX_LENGTH))
+                .sourceUrl(ExternalJobSource.SEOUL.getSiteUrl())
                 .title(title)
                 .companyName(companyName)
                 .location(truncate(firstText(row, LOCATION_FIELDS), LOCATION_MAX_LENGTH))
@@ -121,6 +117,7 @@ public class SeoulExternalJobNormalizer {
                 .payloadHash(sha256(originalPayloadJson))
                 .freelanceType(ExternalFreelanceType.UNKNOWN)
                 .recommendationType(ExternalJobRecommendationType.POSSIBLE)
+                .recommendationScore(0)
                 .collectedAt(now)
                 .updatedAt(now)
                 .build());

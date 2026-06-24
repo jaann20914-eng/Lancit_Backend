@@ -31,13 +31,16 @@ class SeoulExternalJobNormalizerTest {
         row.put("JO_REQST_NO", "SEOUL-001");
         row.put("JO_SJ", "웹 서비스 개발 프로젝트");
         row.put("CMPNY_NM", "랜싯랩");
-        row.put("RCRIT_JSSFC_CMMN_CODE_SE_NM", "웹 개발자");
-        row.put("EMPLYM_STLE_CMMN_CODE_SE_NM", "계약직");
+        row.put("JOBCODE_NM", "웹 개발자");
+        row.put("RCRIT_JSSFC_CMMN_CODE_SE", "132001");
+        row.put("EMPLYM_STLE_CMMN_MM", "계약직");
+        row.put("EMPLYM_STLE_CMMN_CODE_SE", "J01102");
         row.put("WORK_PARAR_BASS_ADRES_CN", "서울시 강남구");
         row.put("HOPE_WAGE", "월 300만원");
         row.put("JO_REG_DT", "20260620");
         row.put("RCEPT_CLOS_DT", "2026.07.10");
         row.put("BSNS_SUMRY_CN", "프로젝트 단위 웹 개발 업무");
+        row.put("JO_URL", "https://example.com/detail/SEOUL-001");
 
         Optional<ExternalJobUpsertCommand> result = normalizer.normalize(row);
 
@@ -50,6 +53,7 @@ class SeoulExternalJobNormalizerTest {
         assertThat(command.getJobCategoryRaw()).isEqualTo("웹 개발자");
         assertThat(command.getEmploymentTypeRaw()).isEqualTo("계약직");
         assertThat(command.getLocation()).isEqualTo("서울시 강남구");
+        assertThat(command.getSourceUrl()).isEqualTo(ExternalJobSource.SEOUL.getSiteUrl());
         assertThat(command.getDeadlineAt()).isEqualTo(LocalDateTime.of(2026, 7, 10, 0, 0));
         assertThat(command.getPayloadHash()).hasSize(64);
         assertThat(command.getCollectedAt()).isEqualTo(LocalDateTime.of(2026, 6, 24, 0, 0));
@@ -76,6 +80,22 @@ class SeoulExternalJobNormalizerTest {
 
         assertThat(result).isPresent();
         assertThat(result.get().getTitle()).isEqualTo("서울디자인 영상 편집자");
+    }
+
+    @Test
+    @DisplayName("직종/고용형태 표시값이 없으면 서울시 코드값은 노출용 raw 필드로 저장하지 않는다")
+    void normalize_codeOnlyCategoryAndEmployment_keepsDisplayFieldsEmpty() {
+        ObjectNode row = objectMapper.createObjectNode();
+        row.put("JO_REQST_NO", "SEOUL-004");
+        row.put("JO_SJ", "카드단말기 조립원 모집");
+        row.put("RCRIT_JSSFC_CMMN_CODE_SE", "836000");
+        row.put("EMPLYM_STLE_CMMN_CODE_SE", "J01101");
+
+        Optional<ExternalJobUpsertCommand> result = normalizer.normalize(row);
+
+        assertThat(result).isPresent();
+        assertThat(result.get().getJobCategoryRaw()).isNull();
+        assertThat(result.get().getEmploymentTypeRaw()).isNull();
     }
 
     @Test
