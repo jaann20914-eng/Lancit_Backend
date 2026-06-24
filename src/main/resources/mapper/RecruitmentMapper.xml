@@ -353,5 +353,16 @@
         WHERE recruitment_id = #{recruitmentId}
           AND is_deleted = 0
     </select>
+    
+    <!-- 제안 가능 여부 -->
+	<select id="isProposable" resultType="boolean">
+	    SELECT COUNT(*) = 0
+	    FROM contract
+	    WHERE recruitment_id = #{recruitmentId}
+	    AND (
+	        freelancer_email = #{freelancerEmail}
+	        OR status NOT IN ('WAITING', 'CANCELLED')
+	    )
+	</select>
 
 </mapper>

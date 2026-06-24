@@ -1,9 +1,12 @@
 package com.ssafy.lancit.domain.user.dto;
 
+import java.time.LocalDateTime;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.ssafy.lancit.global.enums.JobCategory;
+
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -20,6 +23,7 @@ public class UserDTO {
     private Integer profileFileId;
     private boolean isBookmarked;
     private boolean isDeleted;
+    private LocalDateTime createdAt;
 
     public UserDTO() {}
 
@@ -32,7 +36,8 @@ public class UserDTO {
             @JsonProperty("phone") String phone,
             @JsonProperty("jobCategory") JobCategory jobCategory,
             @JsonProperty("pushable") boolean pushable,
-            @JsonProperty("profileFileId") Integer profileFileId
+            @JsonProperty("profileFileId") Integer profileFileId,
+            @JsonProperty("createdAt") LocalDateTime createdAt
     ) {
         this.email = email;
         this.password = password;
@@ -43,5 +48,6 @@ public class UserDTO {
         this.profileFileId = profileFileId;
         this.isBookmarked = false;
         this.isDeleted = false;
+        this.createdAt=createdAt;
     }
 }

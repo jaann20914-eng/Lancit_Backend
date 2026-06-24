@@ -4,8 +4,9 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.ssafy.lancit.global.enums.JobCategory;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.ssafy.lancit.global.enums.ApplicationStatus;
+import com.ssafy.lancit.global.enums.JobCategory;
 import com.ssafy.lancit.global.enums.RecruitmentCategory;
 import com.ssafy.lancit.global.enums.RecruitmentStatus;
 import com.ssafy.lancit.global.enums.RecruitmentViewStatus;
@@ -17,7 +18,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Getter
-@Builder
+//@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(description = "공고 목록 항목")
@@ -51,4 +53,7 @@ public class RecruitmentListItemResponse {
     private ApplicationStatus myApplicationStatus;
     private Integer myApplicationId;
     private Boolean isBookmarked;
+    @JsonProperty("isProposable")  
+    @Builder.Default
+    private boolean isProposable = true;
 }

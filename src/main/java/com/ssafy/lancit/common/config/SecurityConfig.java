@@ -34,7 +34,8 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable) // csrf 비활성화
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // 세션 없이 토큰만 사용
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/**").permitAll() 
+                .requestMatchers("/**").permitAll()
+                .requestMatchers("/api/files/*/public-url").permitAll()
                 
                 
                 // TODO 지원: 개발 완료 후 아래로 교체

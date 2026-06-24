@@ -4,7 +4,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -16,6 +15,7 @@ import com.ssafy.lancit.common.page.dto.PageResponse;
 import com.ssafy.lancit.common.response.ApiResponse;
 import com.ssafy.lancit.common.util.SecurityUtil;
 import com.ssafy.lancit.domain.bookmark.company.dto.CompanyBookmarkDTO;
+import com.ssafy.lancit.domain.bookmark.company.dto.TalentListDTO;
 import com.ssafy.lancit.domain.bookmark.company.service.CompanyBookmarkService;
 import com.ssafy.lancit.domain.company.service.CompanyService;
 import com.ssafy.lancit.domain.user.dto.UserDTO;
@@ -40,21 +40,21 @@ public class CompanyBookmarkController {
      * - sort: latest / name
      * - 각 프리랜서마다 isBookmarked 포함 반환
      */
-    @GetMapping("/search")
-    public ResponseEntity<ApiResponse<?>> searchFreelancers(
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) JobCategory jobCategory,
-            @RequestParam(defaultValue = "false") boolean bookmarked,
-            @ModelAttribute PageRequest pageRequest) {
-
-        String companyEmail = SecurityUtil.getCurrentEmail();
-        if (jobCategory == null) {
-            jobCategory = companyService.getCompanyJobCategory(companyEmail);
-        }
-        PageResponse<UserDTO> result = companyBookmarkService.searchFreelancers(
-                companyEmail, keyword, jobCategory, bookmarked, pageRequest);
-        return ResponseEntity.ok(ApiResponse.ok(result));
-    }
+//    @GetMapping("/search")
+//    public ResponseEntity<ApiResponse<?>> searchFreelancers(
+//            @RequestParam(required = false) String keyword,
+//            @RequestParam(required = false) JobCategory jobCategory,
+//            @RequestParam(defaultValue = "false") boolean bookmarked,
+//            @ModelAttribute PageRequest pageRequest) {
+//
+//        String companyEmail = SecurityUtil.getCurrentEmail();
+//        
+//        PageResponse<UserDTO> result = companyBookmarkService.searchFreelancers(
+//                companyEmail, keyword, jobCategory, bookmarked, pageRequest);
+//        return ResponseEntity.ok(ApiResponse.ok(result));
+//    }
+    
+    
 
     // CLI-SEAR-01 프리랜서 찜하기
 
@@ -67,11 +67,41 @@ public class CompanyBookmarkController {
     }
 
     // CLI-SEAR-01 프리랜서 찜 취소
-    @DeleteMapping("/{bookmarkId}")
-    public ResponseEntity<ApiResponse<Void>> deleteBookmark(
-            @PathVariable int bookmarkId) {
+//    @DeleteMapping("/{bookmarkId}")
+//    public ResponseEntity<ApiResponse<Void>> deleteBookmark(
+//            @PathVariable int bookmarkId) {
+//        String companyEmail = SecurityUtil.getCurrentEmail();
+//        companyBookmarkService.delete(bookmarkId, companyEmail);
+//        return ResponseEntity.ok(ApiResponse.ok(null));
+//    }
+    
+ // CompanyBookmarkController.java에 추가
+    @DeleteMapping
+    public ResponseEntity<ApiResponse<Void>> deleteBookmarkByFreelancer(
+            @RequestParam String freelancerEmail) {
         String companyEmail = SecurityUtil.getCurrentEmail();
-        companyBookmarkService.delete(bookmarkId, companyEmail);
+        companyBookmarkService.deleteByFreelancer(companyEmail, freelancerEmail);
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
+
+    @GetMapping("/search")
+    public ResponseEntity<ApiResponse<?>> searchTalents(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) JobCategory jobCategory,
+            @RequestParam(defaultValue = "false") boolean bookmarked,
+            @ModelAttribute PageRequest pageRequest) {
+
+        String companyEmail = SecurityUtil.getCurrentEmail();
+
+        PageResponse<TalentListDTO> result =
+                companyBookmarkService.searchTalents(
+                        companyEmail,
+                        keyword,
+                        jobCategory,
+                        bookmarked,
+                        pageRequest);
+
+        return ResponseEntity.ok(ApiResponse.ok(result));
+    }
+    
 }

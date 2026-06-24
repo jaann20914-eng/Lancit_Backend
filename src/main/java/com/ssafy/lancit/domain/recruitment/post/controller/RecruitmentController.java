@@ -1,5 +1,18 @@
 package com.ssafy.lancit.domain.recruitment.post.controller;
 
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.ssafy.lancit.common.exception.CustomException;
 import com.ssafy.lancit.common.exception.ErrorCode;
 import com.ssafy.lancit.common.page.dto.PageRequest;
@@ -13,21 +26,11 @@ import com.ssafy.lancit.domain.recruitment.post.dto.RecruitmentSearchCondition;
 import com.ssafy.lancit.domain.recruitment.post.dto.RecruitmentStatusUpdateRequest;
 import com.ssafy.lancit.domain.recruitment.post.dto.RecruitmentUpdateRequest;
 import com.ssafy.lancit.domain.recruitment.post.service.RecruitmentService;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 
 @Tag(name = "Recruitments", description = "공고 등록/조회/수정/삭제 API")
 @RestController
@@ -51,15 +54,28 @@ public class RecruitmentController {
                 recruitmentService.getList(condition, pageRequest, viewer.email(), viewer.role())));
     }
 
+//    @Operation(summary = "내 공고 목록 조회")
+//    @GetMapping("/my")
+//    public ResponseEntity<ApiResponse<PageResponse<RecruitmentListItemResponse>>> getMyRecruitments(
+//            @ModelAttribute RecruitmentSearchCondition condition,
+//            @ModelAttribute PageRequest pageRequest
+//            ) {  // 동일한 공고에 대하여 동일한 사람에게 여러번 제안 불가
+//       CurrentViewer viewer = requiredViewer();
+//       return ResponseEntity.ok(ApiResponse.ok(
+//               recruitmentService.getMyList(viewer.email(), viewer.role(), condition, pageRequest, null)));
+//    }
+    //--------------------------지원이 오버로딩용
     @Operation(summary = "내 공고 목록 조회")
     @GetMapping("/my")
     public ResponseEntity<ApiResponse<PageResponse<RecruitmentListItemResponse>>> getMyRecruitments(
             @ModelAttribute RecruitmentSearchCondition condition,
-            @ModelAttribute PageRequest pageRequest) {
+            @ModelAttribute PageRequest pageRequest,
+            @RequestParam(required = false) String freelancerEmail) {
         CurrentViewer viewer = requiredViewer();
         return ResponseEntity.ok(ApiResponse.ok(
-                recruitmentService.getMyList(viewer.email(), viewer.role(), condition, pageRequest)));
+                recruitmentService.getMyList(viewer.email(), viewer.role(), condition, pageRequest, freelancerEmail)));
     }
+    
 
     @Operation(summary = "공고 상세 조회")
     @GetMapping("/{recruitmentId}")

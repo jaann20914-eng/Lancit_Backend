@@ -68,7 +68,15 @@ public class FileService {
             }
         }
     	
-    	
+     //TEMP_SIGNATURE도 동일하게 정리
+//        if (FileParentType.TEMP_SIGNATURE.equals(parentType)) {
+//            List<FileDTO> existingTempSigs = fileMapper.findTempSignatureByEmail(email);
+//            for (FileDTO old : existingTempSigs) {
+//                fileDeleteQueueMapper.insert(old.getUploadPath());
+//                fileMapper.delete(old.getFileId());
+//                cacheManager.getCache("signedUrl").evict(old.getFileId());
+//            }
+//        }
     	
     	List<FileDTO> result = new ArrayList<>();
     	
@@ -314,6 +322,11 @@ public class FileService {
 
         fileMapper.updatePath(fileId, newPath);
         fileMapper.updateParentType(fileId, targetType);
+        
+        // ✅ 추가: 경로가 바뀌었으므로 캐시 무효화
+        if (cacheManager.getCache("signedUrl") != null) {
+            cacheManager.getCache("signedUrl").evict(fileId);
+        }
     }
 
     @Transactional
@@ -337,6 +350,10 @@ public class FileService {
         String newPath = gcsService.move(file.getSysName(), targetType);
         fileMapper.updatePath(fileId, newPath);
         fileMapper.updateParentType(fileId, targetType);
+        
+        if (cacheManager.getCache("signedUrl") != null) {
+            cacheManager.getCache("signedUrl").evict(fileId);
+        }
     }
     
     
@@ -376,10 +393,17 @@ public class FileService {
                 throw e;
             }
             registerMoveRollback(newPath);
+            // ✅ 추가
+            if (cacheManager.getCache("signedUrl") != null) {
+                cacheManager.getCache("signedUrl").evict(fileId);
+            }
+            
             return;
         }
 
         fileMapper.updateParent(fileId, targetType, parentId);
+        
+     
     }
 
     

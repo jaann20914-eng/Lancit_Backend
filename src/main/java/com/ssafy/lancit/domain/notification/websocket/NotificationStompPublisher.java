@@ -22,12 +22,14 @@ public class NotificationStompPublisher {
     // Spring Security Principal 기반 사용자별 큐 사용 ->서버는 Principal(name) 기준으로 해당 사용자에게만 전달
     
     public void publish(NotificationDTO notification) {
-    	messagingTemplate.convertAndSendToUser(
-    		    notification.getReceiverEmail(), // Principal.getName()과 일치해야함
-    		    "/notification",
-    		    notification
-    		);
+        String destination = "/user/" + notification.getReceiverEmail() + "/notification";
+        System.out.println("📢 직접 전송 경로: " + destination);
+        
+        // convertAndSendToUser 대신 직접 경로로 전송 테스트
+        messagingTemplate.convertAndSend(destination, notification);
+    }
     	 // 클라이언트구독 경로
     	 // stompClient.subscribe("/user/notification", ...)
-    }
+    
 }
+

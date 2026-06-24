@@ -75,6 +75,7 @@ public class ContractValidator {
 
         validateStatus(
                 contract,
+                ContractStatus.PROPOSAL,
                 ContractStatus.WAITING,
                 ContractStatus.NEGOTIATING_A,
                 ContractStatus.NEGOTIATING_B,

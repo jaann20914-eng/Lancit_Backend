@@ -85,4 +85,14 @@ public interface ContractMapper {
     boolean existsActiveContractByEmail(
             String email
     );
+    
+  //제안목록 카운팅
+    long countProposals(
+            Map<String, Object> param
+    );
+    //제안 목록 조회
+    List<Map<String, Object>> searchProposals(
+            Map<String, Object> param
+    );
+    
 }
