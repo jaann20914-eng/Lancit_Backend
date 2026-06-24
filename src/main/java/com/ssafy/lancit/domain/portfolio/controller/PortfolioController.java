@@ -14,21 +14,21 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import jakarta.validation.Valid;
-
+import com.ssafy.lancit.common.exception.CustomException;
+import com.ssafy.lancit.common.exception.ErrorCode;
 import com.ssafy.lancit.common.page.dto.PageRequest;
 import com.ssafy.lancit.common.page.dto.PageResponse;
 import com.ssafy.lancit.common.response.ApiResponse;
-import com.ssafy.lancit.common.exception.CustomException;
-import com.ssafy.lancit.common.exception.ErrorCode;
 import com.ssafy.lancit.common.util.SecurityUtil;
-import com.ssafy.lancit.domain.portfolio.dto.PortfolioDTO;
+import com.ssafy.lancit.domain.file.service.FileService;
 import com.ssafy.lancit.domain.portfolio.dto.PortfolioCreateResponse;
+import com.ssafy.lancit.domain.portfolio.dto.PortfolioDTO;
 import com.ssafy.lancit.domain.portfolio.dto.PortfolioProfileDTO;
 import com.ssafy.lancit.domain.portfolio.dto.PortfolioProfileUpdateRequest;
 import com.ssafy.lancit.domain.portfolio.dto.PortfolioSearchCondition;
 import com.ssafy.lancit.domain.portfolio.service.PortfolioService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 // 포트폴리오 CRUD - 프리랜서 전용
@@ -39,6 +39,7 @@ import lombok.RequiredArgsConstructor;
 public class PortfolioController {
 
     private final PortfolioService portfolioService;
+    private final FileService fileService;
 
     // PORT-01 내 포트폴리오 목록 조회 (페이지네이션)
     @GetMapping
@@ -117,4 +118,19 @@ public class PortfolioController {
         portfolioService.delete(portfolioId);
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
+    
+    
+
+    //------------------------지원 
+    @GetMapping("/{fileId}/public-url")
+    public ResponseEntity<ApiResponse<String>> getPublicUrl(@PathVariable int fileId) {
+        String url = fileService.getSignedUrl(fileId);
+        return ResponseEntity.ok(ApiResponse.ok(url));
+    }
+    @GetMapping("/profile/public")
+    public ResponseEntity<ApiResponse<PortfolioProfileDTO>> getPublicProfile(
+            @RequestParam String email) {
+        return ResponseEntity.ok(ApiResponse.ok(portfolioService.getMyProfile(email)));
+    }
+    
 }

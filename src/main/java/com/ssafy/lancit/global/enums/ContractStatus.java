@@ -1,6 +1,8 @@
 package com.ssafy.lancit.global.enums;
 
 public enum ContractStatus {
+	PROPOSAL,
+	
     WAITING,
     NEGOTIATING_A, 
     NEGOTIATING_B, 

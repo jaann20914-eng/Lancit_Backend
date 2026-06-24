@@ -24,5 +24,7 @@ public class ContractDTO {
     private String freelancerEmail;
 
     private ContractStatus status;
+    
+    private LocalDateTime createdAt;
 
 }

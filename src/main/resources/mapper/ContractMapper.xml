@@ -99,8 +99,6 @@
 	    ORDER BY c.contract_id DESC
 	    LIMIT #{size} OFFSET #{offset}
 	</select>
-	
-	
 	<!-- 계약 목록 총 개수 -->
 	<select id="countContracts" resultType="long">
 	    SELECT COUNT(*)
@@ -131,6 +129,82 @@
 	        </choose>
 	    </if>
 	</select>
+	
+		
+	<!-- 제안 목록 조회 -->
+	<select id="searchProposals" resultType="java.util.Map">
+	    SELECT c.contract_id AS contractId,
+	           c.status,
+	           c.company_email AS companyEmail,
+	           c.freelancer_email AS freelancerEmail,
+	           comp.company_name AS companyName,
+	           u.name             AS freelancerName,
+	           r.title            AS recruitmentTitle,
+	           r.recruitment_id AS recruitmentId,
+	           r.recruitment_category AS recruitmentCategory,
+	           r.job_category AS jobCategory,
+	           r.summary,
+	           r.content,
+	           r.budget,
+	           r.contract_start_at AS contractStartAt,
+	           r.contract_end_at AS contractEndAt,
+	           c.created_at AS createdAt
+	    FROM contract c
+	    JOIN recruitment r   ON c.recruitment_id = r.recruitment_id
+	    JOIN company comp    ON c.company_email = comp.email
+	    JOIN user u          ON c.freelancer_email = u.email
+	    WHERE c.freelancer_email = #{email}
+	      AND c.status = 'PROPOSAL'
+	    <if test="keyword != null and keyword != ''">
+	        <choose>
+	            <when test="keywordType == 'title'">
+	                AND r.title LIKE CONCAT('%', #{keyword}, '%')
+	            </when>
+	            <when test="keywordType == 'companyName'">
+	                AND comp.company_name LIKE CONCAT('%', #{keyword}, '%')
+	            </when>
+				<otherwise>
+	                AND (r.title LIKE CONCAT('%', #{keyword}, '%')
+	                  OR comp.company_name LIKE CONCAT('%', #{keyword}, '%'))
+	            </otherwise>
+	        </choose>
+	    </if>
+	    <choose>
+	        <when test="sort == 'latest'">
+	            ORDER BY r.created_at DESC
+	        </when>
+	        <otherwise>
+	            ORDER BY r.created_at ASC
+	        </otherwise>
+	    </choose>
+	    LIMIT #{size} OFFSET #{offset}
+	</select>
+	
+	<!-- 제안 목록 총 개수 -->
+	<select id="countProposals" resultType="long">
+	    SELECT COUNT(*)
+	    FROM contract c
+	    JOIN recruitment r   ON c.recruitment_id = r.recruitment_id
+	    JOIN company comp    ON c.company_email = comp.email
+	    JOIN user u          ON c.freelancer_email = u.email
+	    WHERE c.freelancer_email = #{email}
+	      AND c.status = 'PROPOSAL'
+	    <if test="keyword != null and keyword != ''">
+	        <choose>
+	            <when test="keywordType == 'title'">
+	                AND r.title LIKE CONCAT('%', #{keyword}, '%')
+	            </when>
+	            <when test="keywordType == 'companyName'">
+	                AND comp.company_name LIKE CONCAT('%', #{keyword}, '%')
+	            </when>
+	            <otherwise>
+	                AND (r.title LIKE CONCAT('%', #{keyword}, '%')
+	                  OR comp.company_name LIKE CONCAT('%', #{keyword}, '%'))
+	            </otherwise>
+	        </choose>
+	    </if>
+	</select>
+	
 
 
     <!-- 계약 상세 조회 (계약 + 공고 + 채팅방) -->

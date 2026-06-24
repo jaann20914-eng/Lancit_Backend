@@ -75,4 +75,13 @@ public class NotificationService {
     public int countUnread( String receiverEmail) {
         return notificationMapper.countUnread(receiverEmail);
     }
+    
+    
+ // NotificationService.java에 추가
+    @Transactional
+    public void markTypeListAsRead(String receiverEmail, Integer contractId, List<NotificationType> types) {
+        for (NotificationType type : types) {
+            notificationMapper.markSpecificTypeAsRead(receiverEmail, contractId, type);
+        }
+    }
 }

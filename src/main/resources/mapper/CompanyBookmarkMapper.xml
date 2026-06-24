@@ -44,5 +44,91 @@
     <select id="findById" resultType="CompanyBookmarkDTO">
         SELECT * FROM bookmark WHERE bookmark_id = #{bookmarkId}
     </select>
+    
+    <!-- 회사+프리랜서로 찜 단건 조회 -->
+	<select id="findByCompanyAndFreelancer" resultType="CompanyBookmarkDTO">
+	    SELECT * FROM bookmark
+	    WHERE company_email = #{companyEmail}
+	    AND freelancer_email = #{freelancerEmail}
+	    LIMIT 1
+	</select>
+	
+<select id="searchTalents"
+        resultType="com.ssafy.lancit.domain.bookmark.company.dto.TalentListDTO">
+
+    SELECT
+        u.email,
+        u.name,
+        u.job_category      AS jobCategory,
+        u.profile_file_id   AS profileFileId,
+        u.created_at AS createdAt,
+
+        CASE
+            WHEN b.bookmark_id IS NULL THEN FALSE
+            ELSE TRUE
+        END                 AS bookmarked
+
+    FROM user u
+
+    LEFT JOIN bookmark b
+           ON b.freelancer_email = u.email
+          AND b.company_email = #{companyEmail}
+
+    <where>
+
+        <if test="keyword != null and keyword != ''">
+            AND u.name LIKE CONCAT('%', #{keyword}, '%')
+        </if>
+
+        <if test="jobCategory != null">
+            AND u.job_category = #{jobCategory}
+        </if>
+
+        <if test="bookmarked">
+            AND b.bookmark_id IS NOT NULL
+        </if>
+
+    </where>
+
+    ORDER BY u.${sort} ${direction}
+
+    LIMIT #{size}
+    OFFSET #{offset}
+
+</select>
+
+
+<select id="countTalents" resultType="long">
+
+    SELECT COUNT(*)
+
+    FROM user u
+
+    LEFT JOIN bookmark b
+           ON b.freelancer_email = u.email
+          AND b.company_email = #{companyEmail}
+
+    <where>
+
+        <if test="keyword != null and keyword != ''">
+            AND u.name LIKE CONCAT('%', #{keyword}, '%')
+        </if>
+
+        <if test="jobCategory != null">
+            AND u.job_category = #{jobCategory}
+        </if>
+
+        <if test="bookmarked">
+            AND b.bookmark_id IS NOT NULL
+        </if>
+
+    </where>
+
+</select>
+
+
+
+
+
 	
 </mapper>

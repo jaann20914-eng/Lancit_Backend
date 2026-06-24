@@ -64,4 +64,7 @@ public interface RecruitmentMapper {
     int countActiveApplications(@Param("recruitmentId") int recruitmentId);
 
     String findOwnerEmailById(@Param("recruitmentId") int recruitmentId);
+    
+    boolean isProposable(@Param("recruitmentId") int recruitmentId, 
+            @Param("freelancerEmail") String freelancerEmail);
 }

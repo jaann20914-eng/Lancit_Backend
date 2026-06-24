@@ -5,9 +5,8 @@ import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
-import com.ssafy.lancit.common.page.dto.PageRequest;
 import com.ssafy.lancit.domain.bookmark.company.dto.CompanyBookmarkDTO;
-import com.ssafy.lancit.domain.user.dto.UserDTO;
+import com.ssafy.lancit.domain.bookmark.company.dto.TalentListDTO;
 import com.ssafy.lancit.global.enums.JobCategory;
 
 @Mapper
@@ -27,11 +26,33 @@ public interface CompanyBookmarkMapper {
 
     // 찜 취소
     void delete(int bookmarkId);
-
+    CompanyBookmarkDTO findByCompanyAndFreelancer(
+    	    @Param("companyEmail") String companyEmail,
+    	    @Param("freelancerEmail") String freelancerEmail
+    	);
+    
+    
     // 중복 찜 확인
     boolean exists(@Param("companyEmail") String companyEmail,
                    @Param("freelancerEmail") String freelancerEmail);
 
     // 찜 단건 조회 (소유자 검증용)
     CompanyBookmarkDTO findById(int bookmarkId);
+    
+    
+    List<TalentListDTO> searchTalents(
+            @Param("keyword") String keyword,
+            @Param("jobCategory") JobCategory jobCategory,
+            @Param("bookmarked") boolean bookmarked,
+            @Param("companyEmail") String companyEmail,
+            @Param("sort") String sort,
+            @Param("direction") String direction,
+            @Param("offset") int offset,
+            @Param("size") int size);
+
+    long countTalents(
+            @Param("keyword") String keyword,
+            @Param("jobCategory") JobCategory jobCategory,
+            @Param("bookmarked") boolean bookmarked,
+            @Param("companyEmail") String companyEmail);
 }

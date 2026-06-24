@@ -44,7 +44,7 @@ public class StompConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
 
-        registry.enableSimpleBroker("/sub");
+        registry.enableSimpleBroker("/sub", "/user");
         // 클라이언트 구독 경로
         // 서버가 /sub/** 로 메시지를 발행하면 해당 경로 구독자들에게 전달
 
@@ -61,6 +61,10 @@ public class StompConfig implements WebSocketMessageBrokerConfigurer {
         // 추후 서버 확장 시 Redis Pub/Sub 또는 RabbitMQ 등 Message Broker 도입 검토
     }
 
+    
+    
+    
+    
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
     	

@@ -95,9 +95,11 @@ public class StompAuthInterceptor implements ChannelInterceptor {
                         accessor.getCommand(), accessor.getSessionAttributes());
             }
             
+            
             // 현재 프레임을 처리하는 "이 스레드"의 SecurityContext에 채워줌 : 스레드가 매 프레임마다 바뀌므로 매번 설정해주는 것
             if (auth != null) {
                 SecurityContextHolder.getContext().setAuthentication(auth);
+                accessor.setUser(auth); 
                 log.info("[STOMP][{}] SecurityContext set with principal={}", accessor.getCommand(), auth.getPrincipal());
             } else {
                 SecurityContextHolder.clearContext();

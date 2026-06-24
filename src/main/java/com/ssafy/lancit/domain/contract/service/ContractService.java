@@ -30,8 +30,10 @@ import com.ssafy.lancit.domain.contract.validator.ContractValidator;
 import com.ssafy.lancit.domain.file.dto.FileDTO;
 import com.ssafy.lancit.domain.file.service.FileService;
 import com.ssafy.lancit.domain.notification.service.NotificationService;
+import com.ssafy.lancit.domain.recruitment.application.mapper.ApplicationMapper;
 import com.ssafy.lancit.domain.recruitment.post.dto.RecruitmentDTO;
 import com.ssafy.lancit.domain.recruitment.post.mapper.RecruitmentMapper;
+import com.ssafy.lancit.global.enums.ApplicationStatus;
 import com.ssafy.lancit.global.enums.ContractFileType;
 import com.ssafy.lancit.global.enums.ContractStatus;
 import com.ssafy.lancit.global.enums.NotificationType;
@@ -54,7 +56,7 @@ public class ContractService {
     private final FileService fileService;
     private final ChatRoomMapper chatRoomMapper;
     private final RecruitmentMapper recruitmentMapper;
-
+    private final ApplicationMapper applicationMapper;
   
 
     
@@ -117,7 +119,7 @@ public class ContractService {
     
     
      // 처음 회사가 제안하고 프리랜서가 거절했을 때
-	 // 제안 거절 (WAITING 상태, 프리랜서 전용)
+	 // 제안 거절 (PROPOSAL 상태, 프리랜서 전용)
 	 // "삭제요청후 삭제 확정한것과 동일" → cancel-request 절차 없이 즉시 완전 삭제
 	 @Transactional
 	 @ParticipantCheck
@@ -125,7 +127,9 @@ public class ContractService {
 	
 	     ContractDTO contract = contractValidator.getContractOrThrow(contractId);
 	     contractValidator.validateFreelancer(contract);
-	     contractValidator.validateWaiting(contract);
+	     if (contract.getStatus() != ContractStatus.PROPOSAL) {
+	    	    throw new CustomException(ErrorCode.INVALID_INPUT);
+	    	}
 	
 	     contractMapper.deleteContract(contractId);
 	 }
@@ -158,9 +162,9 @@ public class ContractService {
     
     //==================================================================== 상태 관련
     
-    // 계약 제안 시작 (WAITING 삽입)
+    // PROPOSAL : 회사는 제안을 보내고 아직 프리랜서가 수락안함
     @Transactional
-    public void createContract(Map<String, Object> request) {
+    public Integer proposeFreelancer(Map<String, Object> request) {
 
         String companyEmail   = SecurityUtil.getCurrentEmail();
         Integer recruitmentId = (Integer) request.get("recruitmentId");
@@ -185,7 +189,7 @@ public class ContractService {
                 					 .recruitmentId(recruitmentId)
                 					 .companyEmail(companyEmail)
                 					 .freelancerEmail(freelancerEmail)
-                					 .status(ContractStatus.WAITING)
+                					 .status(ContractStatus.PROPOSAL)
                 					 .build();
         contractMapper.insert(dto);
 
@@ -198,12 +202,111 @@ public class ContractService {
         chatRoomMapper.insert(chatRoom);
 
         // 프리랜서에게 알림
+//        notificationService.createNotification(
+//                freelancerEmail,
+//                NotificationType.PROPOSAL,
+//                dto.getContractId()
+//        );
+        return dto.getContractId(); 
+    }
+    
+    
+    //제안목록 조회
+    public PageResponse<Map<String, Object>> getProposals(
+            PageRequest pageRequest,
+            String keywordType,
+            String keyword,
+            String sort) {
+
+        String currentEmail = SecurityUtil.getCurrentEmail();
+
+        Map<String, Object> param = new HashMap<>();
+        param.put("email", currentEmail);
+        param.put("keywordType", keywordType);
+        param.put("keyword", keyword);
+        param.put("sort", sort);
+        param.put("offset", pageRequest.getOffset());
+        param.put("size", pageRequest.getSize());
+
+        long total = contractMapper.countProposals(param);
+        List<Map<String, Object>> list = contractMapper.searchProposals(param);
+
+        return PageResponse.of(list, total, pageRequest);
+    }
+    
+    
+    // Proposal -> Waiting
+    //회사의 제안 프리랜서가 받아봄 : 계약 제안 시작 (WAITING 삽입)
+    @Transactional
+    @ParticipantCheck
+    public void acceptProposal(Integer contractId) {
+
+        ContractDTO contract = contractValidator.getContractOrThrow(contractId);
+        contractValidator.validateFreelancer(contract);
+
+        
+        if (contract.getStatus() != ContractStatus.PROPOSAL) {
+            throw new CustomException(ErrorCode.INVALID_INPUT);
+        }
+
+        contractMapper.updateStatus(
+                contractId,
+                ContractStatus.WAITING
+        );
+
         notificationService.createNotification(
-                freelancerEmail,
+                contract.getCompanyEmail(),
                 NotificationType.PROPOSAL,
-                dto.getContractId()
+                contractId
         );
     }
+    
+    
+ // 회사가 지원 수락 시 한번에 처리
+ // WAITING으로 바로 생성 + 채팅방 + 공고마감 + 지원서연결
+ @Transactional
+ public Integer acceptApplicationByCompany(Map<String, Object> request) {
+
+     String companyEmail    = SecurityUtil.getCurrentEmail();
+     Integer recruitmentId  = (Integer) request.get("recruitmentId");
+     String freelancerEmail = (String)  request.get("freelancerEmail");
+     Integer applicationId  = (Integer) request.get("applicationId");
+
+     RecruitmentDTO recruitment = recruitmentMapper.findById(recruitmentId);
+     if (recruitment == null) throw new CustomException(ErrorCode.NOT_FOUND);
+     if (!recruitment.getCompanyEmail().equals(companyEmail)) throw new CustomException(ErrorCode.FORBIDDEN);
+
+     if (contractMapper.existsActiveContract(recruitmentId, freelancerEmail)) {
+         throw new CustomException(ErrorCode.INVALID_INPUT);
+     }
+
+     // 계약 WAITING으로 바로 생성
+     ContractDTO dto = ContractDTO.builder()
+                                  .recruitmentId(recruitmentId)
+                                  .companyEmail(companyEmail)
+                                  .freelancerEmail(freelancerEmail)
+                                  .status(ContractStatus.WAITING)
+                                  .build();
+     contractMapper.insert(dto);
+
+     // 채팅방 생성
+     ChatRoomDTO chatRoom = ChatRoomDTO.builder()
+                                       .contractId(dto.getContractId())
+                                       .companyEmail(companyEmail)
+                                       .freelancerEmail(freelancerEmail)
+                                       .build();
+     chatRoomMapper.insert(chatRoom);
+
+     // 공고 마감
+     recruitmentMapper.closeIfOpen(recruitmentId);
+
+     // 지원서에 contractId 연결
+     applicationMapper.attachContract(applicationId, dto.getContractId());
+     applicationMapper.updateStatusIfPending(applicationId, ApplicationStatus.ACCEPTED);
+
+
+     return dto.getContractId();
+ }
     
 
     // WAITING -> NEGOTIATING_A
@@ -214,6 +317,7 @@ public class ContractService {
         ContractDTO contract = contractValidator.getContractOrThrow(contractId);
         contractValidator.validateCompany(contract);
         contractValidator.validateWaiting(contract);
+
 
         //dto 만들어서 아이디만 넣어서 빈껍대기 row 인서트 해놓기
         ContractDocumentDTO document = ContractDocumentDTO.builder()

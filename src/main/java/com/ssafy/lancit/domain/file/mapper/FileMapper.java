@@ -63,4 +63,7 @@ public interface FileMapper {
     //파일 매퍼
     List<FileDTO> findOrphanContractFiles();
     
+    
+    List<FileDTO> findTempSignatureByEmail(String email);
+    
 }

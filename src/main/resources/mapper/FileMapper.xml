@@ -90,6 +90,14 @@
 	    SET parent_id = NULL
 	    WHERE file_id = #{fileId}
 	</update>
+	
+	
+	<select id="findTempSignatureByEmail" resultType="com.ssafy.lancit.domain.file.dto.FileDTO">
+	    SELECT * FROM file
+	    WHERE parent_type = 'TEMP_SIGNATURE'
+	    AND (user_email = #{email} OR company_email = #{email})
+	</select>
+	
 
 	<select id="isCurrentProfileFileReferenced" resultType="boolean">
 	    SELECT (

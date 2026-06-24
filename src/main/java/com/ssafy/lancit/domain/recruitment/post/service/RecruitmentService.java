@@ -79,23 +79,39 @@ public class RecruitmentService {
     }
 
     public PageResponse<RecruitmentListItemResponse> getMyList(String companyEmail,
-                                                                String role,
-                                                                RecruitmentSearchCondition condition,
-                                                                PageRequest pageRequest) {
+													            String role,
+													            RecruitmentSearchCondition condition,
+													            PageRequest pageRequest,
+													            String freelancerEmail) {
         requireCompany(role);
         RecruitmentSearchCondition normalized = condition == null ? new RecruitmentSearchCondition() : condition;
         normalized.setTab(null);
         normalized = normalizeCondition(normalized, false);
         normalized.setCurrentEmail(null);
         List<RecruitmentDTO> list = recruitmentMapper.findMyList(companyEmail, normalized, pageRequest);
+        
+        
         long total = recruitmentMapper.countMyList(companyEmail, normalized);
         Map<Integer, List<String>> techStacks = findTechStacks(list);
+//        List<RecruitmentListItemResponse> content = list.stream()
+//                .map(dto -> toListResponse(dto, techStacks.get(dto.getRecruitmentId()), companyEmail, role, false, null))
+//                .toList();
         List<RecruitmentListItemResponse> content = list.stream()
-                .map(dto -> toListResponse(dto, techStacks.get(dto.getRecruitmentId()), companyEmail, role, false, null))
-                .toList();
+        	    .map(dto -> {
+        	        boolean proposable = freelancerEmail == null || 
+        	            recruitmentMapper.isProposable(dto.getRecruitmentId(), freelancerEmail);
+        	        
+        	        return toListResponse(dto, techStacks.get(dto.getRecruitmentId()), companyEmail, role, false, null)
+        	                .toBuilder()
+        	                .isProposable(proposable)
+        	                .build();
+        	    })
+        	    .toList();
         return PageResponse.of(content, total, pageRequest);
     }
 
+    
+    
     public PageResponse<RecruitmentListItemResponse> getBookmarkedList(String freelancerEmail,
                                                                        String role,
                                                                        RecruitmentSearchCondition condition,

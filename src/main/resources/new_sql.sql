@@ -100,6 +100,9 @@ CREATE TABLE `user` (
         FOREIGN KEY (profile_file_id) REFERENCES `file` (file_id)
         ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='프리랜서 유저';
+ALTER TABLE user 
+ADD COLUMN is_deleted TINYINT(1) NOT NULL DEFAULT 0,
+ADD COLUMN deleted_at DATETIME NULL;
 
 -- ============================================================
 --  3. company (회사)
@@ -121,6 +124,9 @@ CREATE TABLE `company` (
         FOREIGN KEY (profile_file_id) REFERENCES `file` (file_id)
         ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='회사 유저';
+ALTER TABLE company 
+ADD COLUMN is_deleted TINYINT(1) NOT NULL DEFAULT 0,
+ADD COLUMN deleted_at DATETIME NULL;
 
 -- ============================================================
 --  file → user / company FK (순환 참조 해소)
@@ -589,6 +595,21 @@ CREATE TABLE `contract` (
         FOREIGN KEY (freelancer_email) REFERENCES `user` (email)
         ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='계약';
+ALTER TABLE contract
+MODIFY COLUMN status ENUM(
+    'PROPOSAL',
+    'WAITING',
+    'NEGOTIATING_A',
+    'NEGOTIATING_B',
+    'NEGOTIATING_C',
+    'IN_PROGRESS',
+    'COMPLETED_PENDING',
+    'COMPLETED',
+    'CANCELLED'
+) NOT NULL DEFAULT 'PROPOSAL';
+ALTER TABLE contract
+ADD COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;
+
 
 ALTER TABLE `recruitment_application`
     ADD CONSTRAINT fk_application_contract
@@ -880,6 +901,7 @@ INSERT INTO `user` (email, password, name, phone, job_category, pushable, profil
 ('test@lancit.com',  '$2a$10$i2FVNHQ6Smfo73oUin6wnOMHCdKxNJHP8PQaA4xsJDaSxpMdXK.8.', '김프리', '010-1111-1111', 'IT',        1, NULL),
 ('test2@lancit.com', '$2a$10$i2FVNHQ6Smfo73oUin6wnOMHCdKxNJHP8PQaA4xsJDaSxpMdXK.8.', '이디자인', '010-2222-2222', 'DESIGN',    1, NULL),
 ('test3@lancit.com', '$2a$10$i2FVNHQ6Smfo73oUin6wnOMHCdKxNJHP8PQaA4xsJDaSxpMdXK.8.', '박영상', '010-3333-3333', 'VIDEO',     0, NULL);
+
 
 -- ── 2. company (회사) ───────────────────────────────────────
 INSERT INTO `company` (email, password, name, company_name, phone, job_category, pushable, business_number, business_number_verified, profile_file_id) VALUES

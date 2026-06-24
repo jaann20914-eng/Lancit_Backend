@@ -2,6 +2,7 @@ package com.ssafy.lancit.domain.notification.dto;
 
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.ssafy.lancit.global.enums.NotificationType;
 
 import lombok.AllArgsConstructor;
@@ -25,6 +26,8 @@ public class NotificationDTO {
 
     private Integer targetId;
 
+    // NotificationDTO.java
+    @JsonProperty("isRead")
     private boolean isRead;
 
     private LocalDateTime createdAt;

@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -17,7 +18,7 @@ import com.ssafy.lancit.global.enums.NotificationType;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/notifications")
+@RequestMapping("/api/notifications")
 @RequiredArgsConstructor
 public class NotificationController {
 
@@ -62,6 +63,17 @@ public class NotificationController {
 	        String currentEmail = SecurityUtil.getCurrentEmail();
 	        notificationService.markSpecificTypeAsRead(
 	                currentEmail, contractId, NotificationType.CONFIRM_FILE);
+	        return ApiResponse.ok(null);
+	    }
+	    
+	    
+	 // NotificationController.java에 추가
+	    @PatchMapping("/contracts/{contractId}/types/read")
+	    public ApiResponse<Void> readByTypes(
+	            @PathVariable Integer contractId,
+	            @RequestBody List<NotificationType> types) {
+	        String currentEmail = SecurityUtil.getCurrentEmail();
+	        notificationService.markTypeListAsRead(currentEmail, contractId, types);
 	        return ApiResponse.ok(null);
 	    }
 	    

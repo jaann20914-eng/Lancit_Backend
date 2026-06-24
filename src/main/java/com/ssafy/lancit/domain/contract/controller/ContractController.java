@@ -88,12 +88,35 @@ public class ContractController {
     
     
     //==================================================================== 상태 관련
-    
-    // 계약 생성 (WAITING 삽입)
+     // 계약 생성 (PROPOSAL )
 	 // 회사가 프리랜서에게 계약 시작 버튼 누를 때
 	 @PostMapping
-	 public ApiResponse<Void> createContract( @RequestBody Map<String, Object> request) {
-	     contractService.createContract(request);
+	 public ApiResponse<Integer> proposeFreelancer( @RequestBody Map<String, Object> request) {
+	     Integer contractId = contractService.proposeFreelancer(request);
+	     return ApiResponse.ok(contractId);
+	 }
+	// GET /contracts/proposals
+	 @GetMapping("/proposals")
+	 public ApiResponse<PageResponse<Map<String, Object>>> getProposals(
+	         @ModelAttribute PageRequest pageRequest,
+	         @RequestParam(required = false) String keywordType,
+	         @RequestParam(required = false) String keyword,
+	         @RequestParam(required = false) String sort) {
+	     return ApiResponse.ok(
+	             contractService.getProposals(pageRequest, keywordType, keyword, sort)
+	     );
+	 }
+	// PUT /contracts/{contractId}/accept-by-company
+	 @PostMapping("/accept-application")
+	 public ApiResponse<Integer> acceptApplicationByCompany(@RequestBody Map<String, Object> request) {
+	     Integer contractId = contractService.acceptApplicationByCompany(request);
+	     return ApiResponse.ok(contractId);
+	 }
+
+	 // PUT /contracts/{contractId}/accept
+	 @PutMapping("/{contractId}/accept")
+	 public ApiResponse<Void> acceptProposal(@PathVariable Integer contractId) {
+	     contractService.acceptProposal(contractId);
 	     return ApiResponse.ok(null);
 	 }
 

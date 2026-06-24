@@ -107,4 +107,11 @@ public class FileController {
     }
     
     
+    // 포트폴리오 배너
+    @GetMapping("/{fileId}/public-url")
+    public ResponseEntity<ApiResponse<String>> getPublicUrl(@PathVariable int fileId) {
+        String url = fileService.getSignedUrl(fileId);
+        return ResponseEntity.ok(ApiResponse.ok(url));
+    }
+    
 }
