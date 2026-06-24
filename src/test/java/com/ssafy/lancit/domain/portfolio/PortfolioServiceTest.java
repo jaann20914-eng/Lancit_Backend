@@ -368,7 +368,7 @@ class PortfolioServiceTest {
             return null;
         }).when(portfolioMapper).insert(request);
 
-        var response = new PortfolioController(portfolioService).createPortfolio(request);
+        var response = new PortfolioController(portfolioService, fileService).createPortfolio(request);
 
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().getData().getPortfolioId()).isEqualTo(42);
@@ -577,7 +577,7 @@ class PortfolioServiceTest {
                         USER_EMAIL,
                         null,
                         List.of(new SimpleGrantedAuthority("ROLE_COMPANY"))));
-        PortfolioController controller = new PortfolioController(portfolioService);
+        PortfolioController controller = new PortfolioController(portfolioService, fileService);
 
         assertCustomException(() -> controller.createPortfolio(basePortfolio(null)), ErrorCode.FREELANCER_ONLY);
         verify(portfolioMapper, never()).insert(any(PortfolioDTO.class));
@@ -591,7 +591,7 @@ class PortfolioServiceTest {
                         USER_EMAIL,
                         null,
                         List.of(new SimpleGrantedAuthority("ROLE_COMPANY"))));
-        PortfolioController controller = new PortfolioController(portfolioService);
+        PortfolioController controller = new PortfolioController(portfolioService, fileService);
 
         assertCustomException(controller::getMyProfile, ErrorCode.FREELANCER_ONLY);
     }

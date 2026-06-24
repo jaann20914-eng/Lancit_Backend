@@ -48,6 +48,7 @@ import com.ssafy.lancit.domain.contract.validator.ContractValidator;
 import com.ssafy.lancit.domain.file.dto.FileDTO;
 import com.ssafy.lancit.domain.file.service.FileService;
 import com.ssafy.lancit.domain.notification.service.NotificationService;
+import com.ssafy.lancit.domain.recruitment.application.mapper.ApplicationMapper;
 import com.ssafy.lancit.domain.recruitment.post.dto.RecruitmentDTO;
 import com.ssafy.lancit.domain.recruitment.post.mapper.RecruitmentMapper;
 import com.ssafy.lancit.global.enums.ContractFileType;
@@ -68,6 +69,7 @@ class ContractServiceTest {
     @Mock private FileService fileService;
     @Mock private ChatRoomMapper chatRoomMapper;
     @Mock private RecruitmentMapper recruitmentMapper;
+    @Mock private ApplicationMapper applicationMapper;
 
     private ContractService contractService;
     private MockedStatic<SecurityUtil> securityUtilMock;
@@ -87,27 +89,14 @@ class ContractServiceTest {
                 contractValidator,
                 notificationService,
                 new ObjectMapper(),
-                new ContractPdfService(null), // PDF 생성은 mock으로 대체
+                contractPdfService,
                 contractFileMapper,
                 fileService,
                 chatRoomMapper,
-                recruitmentMapper
+                recruitmentMapper,
+                applicationMapper
         );
-        // ContractPdfService도 mock 필요 - 직접 필드 주입
-        injectContractPdfService();
         securityUtilMock = Mockito.mockStatic(SecurityUtil.class);
-    }
-
-    // ContractPdfService는 생성자로 주입되므로, spy 방식으로 교체
-    private void injectContractPdfService() {
-        try {
-            java.lang.reflect.Field f =
-                ContractService.class.getDeclaredField("contractPdfService");
-            f.setAccessible(true);
-            f.set(contractService, contractPdfService);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
     }
 
     @AfterEach
@@ -133,21 +122,21 @@ class ContractServiceTest {
     }
 
     // ═══════════════════════════════════════════════════
-    // createContract
+    // proposeFreelancer
     // ═══════════════════════════════════════════════════
     @Nested
-    @DisplayName("createContract")
-    class CreateContract {
+    @DisplayName("proposeFreelancer")
+    class ProposeFreelancer {
 
         @Test
-        @DisplayName("정상 - 계약 생성 + 채팅방 생성 + 프리랜서 PROPOSAL 알림")
+        @DisplayName("정상 - 계약 생성 + 채팅방 생성")
         void success() {
             securityUtilMock.when(SecurityUtil::getCurrentEmail).thenReturn(COMPANY_EMAIL);
             when(recruitmentMapper.findById(RECRUITMENT_ID)).thenReturn(recruitmentOf());
             when(contractMapper.existsActiveContract(RECRUITMENT_ID, FREELANCER_EMAIL)).thenReturn(false);
             when(contractMapper.insert(any())).then(inv -> {
                 ContractDTO dto = inv.getArgument(0);
-                // insert 후 contractId가 채워진다고 가정 (MyBatis useGeneratedKeys)
+                dto.setContractId(CONTRACT_ID);
                 return null;
             });
 
@@ -155,12 +144,12 @@ class ContractServiceTest {
             req.put("recruitmentId", RECRUITMENT_ID);
             req.put("freelancerEmail", FREELANCER_EMAIL);
 
-            contractService.createContract(req);
+            Integer result = contractService.proposeFreelancer(req);
 
+            assertThat(result).isEqualTo(CONTRACT_ID);
             verify(contractMapper).insert(any(ContractDTO.class));
             verify(chatRoomMapper).insert(any(ChatRoomDTO.class));
-            verify(notificationService).createNotification(
-                    eq(FREELANCER_EMAIL), eq(NotificationType.PROPOSAL), any());
+            verify(notificationService, never()).createNotification(any(), any(), any());
         }
 
         @Test
@@ -173,7 +162,7 @@ class ContractServiceTest {
             req.put("recruitmentId", RECRUITMENT_ID);
             req.put("freelancerEmail", FREELANCER_EMAIL);
 
-            assertThatThrownBy(() -> contractService.createContract(req))
+            assertThatThrownBy(() -> contractService.proposeFreelancer(req))
                     .isInstanceOf(CustomException.class)
                     .extracting("errorCode")
                     .isEqualTo(ErrorCode.NOT_FOUND);
@@ -196,7 +185,7 @@ class ContractServiceTest {
             req.put("recruitmentId", RECRUITMENT_ID);
             req.put("freelancerEmail", FREELANCER_EMAIL);
 
-            assertThatThrownBy(() -> contractService.createContract(req))
+            assertThatThrownBy(() -> contractService.proposeFreelancer(req))
                     .isInstanceOf(CustomException.class)
                     .extracting("errorCode")
                     .isEqualTo(ErrorCode.FORBIDDEN);
@@ -215,7 +204,7 @@ class ContractServiceTest {
             req.put("recruitmentId", RECRUITMENT_ID);
             req.put("freelancerEmail", FREELANCER_EMAIL);
 
-            assertThatThrownBy(() -> contractService.createContract(req))
+            assertThatThrownBy(() -> contractService.proposeFreelancer(req))
                     .isInstanceOf(CustomException.class)
                     .extracting("errorCode")
                     .isEqualTo(ErrorCode.INVALID_INPUT);
@@ -226,8 +215,8 @@ class ContractServiceTest {
         }
 
         @Test
-        @DisplayName("프리랜서에게만 PROPOSAL 알림, 회사 본인에게는 알림 안 감")
-        void notification_onlyToFreelancer() {
+        @DisplayName("제안 생성 시 현재 구현은 알림을 발송하지 않음")
+        void notification_notSentOnProposalCreation() {
             securityUtilMock.when(SecurityUtil::getCurrentEmail).thenReturn(COMPANY_EMAIL);
             when(recruitmentMapper.findById(RECRUITMENT_ID)).thenReturn(recruitmentOf());
             when(contractMapper.existsActiveContract(RECRUITMENT_ID, FREELANCER_EMAIL)).thenReturn(false);
@@ -236,40 +225,36 @@ class ContractServiceTest {
             req.put("recruitmentId", RECRUITMENT_ID);
             req.put("freelancerEmail", FREELANCER_EMAIL);
 
-            contractService.createContract(req);
+            contractService.proposeFreelancer(req);
 
-            verify(notificationService, never()).createNotification(
-                    eq(COMPANY_EMAIL), any(), any());
+            verify(notificationService, never()).createNotification(any(), any(), any());
         }
     }
 
     // ═══════════════════════════════════════════════════
-    // rejectContract (WAITING -> 완전삭제, 프리랜서 전용)
+    // rejectContract (PROPOSAL -> 완전삭제, 프리랜서 전용)
     // ═══════════════════════════════════════════════════
     @Nested
     @DisplayName("rejectContract")
     class RejectContract {
 
         @Test
-        @DisplayName("정상 - WAITING 상태에서 프리랜서가 거절하면 deleteContract 호출")
+        @DisplayName("정상 - PROPOSAL 상태에서 프리랜서가 거절하면 deleteContract 호출")
         void success() {
-            ContractDTO contract = contractOf(ContractStatus.WAITING);
+            ContractDTO contract = contractOf(ContractStatus.PROPOSAL);
             when(contractValidator.getContractOrThrow(CONTRACT_ID)).thenReturn(contract);
 
             contractService.rejectContract(CONTRACT_ID);
 
             verify(contractValidator).validateFreelancer(contract);
-            verify(contractValidator).validateWaiting(contract);
             verify(contractMapper).deleteContract(CONTRACT_ID);
         }
 
         @Test
-        @DisplayName("WAITING이 아니면 validateWaiting에서 INVALID_INPUT, deleteContract 안됨")
-        void notWaiting_throws() {
+        @DisplayName("PROPOSAL이 아니면 INVALID_INPUT, deleteContract 안됨")
+        void notProposal_throws() {
             ContractDTO contract = contractOf(ContractStatus.NEGOTIATING_A);
             when(contractValidator.getContractOrThrow(CONTRACT_ID)).thenReturn(contract);
-            doThrow(new CustomException(ErrorCode.INVALID_INPUT))
-                    .when(contractValidator).validateWaiting(contract);
 
             assertThatThrownBy(() -> contractService.rejectContract(CONTRACT_ID))
                     .isInstanceOf(CustomException.class)
@@ -282,7 +267,7 @@ class ContractServiceTest {
         @Test
         @DisplayName("회사가 거절 시도하면 FORBIDDEN")
         void notFreelancer_throws() {
-            ContractDTO contract = contractOf(ContractStatus.WAITING);
+            ContractDTO contract = contractOf(ContractStatus.PROPOSAL);
             when(contractValidator.getContractOrThrow(CONTRACT_ID)).thenReturn(contract);
             doThrow(new CustomException(ErrorCode.FORBIDDEN))
                     .when(contractValidator).validateFreelancer(contract);

@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -204,16 +205,22 @@ class ContractFileServiceTest {
             when(contractValidator.getContractOrThrow(CONTRACT_ID))
                     .thenReturn(contractOf(ContractStatus.IN_PROGRESS));
 
-            List<ContractFileDTO> files = List.of(
-                    ContractFileDTO.builder().contractFileId(1).fileId(10).type(ContractFileType.CONFIRM).build(),
-                    ContractFileDTO.builder().contractFileId(2).fileId(11).type(ContractFileType.CONFIRM).build()
+            List<Map<String, Object>> files = List.of(
+                    Map.<String, Object>of(
+                            "contractFileId", 1,
+                            "fileId", 10,
+                            "type", ContractFileType.CONFIRM),
+                    Map.<String, Object>of(
+                            "contractFileId", 2,
+                            "fileId", 11,
+                            "type", ContractFileType.CONFIRM)
             );
             when(contractFileMapper.findConfirmFilesByContractId(CONTRACT_ID)).thenReturn(files);
 
-            List<ContractFileDTO> result = contractFileService.getConfirmFiles(CONTRACT_ID);
+            List<Map<String, Object>> result = contractFileService.getConfirmFiles(CONTRACT_ID);
 
             assertThat(result).hasSize(2);
-            assertThat(result).allMatch(f -> f.getType() == ContractFileType.CONFIRM);
+            assertThat(result).allMatch(f -> f.get("type") == ContractFileType.CONFIRM);
         }
 
         @Test
@@ -224,7 +231,7 @@ class ContractFileServiceTest {
             when(contractFileMapper.findConfirmFilesByContractId(CONTRACT_ID))
                     .thenReturn(List.of());
 
-            List<ContractFileDTO> result = contractFileService.getConfirmFiles(CONTRACT_ID);
+            List<Map<String, Object>> result = contractFileService.getConfirmFiles(CONTRACT_ID);
 
             assertThat(result).isEmpty();
         }
