@@ -175,7 +175,8 @@ public class FileService {
     public void validateReadAccess(int fileId, String viewerEmail) {
         FileDTO file = findById(fileId);
         if (FileParentType.PROFILE.equals(file.getParentType())
-                || FileParentType.PORTFOLIO_PROFILE.equals(file.getParentType())) {
+                || FileParentType.PORTFOLIO_PROFILE.equals(file.getParentType())
+                || FileParentType.APPLICATION_PROFILE.equals(file.getParentType())) {
             requireFileOwner(file, viewerEmail);
             return;
         }

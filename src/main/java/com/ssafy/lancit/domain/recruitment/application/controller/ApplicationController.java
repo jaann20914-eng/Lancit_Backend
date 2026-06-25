@@ -4,6 +4,7 @@ import com.ssafy.lancit.common.page.dto.PageRequest;
 import com.ssafy.lancit.common.page.dto.PageResponse;
 import com.ssafy.lancit.common.response.ApiResponse;
 import com.ssafy.lancit.common.util.SecurityUtil;
+import com.ssafy.lancit.domain.portfolio.dto.PortfolioProfileDTO;
 import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationDetailResponse;
 import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationRequest;
 import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationStatusUpdateRequest;
@@ -141,6 +142,18 @@ public class ApplicationController {
         String role = SecurityUtil.getCurrentRole();
         return ResponseEntity.ok(ApiResponse.ok(
                 applicationService.getMine(recruitmentId, email, role)));
+    }
+
+    @Operation(summary = "내 지원용 프로필 카드 조회",
+            description = "프리랜서 토큰이 필요합니다. 지원 전에는 현재 포트폴리오 프로필 카드를 초기값으로 반환하고, "
+                    + "지원 후에는 지원 스냅샷을 반환합니다. 이 API는 포트폴리오용 프로필 카드를 수정하지 않습니다.")
+    @GetMapping("/me/profile")
+    public ResponseEntity<ApiResponse<PortfolioProfileDTO>> getMyApplicationProfile(
+            @PathVariable int recruitmentId) {
+        String email = SecurityUtil.getCurrentEmail();
+        String role = SecurityUtil.getCurrentRole();
+        return ResponseEntity.ok(ApiResponse.ok(
+                applicationService.getMineProfile(recruitmentId, email, role)));
     }
 
     @Operation(summary = "내 지원 수정",

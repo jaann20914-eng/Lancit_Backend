@@ -35,6 +35,7 @@ public class GcsService {
         return switch (parentType) {
             case PROFILE           -> "profile/";
             case PORTFOLIO_PROFILE -> "portfolio/profile/";
+            case APPLICATION_PROFILE -> "application/profile/";
             case PORTFOLIO_BANNER  -> "portfolio/banner/";
             case PORTFOLIO_FILE    -> "portfolio/file/";
             case RECRUITMENT_IMAGE -> "recruitment/image/";

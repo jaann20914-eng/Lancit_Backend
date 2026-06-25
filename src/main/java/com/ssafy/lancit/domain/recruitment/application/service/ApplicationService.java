@@ -255,6 +255,21 @@ public class ApplicationService {
         return toDetailResponse(application, true);
     }
 
+    public PortfolioProfileDTO getMineProfile(int recruitmentId, String freelancerEmail, String role) {
+        requireUser(role);
+        ApplicationDTO application =
+                applicationMapper.findByRecruitmentAndApplicant(recruitmentId, freelancerEmail);
+        if (application != null && !ApplicationStatus.CANCELLED.equals(application.getStatus())) {
+            PortfolioProfileDTO snapshot = findProfileSnapshot(application.getApplicationId());
+            if (snapshot != null) {
+                return snapshot;
+            }
+        }
+
+        findOpenRecruitment(recruitmentId);
+        return portfolioService.getMyProfile(freelancerEmail);
+    }
+
     @Transactional
     public ApplicationDetailResponse updateMine(int recruitmentId,
                                                 ApplicationRequest request,
@@ -581,11 +596,12 @@ public class ApplicationService {
 
         FileParentType parentType = file.getParentType();
         if (FileParentType.TEMP.equals(parentType) || FileParentType.TEMP_SIGNATURE.equals(parentType)) {
-            fileService.promoteOwned(profileFileId, FileParentType.PORTFOLIO_PROFILE, freelancerEmail);
+            fileService.promoteOwned(profileFileId, FileParentType.APPLICATION_PROFILE, freelancerEmail);
             return;
         }
         if (!FileParentType.PROFILE.equals(parentType)
-                && !FileParentType.PORTFOLIO_PROFILE.equals(parentType)) {
+                && !FileParentType.PORTFOLIO_PROFILE.equals(parentType)
+                && !FileParentType.APPLICATION_PROFILE.equals(parentType)) {
             throw new CustomException(ErrorCode.INVALID_INPUT);
         }
     }

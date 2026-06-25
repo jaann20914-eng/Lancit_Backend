@@ -335,7 +335,7 @@ class ApplicationServiceTest {
         assertThat(result.getPortfolioProfile().getDisplayName()).isEqualTo("지원 전용 홍길동");
         assertThat(result.getPortfolioProfile().getProfileFileId()).isEqualTo(20);
         assertThat(result.getPortfolioProfile().getTechStacks()).containsExactly("Spring", "React");
-        verify(fileService).promoteOwned(20, FileParentType.PORTFOLIO_PROFILE, USER_EMAIL);
+        verify(fileService).promoteOwned(20, FileParentType.APPLICATION_PROFILE, USER_EMAIL);
         verify(portfolioService, never()).getMyProfile(any());
         verify(applicationProfileSnapshotMapper).insert(argThat(snapshot ->
                 snapshot.getApplicationId().equals(1)
@@ -563,6 +563,35 @@ class ApplicationServiceTest {
     }
 
     @Test
+    @DisplayName("지원 전 지원용 프로필 조회는 현재 포트폴리오 프로필을 초기값으로만 반환")
+    void getMineProfile_beforeApply_returnsCurrentPortfolioProfile() {
+        given(applicationMapper.findByRecruitmentAndApplicant(10, USER_EMAIL)).willReturn(null);
+        given(recruitmentMapper.findById(10)).willReturn(openRecruitment());
+        stubCurrentPortfolioProfile();
+
+        PortfolioProfileDTO result = applicationService.getMineProfile(10, USER_EMAIL, ROLE_USER);
+
+        assertThat(result.getDisplayName()).isEqualTo("지원 홍길동");
+        assertThat(result.getTechStacks()).containsExactly("Java", "Spring");
+        verify(applicationProfileSnapshotMapper, never()).findByApplicationId(anyInt());
+    }
+
+    @Test
+    @DisplayName("지원 후 지원용 프로필 조회는 포트폴리오 프로필 대신 지원 스냅샷을 반환")
+    void getMineProfile_afterApply_returnsApplicationProfileSnapshot() {
+        given(applicationMapper.findByRecruitmentAndApplicant(10, USER_EMAIL))
+                .willReturn(application(ApplicationStatus.PENDING, null, null));
+        stubPortfolioProfile();
+
+        PortfolioProfileDTO result = applicationService.getMineProfile(10, USER_EMAIL, ROLE_USER);
+
+        assertThat(result.getDisplayName()).isEqualTo("지원 홍길동");
+        assertThat(result.getDescription()).isEqualTo("지원 당시 상세 소개");
+        verify(portfolioService, never()).getMyProfile(any());
+        verify(recruitmentMapper, never()).findById(10);
+    }
+
+    @Test
     @DisplayName("내 지원 수정 성공")
     void updateMine_success() {
         ApplicationDTO existing = application(ApplicationStatus.PENDING, null, null);
@@ -639,7 +668,8 @@ class ApplicationServiceTest {
                         && snapshot.getProfileFileId().equals(20)));
         verify(applicationProfileSnapshotMapper).insertTechStack(1, "Kotlin", 0);
         verify(fileService).deleteProfileIfUnreferenced(10);
-        verify(fileService, never()).promoteOwned(eq(20), eq(FileParentType.PORTFOLIO_PROFILE), eq(USER_EMAIL));
+        verify(fileService, never()).promoteOwned(eq(20), eq(FileParentType.APPLICATION_PROFILE), eq(USER_EMAIL));
+        verify(portfolioService, never()).getMyProfile(any());
     }
 
     @Test
