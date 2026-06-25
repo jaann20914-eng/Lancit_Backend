@@ -26,15 +26,18 @@
     </insert>
 
 
-    <!-- 무한스크롤 조회 (lastMessageId 없으면 최신부터) -->
+	<!-- 무한스크롤 조회 -->
 	<select id="findMessages" resultType="MessageDTO">
 	    SELECT * FROM (
 	        SELECT m.*,
 	               mf.file_id AS fileId,
-	               f.ori_name AS fileName
+	               f.ori_name AS fileName,
+	               COALESCE(u_user.name, u_comp.name) AS senderName
 	        FROM message m
 	        LEFT JOIN message_file mf ON m.message_id = mf.message_id
 	        LEFT JOIN file f ON mf.file_id = f.file_id
+	        LEFT JOIN user u_user ON m.sender_email = u_user.email
+	        LEFT JOIN company u_comp ON m.sender_email = u_comp.email
 	        WHERE m.chat_room_id = #{chatRoomId}
 	        <if test="lastMessageId != null">
 	            AND m.message_id &lt; #{lastMessageId}
@@ -44,16 +47,18 @@
 	    ) sub
 	    ORDER BY message_id ASC
 	</select>
-
-
-    <!-- 단건 조회 -->
+	
+	<!-- 단건 조회 -->
 	<select id="findById" resultType="MessageDTO">
 	    SELECT m.*,
 	           mf.file_id AS fileId,
-	           f.ori_name AS fileName
+	           f.ori_name AS fileName,
+	           COALESCE(u_user.name, u_comp.name) AS senderName
 	    FROM message m
 	    LEFT JOIN message_file mf ON m.message_id = mf.message_id
 	    LEFT JOIN file f ON mf.file_id = f.file_id
+	    LEFT JOIN user u_user ON m.sender_email = u_user.email
+	    LEFT JOIN company u_comp ON m.sender_email = u_comp.email
 	    WHERE m.message_id = #{messageId}
 	</select>
 

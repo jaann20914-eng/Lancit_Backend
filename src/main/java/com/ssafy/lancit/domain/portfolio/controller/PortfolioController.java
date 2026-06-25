@@ -130,7 +130,7 @@ public class PortfolioController {
     @GetMapping("/profile/public")
     public ResponseEntity<ApiResponse<PortfolioProfileDTO>> getPublicProfile(
             @RequestParam String email) {
-        return ResponseEntity.ok(ApiResponse.ok(portfolioService.getMyProfile(email)));
+        return ResponseEntity.ok(ApiResponse.ok(portfolioService.getFreelancerProfile(email)));
     }
     
 }

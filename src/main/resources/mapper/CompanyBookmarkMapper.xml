@@ -53,28 +53,38 @@
 	    LIMIT 1
 	</select>
 	
+	
 <select id="searchTalents"
         resultType="com.ssafy.lancit.domain.bookmark.company.dto.TalentListDTO">
 
     SELECT
         u.email,
         u.name,
-        u.job_category      AS jobCategory,
-        u.profile_file_id   AS profileFileId,
-        u.created_at AS createdAt,
+        u.created_at            AS createdAt,
+
+        pp.display_name         AS displayName,
+        pp.job_category         AS jobCategory,
+        pp.profile_file_id      AS profileFileId,
+        pp.is_portfolio_public  AS isPortfolioPublic,
+        pp.short_intro          AS shortIntro,
+        pp.description          AS description,
 
         CASE
             WHEN b.bookmark_id IS NULL THEN FALSE
             ELSE TRUE
-        END                 AS bookmarked
+        END                     AS bookmarked
 
     FROM user u
+
+    LEFT JOIN portfolio_profile pp
+           ON pp.freelancer_email = u.email
 
     LEFT JOIN bookmark b
            ON b.freelancer_email = u.email
           AND b.company_email = #{companyEmail}
 
     <where>
+        AND (pp.is_portfolio_public = TRUE OR pp.is_portfolio_public IS NULL)
 
         <if test="keyword != null and keyword != ''">
             AND u.name LIKE CONCAT('%', #{keyword}, '%')
@@ -87,7 +97,6 @@
         <if test="bookmarked">
             AND b.bookmark_id IS NOT NULL
         </if>
-
     </where>
 
     ORDER BY u.${sort} ${direction}
@@ -104,11 +113,15 @@
 
     FROM user u
 
+    LEFT JOIN portfolio_profile pp
+           ON pp.freelancer_email = u.email
+
     LEFT JOIN bookmark b
            ON b.freelancer_email = u.email
           AND b.company_email = #{companyEmail}
 
     <where>
+        AND (pp.is_portfolio_public = TRUE OR pp.is_portfolio_public IS NULL)
 
         <if test="keyword != null and keyword != ''">
             AND u.name LIKE CONCAT('%', #{keyword}, '%')
@@ -121,14 +134,9 @@
         <if test="bookmarked">
             AND b.bookmark_id IS NOT NULL
         </if>
-
     </where>
 
 </select>
-
-
-
-
 
 	
 </mapper>

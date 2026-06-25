@@ -55,4 +55,5 @@ public class RecruitmentDetailResponse {
     private Integer myApplicationId;
     private Boolean isBookmarked;
     private RecruitmentPermissionResponse permission;
+    private Boolean businessNumberVerified;
 }

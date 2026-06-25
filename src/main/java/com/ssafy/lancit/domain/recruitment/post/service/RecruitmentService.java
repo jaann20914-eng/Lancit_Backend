@@ -542,6 +542,7 @@ public class RecruitmentService {
                 .myApplicationStatus(permission.getMyApplicationStatus())
                 .myApplicationId(permission.getMyApplicationId())
                 .isBookmarked(permission.getIsBookmarked())
+                .businessNumberVerified(dto.getBusinessNumberVerified())
                 .build();
     }
 
@@ -585,6 +586,7 @@ public class RecruitmentService {
                 .myApplicationStatus(permission.getMyApplicationStatus())
                 .myApplicationId(permission.getMyApplicationId())
                 .isBookmarked(permission.getIsBookmarked())
+                .businessNumberVerified(dto.getBusinessNumberVerified())
                 .permission(permission)
                 .build();
     }

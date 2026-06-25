@@ -99,42 +99,42 @@
         AND r.status &lt;&gt; 'CANCELLED'
     </sql>
 
-    <select id="findFreelancerSummary" resultMap="FreelancerSummaryMap">
-        SELECT
-            (
-                SELECT COUNT(*)
-                FROM contract c
-                INNER JOIN recruitment r ON r.recruitment_id = c.recruitment_id
-                WHERE c.freelancer_email = #{email}
-                  AND c.status = 'IN_PROGRESS'
-                  AND r.is_deleted = 0
-                  AND r.status &lt;&gt; 'CANCELLED'
-            ) AS in_progress_contract_count,
-            (
-                SELECT COUNT(*)
-                FROM contract c
-                INNER JOIN recruitment r ON r.recruitment_id = c.recruitment_id
-                WHERE c.freelancer_email = #{email}
-                  AND c.status = 'WAITING'
-                  AND r.is_deleted = 0
-                  AND r.status &lt;&gt; 'CANCELLED'
-            ) AS received_proposal_count,
-            (
-                SELECT COUNT(*)
-                FROM recruitment_application ra
-                INNER JOIN recruitment r ON r.recruitment_id = ra.recruitment_id
-                WHERE ra.applicant_email = #{email}
-                  AND ra.status &lt;&gt; 'CANCELLED'
-                  AND r.is_deleted = 0
-                  AND r.status &lt;&gt; 'CANCELLED'
-            ) AS applied_recruitment_count,
-            (
-                SELECT COUNT(*)
-                FROM portfolio p
-                WHERE p.email = #{email}
-                  AND p.is_deleted = 0
-            ) AS portfolio_count
-    </select>
+	<select id="findFreelancerSummary" resultMap="FreelancerSummaryMap">
+	    SELECT
+	        (
+	            SELECT COUNT(*)
+	            FROM contract c
+	            INNER JOIN recruitment r ON r.recruitment_id = c.recruitment_id
+	            WHERE c.freelancer_email = #{email}
+	              AND c.status = 'IN_PROGRESS'
+	              AND r.is_deleted = 0
+	              AND r.status &lt;&gt; 'CANCELLED'
+	        ) AS in_progress_contract_count,
+	        (
+	            SELECT COUNT(*)
+	            FROM contract c
+	            INNER JOIN recruitment r ON r.recruitment_id = c.recruitment_id
+	            WHERE c.freelancer_email = #{email}
+	              AND c.status = 'PROPOSAL'
+	              AND r.is_deleted = 0
+	              AND r.status &lt;&gt; 'CANCELLED'
+	        ) AS received_proposal_count,
+	        (
+	            SELECT COUNT(*)
+	            FROM recruitment_application ra
+	            INNER JOIN recruitment r ON r.recruitment_id = ra.recruitment_id
+	            WHERE ra.applicant_email = #{email}
+	              AND ra.status &lt;&gt; 'CANCELLED'
+	              AND r.is_deleted = 0
+	              AND r.status &lt;&gt; 'CANCELLED'
+	        ) AS applied_recruitment_count,
+	        (
+	            SELECT COUNT(*)
+	            FROM portfolio p
+	            WHERE p.email = #{email}
+	              AND p.is_deleted = 0
+	        ) AS portfolio_count
+	</select>
 
     <select id="findRecentFreelancerContracts" resultMap="FreelancerContractMap">
         SELECT
@@ -156,32 +156,32 @@
         LIMIT 2
     </select>
 
-    <select id="findRecentFreelancerProposals" resultMap="FreelancerProposalMap">
-        SELECT
-            c.contract_id,
-            c.recruitment_id,
-            r.title,
-            company.company_name,
-            c.company_email,
-            proposal_notification.proposed_at,
-            c.status
-        FROM contract c
-        INNER JOIN recruitment r ON r.recruitment_id = c.recruitment_id
-        INNER JOIN company ON company.email = c.company_email
-        INNER JOIN (
-            SELECT receiver_email, target_id, MAX(created_at) AS proposed_at
-            FROM notification
-            WHERE type = 'PROPOSAL'
-            GROUP BY receiver_email, target_id
-        ) proposal_notification
-          ON proposal_notification.receiver_email = c.freelancer_email
-         AND proposal_notification.target_id = c.contract_id
-        WHERE c.freelancer_email = #{email}
-          AND c.status = 'WAITING'
-        <include refid="ActiveRecruitmentFilter"/>
-        ORDER BY proposal_notification.proposed_at DESC, c.contract_id DESC
-        LIMIT 2
-    </select>
+	<select id="findRecentFreelancerProposals" resultMap="FreelancerProposalMap">
+	    SELECT
+	        c.contract_id,
+	        c.recruitment_id,
+	        r.title,
+	        company.company_name,
+	        c.company_email,
+	        COALESCE(proposal_notification.proposed_at, c.created_at) AS proposed_at,
+	        c.status
+	    FROM contract c
+	    INNER JOIN recruitment r ON r.recruitment_id = c.recruitment_id
+	    INNER JOIN company ON company.email = c.company_email
+	    LEFT JOIN (
+	        SELECT receiver_email, target_id, MAX(created_at) AS proposed_at
+	        FROM notification
+	        WHERE type = 'PROPOSAL'
+	        GROUP BY receiver_email, target_id
+	    ) proposal_notification
+	      ON proposal_notification.receiver_email = c.freelancer_email
+	     AND proposal_notification.target_id = c.contract_id
+	    WHERE c.freelancer_email = #{email}
+	      AND c.status = 'PROPOSAL'
+	    <include refid="ActiveRecruitmentFilter"/>
+	    ORDER BY COALESCE(proposal_notification.proposed_at, c.created_at) DESC, c.contract_id DESC
+	    LIMIT 2
+	</select>
 
     <select id="findRecentFreelancerApplications" resultMap="FreelancerApplicationMap">
         SELECT

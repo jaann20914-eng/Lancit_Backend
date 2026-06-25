@@ -22,4 +22,6 @@ public class MessageFileDTO {
     private Integer fileId;
 
     private LocalDateTime createdAt;
+    
+    private String senderName;
 }

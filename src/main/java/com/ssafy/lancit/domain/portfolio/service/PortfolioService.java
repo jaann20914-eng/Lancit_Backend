@@ -320,4 +320,13 @@ public class PortfolioService {
     private boolean hasText(String value) {
         return value != null && !value.trim().isEmpty();
     }
+    
+    
+    // PORT-PROFILE-01 회사가 포트폴리오 프로필 카드 조회
+    @Transactional
+    public PortfolioProfileDTO getFreelancerProfile(String email) {
+    	PortfolioProfileDTO profile= portfolioProfileMapper.findByFreelancerEmail(email);
+        return profile;
+    }
+
 }

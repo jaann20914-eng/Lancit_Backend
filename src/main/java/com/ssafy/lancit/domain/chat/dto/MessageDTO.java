@@ -37,4 +37,6 @@ public class MessageDTO {
     
     private Integer fileId;   
     private String fileName;  
+    
+    private String senderName;
 }
