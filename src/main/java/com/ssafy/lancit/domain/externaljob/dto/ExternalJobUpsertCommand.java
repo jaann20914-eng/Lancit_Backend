@@ -31,6 +31,9 @@ public class ExternalJobUpsertCommand {
     private String payloadHash;
     private ExternalFreelanceType freelanceType;
     private ExternalJobRecommendationType recommendationType;
+    private Integer recommendationScore;
+    private Boolean visible;
+    private String visibilityReason;
     private LocalDateTime collectedAt;
     private LocalDateTime updatedAt;
 }

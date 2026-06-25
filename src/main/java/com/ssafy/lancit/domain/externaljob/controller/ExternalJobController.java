@@ -7,6 +7,7 @@ import com.ssafy.lancit.domain.externaljob.dto.ExternalJobCardResponse;
 import com.ssafy.lancit.domain.externaljob.dto.ExternalJobCollectCommand;
 import com.ssafy.lancit.domain.externaljob.dto.ExternalJobCollectRequest;
 import com.ssafy.lancit.domain.externaljob.dto.ExternalJobCollectResponse;
+import com.ssafy.lancit.domain.externaljob.dto.ExternalJobDetailResponse;
 import com.ssafy.lancit.domain.externaljob.dto.ExternalJobSearchCondition;
 import com.ssafy.lancit.domain.externaljob.service.ExternalJobCollectService;
 import com.ssafy.lancit.domain.externaljob.service.ExternalJobQueryService;
@@ -33,7 +34,7 @@ public class ExternalJobController {
 
     @Operation(
             summary = "외부 공고 목록 조회",
-            description = "서울시 등 외부 채용 공고를 조회합니다. 기본 조회에서는 NOT_FREELANCE, EXCLUDED, 마감 지난 공고를 제외합니다.")
+            description = "노출 가능한 서울시 외부 공고를 조회합니다. NOT_FREELANCE, EXCLUDED, 마감 지난 공고와 장기 미마감 공고는 제외합니다.")
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<ExternalJobCardResponse>>> getExternalJobs(
             @ModelAttribute ExternalJobSearchCondition condition,
@@ -44,9 +45,9 @@ public class ExternalJobController {
 
     @Operation(
             summary = "외부 공고 상세 조회",
-            description = "기본 노출 정책과 동일하게 제외/만료 공고는 조회하지 않습니다.")
+            description = "목록과 동일한 노출 정책을 적용하며, 원문 사이트 확인용 상세 정보를 반환합니다.")
     @GetMapping("/{externalJobId}")
-    public ResponseEntity<ApiResponse<ExternalJobCardResponse>> getExternalJob(
+    public ResponseEntity<ApiResponse<ExternalJobDetailResponse>> getExternalJob(
             @PathVariable Long externalJobId) {
         return ResponseEntity.ok(ApiResponse.ok(externalJobQueryService.getExternalJob(externalJobId)));
     }
