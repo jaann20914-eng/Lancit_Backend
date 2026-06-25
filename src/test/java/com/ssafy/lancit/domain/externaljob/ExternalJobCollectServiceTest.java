@@ -312,6 +312,17 @@ class ExternalJobCollectServiceTest {
         }
 
         @Override
+        public int upsertExternalJobCategoryRecommendation(
+                com.ssafy.lancit.domain.externaljob.dto.ExternalJobCategoryRecommendationCommand command) {
+            return 0;
+        }
+
+        @Override
+        public long countCategoryRecommendations(String jobCategory) {
+            return 0;
+        }
+
+        @Override
         public int updateExternalJobClassification(Long id,
                                                    ExternalFreelanceType freelanceType,
                                                    ExternalJobRecommendationType recommendationType,
@@ -327,6 +338,11 @@ class ExternalJobCollectServiceTest {
 
         @Override
         public ExternalJobDTO findById(Long id) {
+            return null;
+        }
+
+        @Override
+        public ExternalJobDTO findBySourceAndSourceJobId(ExternalJobSource source, String sourceJobId) {
             return null;
         }
 

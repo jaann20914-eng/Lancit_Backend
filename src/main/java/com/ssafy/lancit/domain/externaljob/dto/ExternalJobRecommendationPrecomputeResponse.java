@@ -9,10 +9,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ExternalJobRecommendationRefreshResponse {
-    private String jobCategory;
-    private String status;
-    private String message;
-    private int refreshedCount;
-    private long precomputedCount;
+public class ExternalJobRecommendationPrecomputeResponse {
+    private int processedJobCount;
+    private int processedCategoryCount;
+    private int savedRecommendationCount;
+    private int failedCount;
 }

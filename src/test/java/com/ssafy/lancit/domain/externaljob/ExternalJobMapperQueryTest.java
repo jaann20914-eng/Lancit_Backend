@@ -25,10 +25,12 @@ class ExternalJobMapperQueryTest {
         assertThat(xml).contains("INSERT INTO external_job_user_recommendation");
         assertThat(xml).contains("ON DUPLICATE KEY UPDATE");
         assertThat(xml).contains("matched_by = VALUES(matched_by)");
+        assertThat(xml).contains("INSERT INTO external_job_category_recommendation");
+        assertThat(xml).contains("reason = VALUES(reason)");
     }
 
     @Test
-    @DisplayName("기본 조회는 개인화 추천 결과가 있는 서울시 공고만 노출한다")
+    @DisplayName("기본 조회는 직종별 사전 추천 결과가 있는 외부 공고만 노출한다")
     void findExternalJobs_appliesDefaultVisibilityFilters() throws IOException {
         String xml = resource("mapper/ExternalJobMapper.xml");
         String listQuery = section(xml,
@@ -38,36 +40,35 @@ class ExternalJobMapperQueryTest {
                 "<select id=\"countExternalJobs\"",
                 "</select>");
         String requiredJoin = section(xml,
-                "<sql id=\"PersonalRecommendationRequiredJoin\"",
+                "<sql id=\"CategoryRecommendationRequiredJoin\"",
                 "</sql>");
 
-        assertThat(xml).contains("AND ej.source = 'SEOUL'");
         assertThat(xml).doesNotContain("condition.source");
         assertThat(xml).contains("AND ej.is_visible = 1");
         assertThat(xml).contains("AND ej.freelance_type != 'NOT_FREELANCE'");
         assertThat(xml).doesNotContain("AND ej.recommendation_type != 'EXCLUDED'");
         assertThat(xml).contains("freelance_type = 'NOT_FREELANCE'");
         assertThat(xml).contains("visibility_reason");
-        assertThat(listQuery).contains("<include refid=\"PersonalRecommendationRequiredJoin\"/>");
-        assertThat(countQuery).contains("<include refid=\"PersonalRecommendationRequiredJoin\"/>");
-        assertThat(requiredJoin).contains("INNER JOIN external_job_user_recommendation ejur");
-        assertThat(requiredJoin).contains("ejur.user_email = #{condition.userEmail}");
-        assertThat(requiredJoin).contains("ejur.job_category = #{condition.jobCategory}");
-        assertThat(requiredJoin).contains("ejur.recommendation_type != 'EXCLUDED'");
-        assertThat(requiredJoin).doesNotContain("ejur.recommendation_score &gt;= 60");
-        assertThat(requiredJoin).doesNotContain("ejur.recommendation_score >= 60");
-        assertThat(listQuery).doesNotContain("COALESCE(ejur.recommendation_score, ej.recommendation_score, 0)");
+        assertThat(listQuery).contains("<include refid=\"CategoryRecommendationRequiredJoin\"/>");
+        assertThat(countQuery).contains("<include refid=\"CategoryRecommendationRequiredJoin\"/>");
+        assertThat(requiredJoin).contains("INNER JOIN external_job_category_recommendation ejcr");
+        assertThat(requiredJoin).doesNotContain("user_email");
+        assertThat(requiredJoin).contains("ejcr.job_category = #{condition.jobCategory}");
+        assertThat(requiredJoin).contains("ejcr.recommendation_type != 'EXCLUDED'");
+        assertThat(requiredJoin).doesNotContain("ejcr.recommendation_score &gt;= 60");
+        assertThat(requiredJoin).doesNotContain("ejcr.recommendation_score >= 60");
+        assertThat(listQuery).doesNotContain("COALESCE(ejcr.recommendation_score, ej.recommendation_score, 0)");
     }
 
     @Test
-    @DisplayName("개인화 refresh 후보는 노출 가능한 서울시 공고 중 NOT_FREELANCE만 제외하고 추천 등급으로 제한하지 않는다")
+    @DisplayName("사전 계산 후보는 노출 가능한 외부 공고 중 NOT_FREELANCE만 제외하고 추천 등급으로 제한하지 않는다")
     void findVisibleExternalJobsForRecommendation_usesFreelanceTypeOnly() throws IOException {
         String xml = resource("mapper/ExternalJobMapper.xml");
         String query = section(xml,
                 "<select id=\"findVisibleExternalJobsForRecommendation\"",
                 "</select>");
 
-        assertThat(query).contains("AND ej.source = 'SEOUL'");
+        assertThat(query).doesNotContain("AND ej.source = 'SEOUL'");
         assertThat(query).contains("AND ej.is_visible = 1");
         assertThat(query).contains("AND ej.freelance_type != 'NOT_FREELANCE'");
         assertThat(query).doesNotContain("AND ej.recommendation_type");
@@ -77,15 +78,14 @@ class ExternalJobMapperQueryTest {
     }
 
     @Test
-    @DisplayName("외부 공고 조회는 유저별 추천 점수로만 추천순 정렬한다")
+    @DisplayName("외부 공고 조회는 직종별 사전 추천 점수로만 추천순 정렬한다")
     void findExternalJobs_ordersByRecommendation() throws IOException {
         String xml = resource("mapper/ExternalJobMapper.xml");
 
-        assertThat(xml).contains("INNER JOIN external_job_user_recommendation ejur");
-        assertThat(xml).contains("ejur.recommendation_score DESC");
-        assertThat(xml).doesNotContain("LEFT JOIN external_job_user_recommendation ejur");
-        assertThat(xml).doesNotContain("COALESCE(ejur.recommendation_score, ej.recommendation_score, 0)");
-        assertThat(xml).contains("ej.collected_at DESC");
+        assertThat(xml).contains("INNER JOIN external_job_category_recommendation ejcr");
+        assertThat(xml).contains("ejcr.recommendation_score DESC");
+        assertThat(xml).doesNotContain("LEFT JOIN external_job_category_recommendation ejcr");
+        assertThat(xml).doesNotContain("COALESCE(ejcr.recommendation_score, ej.recommendation_score, 0)");
         assertThat(xml).contains("ej.id DESC");
         assertThat(xml).doesNotContain("condition.safeSort == 'DEADLINE'");
     }
@@ -97,7 +97,7 @@ class ExternalJobMapperQueryTest {
 
         assertThat(xml).doesNotContain("condition.safeSort == 'LATEST'");
         assertThat(xml).contains("ORDER BY");
-        assertThat(xml).contains("ej.collected_at DESC");
+        assertThat(xml).contains("ejcr.recommendation_score DESC");
     }
 
     @Test
@@ -134,6 +134,21 @@ class ExternalJobMapperQueryTest {
         assertThat(sql).contains("UNIQUE KEY uk_external_job_user_category");
         assertThat(sql).contains("INDEX idx_external_job_user_category");
         assertThat(sql).contains("FOREIGN KEY (external_job_id)");
+        assertThat(sql).contains("REFERENCES external_job(id)");
+        assertThat(sql).contains("ON DELETE CASCADE");
+    }
+
+    @Test
+    @DisplayName("DDL은 외부 공고 직종별 사전 추천 테이블을 가진다")
+    void ddl_containsExternalJobCategoryRecommendationTable() throws IOException {
+        String sql = resource("new_sql.sql");
+
+        assertThat(sql).contains("DROP TABLE IF EXISTS external_job_category_recommendation");
+        assertThat(sql).contains("CREATE TABLE external_job_category_recommendation");
+        assertThat(sql).contains("UNIQUE KEY uk_external_job_category_recommendation");
+        assertThat(sql).contains("INDEX idx_external_job_category_score");
+        assertThat(sql).contains("INDEX idx_external_job_category_type_score");
+        assertThat(sql).contains("CONSTRAINT fk_external_job_category_recommendation_job");
         assertThat(sql).contains("REFERENCES external_job(id)");
         assertThat(sql).contains("ON DELETE CASCADE");
     }

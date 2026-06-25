@@ -32,7 +32,7 @@ public class ExternalJobQueryService {
                                                                   PageRequest pageRequest) {
         ExternalJobSearchCondition normalized = normalize(condition);
         PageRequest safePageRequest = pageRequest == null ? new PageRequest() : pageRequest;
-        if (!hasPersonalRecommendationScope(normalized)) {
+        if (!hasPrecomputedRecommendationScope(normalized)) {
             return PageResponse.of(List.of(), 0, safePageRequest);
         }
         List<ExternalJobCardResponse> content = externalJobMapper.findExternalJobs(normalized, safePageRequest)
@@ -63,9 +63,8 @@ public class ExternalJobQueryService {
         return normalized;
     }
 
-    private boolean hasPersonalRecommendationScope(ExternalJobSearchCondition condition) {
+    private boolean hasPrecomputedRecommendationScope(ExternalJobSearchCondition condition) {
         return condition != null
-                && StringUtils.hasText(condition.getUserEmail())
                 && StringUtils.hasText(condition.getJobCategory());
     }
 

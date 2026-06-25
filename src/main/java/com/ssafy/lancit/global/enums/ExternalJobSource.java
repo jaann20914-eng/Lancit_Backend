@@ -10,6 +10,11 @@ public enum ExternalJobSource {
             "서울시 일자리플러스센터",
             "https://job.seoul.go.kr/hmpg/main/main.do?sso=ok",
             "사이트에서 확인"
+    ),
+    JOBABA(
+            "잡아바",
+            "https://www.jobaba.net",
+            "사이트에서 확인"
     );
 
     private final String label;

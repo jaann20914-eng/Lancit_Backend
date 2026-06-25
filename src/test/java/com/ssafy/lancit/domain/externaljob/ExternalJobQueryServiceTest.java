@@ -26,7 +26,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class ExternalJobQueryServiceTest {
 
     @Test
-    @DisplayName("외부 공고 목록은 유저/직무 추천 범위가 없으면 전역 후보로 fallback하지 않는다")
+    @DisplayName("외부 공고 목록은 직무 추천 범위가 없으면 전역 후보로 fallback하지 않는다")
     void listExternalJobs_withoutJobCategory_returnsEmptyPage() {
         FakeExternalJobMapper mapper = new FakeExternalJobMapper(null);
         ExternalJobQueryService externalJobQueryService = new ExternalJobQueryService(mapper);
@@ -40,6 +40,20 @@ class ExternalJobQueryServiceTest {
         assertThat(response.getTotalElements()).isZero();
         assertThat(mapper.findExternalJobsCallCount).isZero();
         assertThat(mapper.countExternalJobsCallCount).isZero();
+    }
+
+    @Test
+    @DisplayName("외부 공고 목록은 로그인 이메일 없이도 직종별 사전 추천 결과를 조회한다")
+    void listExternalJobs_withJobCategoryQueriesPrecomputedRecommendations() {
+        FakeExternalJobMapper mapper = new FakeExternalJobMapper(null);
+        ExternalJobQueryService externalJobQueryService = new ExternalJobQueryService(mapper);
+        ExternalJobSearchCondition condition = new ExternalJobSearchCondition();
+        condition.setJobCategory("IT");
+
+        externalJobQueryService.listExternalJobs(condition, new PageRequest());
+
+        assertThat(mapper.findExternalJobsCallCount).isOne();
+        assertThat(mapper.countExternalJobsCallCount).isOne();
     }
 
     @Test
@@ -147,6 +161,17 @@ class ExternalJobQueryServiceTest {
         }
 
         @Override
+        public int upsertExternalJobCategoryRecommendation(
+                com.ssafy.lancit.domain.externaljob.dto.ExternalJobCategoryRecommendationCommand command) {
+            return 0;
+        }
+
+        @Override
+        public long countCategoryRecommendations(String jobCategory) {
+            return 0;
+        }
+
+        @Override
         public int updateExternalJobClassification(Long id,
                                                    ExternalFreelanceType freelanceType,
                                                    ExternalJobRecommendationType recommendationType,
@@ -160,6 +185,11 @@ class ExternalJobQueryServiceTest {
         @Override
         public ExternalJobDTO findById(Long id) {
             return detail;
+        }
+
+        @Override
+        public ExternalJobDTO findBySourceAndSourceJobId(ExternalJobSource source, String sourceJobId) {
+            return null;
         }
 
         @Override
