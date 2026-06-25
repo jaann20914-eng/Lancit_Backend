@@ -137,6 +137,7 @@
 	           c.status,
 	           c.company_email AS companyEmail,
 	           c.freelancer_email AS freelancerEmail,
+	           comp.business_number_verified AS businessNumberVerified,
 	           comp.company_name AS companyName,
 	           u.name             AS freelancerName,
 	           r.title            AS recruitmentTitle,

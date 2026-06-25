@@ -56,4 +56,5 @@ public class RecruitmentListItemResponse {
     @JsonProperty("isProposable")  
     @Builder.Default
     private boolean isProposable = true;
+    private Boolean businessNumberVerified;
 }

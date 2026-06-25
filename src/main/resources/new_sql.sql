@@ -20,9 +20,11 @@ DROP TABLE IF EXISTS contract_document;
 DROP TABLE IF EXISTS contract;
 DROP TABLE IF EXISTS recruitment_bookmark;
 DROP TABLE IF EXISTS bookmark;
+
 DROP TABLE IF EXISTS external_job_collection_lock;
 DROP TABLE IF EXISTS external_job_collection_log;
 DROP TABLE IF EXISTS external_job_user_recommendation;
+
 DROP TABLE IF EXISTS external_job;
 DROP TABLE IF EXISTS recruitment_application_portfolio_snapshot_file;
 DROP TABLE IF EXISTS recruitment_application_portfolio_snapshot;
@@ -110,6 +112,8 @@ ADD COLUMN deleted_at DATETIME NULL;
 -- ============================================================
 --  3. company (회사)
 -- ============================================================
+
+
 CREATE TABLE `company` (
     email                       VARCHAR(255)    NOT NULL                COMMENT '이메일 (PK)',
     password                    VARCHAR(255)    NOT NULL                COMMENT 'BCrypt 암호화',
@@ -245,19 +249,15 @@ CREATE TABLE external_job (
     payload_hash            VARCHAR(128)    NULL,
     freelance_type          VARCHAR(40)     NOT NULL,
     recommendation_type     VARCHAR(40)     NOT NULL,
-    recommendation_score    INT             NOT NULL    DEFAULT 0,
-    is_visible              TINYINT(1)      NOT NULL    DEFAULT 1,
-    visibility_reason       VARCHAR(80)     NOT NULL    DEFAULT 'VISIBLE',
     collected_at            DATETIME        NOT NULL,
     updated_at              DATETIME        NOT NULL,
     PRIMARY KEY (id),
     UNIQUE KEY uk_external_job_source_job_id (source, source_job_id),
     INDEX idx_external_job_source_collected_at (source, collected_at),
-    INDEX idx_external_job_visibility (source, is_visible, deadline_at),
     INDEX idx_external_job_recommendation_type (recommendation_type),
-    INDEX idx_external_job_recommendation_order (recommendation_score, recommendation_type, posted_at, collected_at),
     INDEX idx_external_job_deadline_at (deadline_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='외부 공고';
+
 
 CREATE TABLE external_job_user_recommendation (
     id                      BIGINT          NOT NULL    AUTO_INCREMENT,
@@ -318,6 +318,7 @@ CREATE TABLE external_job_collection_lock (
     PRIMARY KEY (source),
     INDEX idx_external_job_collection_lock_until (locked_until)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='외부 공고 수집 실행 락';
+
 
 -- ============================================================
 --  7. portfolio

@@ -36,4 +36,5 @@ public class RecruitmentDTO {
     private boolean isDeleted;
     private LocalDateTime deletedAt;
     private int applicantCount;
+    private Boolean businessNumberVerified;
 }

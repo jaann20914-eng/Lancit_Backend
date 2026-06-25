@@ -30,6 +30,7 @@
         <result property="isDeleted" column="is_deleted"/>
         <result property="deletedAt" column="deleted_at"/>
         <result property="applicantCount" column="applicant_count"/>
+        <result property="businessNumberVerified" column="business_number_verified"/>
     </resultMap>
 
 	<!--지원 필요 작성 : 아이디가지고 공고문 찾기-->
@@ -40,7 +41,7 @@
 		</select>
 
 
-    <sql id="RecruitmentColumns">
+<!--    <sql id="RecruitmentColumns">
         r.recruitment_id,
         r.company_email,
         c.company_name,
@@ -68,7 +69,37 @@
             WHERE ra.recruitment_id = r.recruitment_id
               AND ra.status &lt;&gt; 'CANCELLED'
         ) AS applicant_count
-    </sql>
+    </sql>-->
+    <sql id="RecruitmentColumns">
+    r.recruitment_id,
+    r.company_email,
+    c.company_name,
+    c.business_number_verified,
+    r.title,
+    r.summary,
+    r.content,
+    r.requirements,
+    r.job_category,
+    r.recruitment_category,
+    r.status,
+    r.work_location,
+    r.budget,
+    r.image_file_id,
+    r.created_at,
+    r.updated_at,
+    r.contract_start_at,
+    r.contract_end_at,
+    r.recruitment_start_at,
+    r.recruitment_end_at,
+    r.is_deleted,
+    r.deleted_at,
+    (
+        SELECT COUNT(*)
+        FROM recruitment_application ra
+        WHERE ra.recruitment_id = r.recruitment_id
+          AND ra.status &lt;&gt; 'CANCELLED'
+    ) AS applicant_count
+</sql>
 
     <sql id="SearchFilters">
         <if test="condition != null and condition.keyword != null and condition.keyword != ''">
