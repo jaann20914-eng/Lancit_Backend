@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.ssafy.lancit.common.page.dto.PageRequest;
 import com.ssafy.lancit.domain.externaljob.classifier.ExternalJobClassifier;
+import com.ssafy.lancit.domain.externaljob.classifier.RuleBasedExternalJobClassifier;
 import com.ssafy.lancit.domain.externaljob.dto.ExternalJobClassification;
 import com.ssafy.lancit.domain.externaljob.dto.ExternalJobCollectCommand;
 import com.ssafy.lancit.domain.externaljob.dto.ExternalJobCollectResponse;
@@ -120,6 +121,59 @@ class ExternalJobCollectServiceTest {
         assertThat(command.getVisibilityReason()).isEqualTo("NOT_FREELANCE");
     }
 
+    @Test
+    @DisplayName("IT컨설턴트 공고는 수집 후 개인화 추천 refresh 후보 조건을 만족하도록 노출 상태로 저장한다")
+    void collectSeoulJobs_itConsultantVisibleForRecommendationRefresh() {
+        FakeProvider provider = new FakeProvider(objectMapper);
+        provider.useRow(itConsultantRow());
+        FakeMapper mapper = new FakeMapper();
+        ExternalJobCollectService service = service(provider, mapper, new RuleBasedExternalJobClassifier());
+
+        ExternalJobCollectResponse response = service.collectSeoulJobs(
+                ExternalJobCollectCommand.builder().page(1).size(100).maxPages(1).build(),
+                ExternalJobCollectionType.DAILY);
+
+        assertThat(response.getStatus()).isEqualTo(ExternalJobCollectionStatus.SUCCESS);
+        assertThat(mapper.upsertedCommands).hasSize(1);
+        ExternalJobUpsertCommand command = mapper.upsertedCommands.get(0);
+        assertThat(command.getFreelanceType()).isEqualTo(ExternalFreelanceType.PROJECT_LIKE);
+        assertThat(command.getRecommendationType()).isEqualTo(ExternalJobRecommendationType.HIGHLY_RECOMMENDED);
+        assertThat(command.getRecommendationScore()).isGreaterThanOrEqualTo(90);
+        assertThat(command.getVisible()).isTrue();
+    }
+
+    @Test
+    @DisplayName("재분류는 기존 서울시 공고의 freelanceType/recommendationType/visibility를 현재 정책으로 갱신한다")
+    void reclassifySeoulJobs_updatesExistingRows() {
+        FakeProvider provider = new FakeProvider(objectMapper);
+        FakeMapper mapper = new FakeMapper();
+        mapper.reclassificationJobs.add(ExternalJobDTO.builder()
+                .id(10L)
+                .source(ExternalJobSource.SEOUL)
+                .sourceJobId("SEOUL-010")
+                .title("기간제 업무지원 담당자 모집")
+                .jobCategoryRaw("업무지원")
+                .employmentTypeRaw("기간제")
+                .description("서울시 업무지원")
+                .postedAt(LocalDateTime.of(2026, 6, 20, 0, 0))
+                .deadlineAt(LocalDateTime.of(2026, 7, 20, 0, 0))
+                .freelanceType(ExternalFreelanceType.NOT_FREELANCE)
+                .recommendationType(ExternalJobRecommendationType.EXCLUDED)
+                .recommendationScore(0)
+                .visible(false)
+                .visibilityReason("NOT_FREELANCE")
+                .build());
+        ExternalJobCollectService service = service(provider, mapper, new RuleBasedExternalJobClassifier());
+
+        ExternalJobCollectResponse response = service.reclassifySeoulJobs();
+
+        assertThat(response.getFetchedCount()).isEqualTo(1);
+        assertThat(response.getUpsertedCount()).isEqualTo(1);
+        assertThat(mapper.updatedFreelanceTypes).containsExactly(ExternalFreelanceType.CONTRACT_LIKE);
+        assertThat(mapper.updatedRecommendationTypes).containsExactly(ExternalJobRecommendationType.POSSIBLE);
+        assertThat(mapper.updatedVisibility).containsExactly(true);
+    }
+
     private ExternalJobCollectService service(FakeProvider provider, FakeMapper mapper) {
         return service(provider, mapper, classifier);
     }
@@ -130,10 +184,26 @@ class ExternalJobCollectServiceTest {
         return new ExternalJobCollectService(List.of(provider), normalizer, classifier, mapper, FIXED_CLOCK);
     }
 
+    private JsonNode itConsultantRow() {
+        ObjectNode row = objectMapper.createObjectNode();
+        row.put("JO_REQST_NO", "SEOUL-038");
+        row.put("JO_SJ", "IT컨설턴트 구인");
+        row.put("CMPNY_NM", "주식회사이비즈앤컴");
+        row.put("JOBCODE_NM", "컴퓨터시스템 설계 및 분석가");
+        row.put("EMPLYM_STLE_CMMN_MM", "주간");
+        row.put("WORK_PARAR_BASS_ADRES_CN", "서울");
+        row.put("HOPE_WAGE", "최소연봉 / 2600만원");
+        row.put("JO_REG_DT", "20260620");
+        row.put("RCEPT_CLOS_DT", "2026.07.10");
+        row.put("DTY_CN", "IT컨설턴트, ERP컨설턴트, 시스템컨설팅, IT프로젝트 PM");
+        return row;
+    }
+
     private static class FakeProvider implements ExternalJobProvider {
         private final ObjectMapper objectMapper;
         private final List<Integer> failStartIndexes = new ArrayList<>();
         private final List<Integer> calledStartIndexes = new ArrayList<>();
+        private JsonNode customRow;
 
         private FakeProvider(ObjectMapper objectMapper) {
             this.objectMapper = objectMapper;
@@ -177,7 +247,14 @@ class ExternalJobCollectServiceTest {
                     .count();
         }
 
+        private void useRow(JsonNode row) {
+            customRow = row;
+        }
+
         private JsonNode row() {
+            if (customRow != null) {
+                return customRow;
+            }
             ObjectNode row = objectMapper.createObjectNode();
             row.put("JO_REQST_NO", "SEOUL-001");
             row.put("JO_SJ", "IT 프로젝트 PM");
@@ -195,6 +272,10 @@ class ExternalJobCollectServiceTest {
 
     private static class FakeMapper implements ExternalJobMapper {
         private final List<ExternalJobUpsertCommand> upsertedCommands = new ArrayList<>();
+        private final List<ExternalJobDTO> reclassificationJobs = new ArrayList<>();
+        private final List<ExternalFreelanceType> updatedFreelanceTypes = new ArrayList<>();
+        private final List<ExternalJobRecommendationType> updatedRecommendationTypes = new ArrayList<>();
+        private final List<Boolean> updatedVisibility = new ArrayList<>();
         private final List<ExternalJobCollectionLogCommand> logs = new ArrayList<>();
         private int visibilityRefreshCount;
 
@@ -212,6 +293,36 @@ class ExternalJobCollectServiceTest {
         @Override
         public long countExternalJobs(ExternalJobSearchCondition condition) {
             return 0;
+        }
+
+        @Override
+        public List<ExternalJobDTO> findVisibleExternalJobsForRecommendation() {
+            return List.of();
+        }
+
+        @Override
+        public List<ExternalJobDTO> findExternalJobsForReclassification(ExternalJobSource source) {
+            return reclassificationJobs;
+        }
+
+        @Override
+        public int upsertExternalJobUserRecommendation(
+                com.ssafy.lancit.domain.externaljob.dto.ExternalJobUserRecommendationCommand command) {
+            return 0;
+        }
+
+        @Override
+        public int updateExternalJobClassification(Long id,
+                                                   ExternalFreelanceType freelanceType,
+                                                   ExternalJobRecommendationType recommendationType,
+                                                   Integer recommendationScore,
+                                                   Boolean visible,
+                                                   String visibilityReason,
+                                                   LocalDateTime updatedAt) {
+            updatedFreelanceTypes.add(freelanceType);
+            updatedRecommendationTypes.add(recommendationType);
+            updatedVisibility.add(visible);
+            return 1;
         }
 
         @Override
