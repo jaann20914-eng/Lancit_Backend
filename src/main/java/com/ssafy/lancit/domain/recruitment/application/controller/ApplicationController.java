@@ -121,7 +121,8 @@ public class ApplicationController {
                 applicationService.updateStatus(recruitmentId, applicationId, request, email, role)));
     }
 
-    @Operation(summary = "공고 지원 등록", description = "프리랜서 토큰이 필요합니다.")
+    @Operation(summary = "공고 지원 등록",
+            description = "프리랜서 토큰이 필요합니다. portfolioProfile을 보내면 지원용 프로필 카드 스냅샷으로 저장합니다.")
     @PostMapping
     public ResponseEntity<ApiResponse<ApplicationDetailResponse>> apply(
             @PathVariable int recruitmentId,
@@ -142,7 +143,8 @@ public class ApplicationController {
                 applicationService.getMine(recruitmentId, email, role)));
     }
 
-    @Operation(summary = "내 지원 수정", description = "프리랜서 토큰이 필요합니다. 요청값으로 전체 교체합니다.")
+    @Operation(summary = "내 지원 수정",
+            description = "프리랜서 토큰이 필요합니다. 요청값으로 전체 교체하며, portfolioProfile을 보내면 지원용 프로필 카드 스냅샷도 교체합니다.")
     @PutMapping("/me")
     public ResponseEntity<ApiResponse<ApplicationDetailResponse>> updateMyApplication(
             @PathVariable int recruitmentId,

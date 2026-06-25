@@ -182,7 +182,7 @@ public class RecruitmentService {
         requireCompany(role);
         RecruitmentDTO existing = findExisting(recruitmentId);
         verifyOwner(existing, companyEmail);
-        verifyNoActiveApplications(recruitmentId);
+        verifyDeletable(existing);
 
         int deleted = recruitmentMapper.softDeleteRecruitment(recruitmentId);
         if (deleted == 0) {
@@ -265,6 +265,13 @@ public class RecruitmentService {
         if (recruitmentMapper.countActiveApplications(recruitmentId) > 0) {
             throw new CustomException(ErrorCode.RECRUITMENT_HAS_ACTIVE_APPLICATIONS);
         }
+    }
+
+    private void verifyDeletable(RecruitmentDTO dto) {
+        if (RecruitmentStatus.CANCELLED.equals(dto.getStatus())) {
+            return;
+        }
+        verifyNoActiveApplications(dto.getRecruitmentId());
     }
 
     private RecruitmentStatus parseChangeableStatus(RecruitmentStatusUpdateRequest request) {
@@ -610,7 +617,8 @@ public class RecruitmentService {
         return RecruitmentPermissionResponse.builder()
                 .isMine(isMine)
                 .canEdit(isMine && !hasActiveApplications)
-                .canDelete(isMine && !hasActiveApplications)
+                .canDelete(isMine && (!hasActiveApplications
+                        || RecruitmentStatus.CANCELLED.equals(dto.getStatus())))
                 .canChangeStatus(isMine)
                 .canApply(canApply)
                 .isApplied(isApplied)

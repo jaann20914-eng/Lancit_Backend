@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -24,4 +25,8 @@ public class ApplicationRequest {
     @NotEmpty
     @Schema(description = "지원 시 열람을 허용할 내 포트폴리오 ID 목록", example = "[1, 3, 5]")
     private List<@NotNull Integer> portfolioIds = new ArrayList<>();
+
+    @Valid
+    @Schema(description = "지원용 프로필 카드 스냅샷. 없으면 현재 포트폴리오 프로필 카드로 스냅샷을 생성합니다.")
+    private ApplicationProfileSnapshotRequest portfolioProfile;
 }
