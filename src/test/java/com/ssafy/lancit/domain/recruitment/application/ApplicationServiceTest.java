@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doAnswer;
@@ -21,6 +22,7 @@ import com.ssafy.lancit.common.page.dto.PageRequest;
 import com.ssafy.lancit.common.page.dto.PageResponse;
 import com.ssafy.lancit.domain.contract.dto.ContractDTO;
 import com.ssafy.lancit.domain.contract.mapper.ContractMapper;
+import com.ssafy.lancit.domain.file.dto.FileDTO;
 import com.ssafy.lancit.domain.file.service.FileService;
 import com.ssafy.lancit.domain.portfolio.dto.PortfolioDTO;
 import com.ssafy.lancit.domain.portfolio.dto.PortfolioProfileDTO;
@@ -30,6 +32,7 @@ import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationDTO;
 import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationDetailResponse;
 import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationPortfolioSummaryResponse;
 import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationProfileSnapshotDTO;
+import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationProfileSnapshotRequest;
 import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationRequest;
 import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationStatusUpdateRequest;
 import com.ssafy.lancit.domain.recruitment.application.mapper.ApplicationMapper;
@@ -41,6 +44,7 @@ import com.ssafy.lancit.domain.recruitment.post.dto.RecruitmentDTO;
 import com.ssafy.lancit.domain.recruitment.post.mapper.RecruitmentMapper;
 import com.ssafy.lancit.global.enums.ApplicationStatus;
 import com.ssafy.lancit.global.enums.ContractStatus;
+import com.ssafy.lancit.global.enums.FileParentType;
 import com.ssafy.lancit.global.enums.JobCategory;
 import com.ssafy.lancit.global.enums.RecruitmentCategory;
 import com.ssafy.lancit.global.enums.RecruitmentStatus;
@@ -291,6 +295,59 @@ class ApplicationServiceTest {
     }
 
     @Test
+    @DisplayName("지원용 프로필 카드가 있으면 원본 포트폴리오 프로필 대신 요청값으로 스냅샷 생성")
+    void apply_withProfileSnapshotRequest_usesRequestProfileOnly() {
+        ApplicationProfileSnapshotRequest profileRequest =
+                profileRequest(" 지원 전용 홍길동 ", 20, List.of(" Spring ", "React", "Spring"));
+        ApplicationRequest request = request("지원 소개", List.of(1), profileRequest);
+        given(recruitmentMapper.findById(10)).willReturn(openRecruitment());
+        ApplicationDTO saved = application(ApplicationStatus.PENDING, null, null);
+        given(applicationMapper.findByRecruitmentAndApplicant(10, USER_EMAIL)).willReturn(null, saved);
+        given(portfolioMapper.countOwnedActiveByIds(USER_EMAIL, List.of(1))).willReturn(1);
+        doAnswer(invocation -> {
+            ApplicationDTO dto = invocation.getArgument(0);
+            dto.setApplicationId(1);
+            return null;
+        }).when(applicationMapper).insert(any(ApplicationDTO.class));
+        given(fileService.findById(20)).willReturn(FileDTO.builder()
+                .fileId(20)
+                .userEmail(USER_EMAIL)
+                .parentType(FileParentType.TEMP)
+                .build());
+        stubPortfolioSnapshotWrites(List.of(1));
+        given(applicationPortfolioSnapshotMapper.findSummariesByApplicationId(1))
+                .willReturn(portfolios(List.of(1)));
+        given(applicationProfileSnapshotMapper.findByApplicationId(1))
+                .willReturn(ApplicationProfileSnapshotDTO.builder()
+                        .applicationId(1)
+                        .displayName("지원 전용 홍길동")
+                        .jobCategory(JobCategory.IT)
+                        .profileFileId(20)
+                        .intro("백엔드 개발자")
+                        .description("지원 전용 상세 소개")
+                        .isPortfolioPublic(false)
+                        .build());
+        given(applicationProfileSnapshotMapper.findTechStacksByApplicationId(1))
+                .willReturn(List.of("Spring", "React"));
+
+        ApplicationDetailResponse result = applicationService.apply(10, request, USER_EMAIL, ROLE_USER);
+
+        assertThat(result.getPortfolioProfile().getDisplayName()).isEqualTo("지원 전용 홍길동");
+        assertThat(result.getPortfolioProfile().getProfileFileId()).isEqualTo(20);
+        assertThat(result.getPortfolioProfile().getTechStacks()).containsExactly("Spring", "React");
+        verify(fileService).promoteOwned(20, FileParentType.APPLICATION_PROFILE, USER_EMAIL);
+        verify(portfolioService, never()).getMyProfile(any());
+        verify(applicationProfileSnapshotMapper).insert(argThat(snapshot ->
+                snapshot.getApplicationId().equals(1)
+                        && "지원 전용 홍길동".equals(snapshot.getDisplayName())
+                        && snapshot.getProfileFileId().equals(20)
+                        && "백엔드 개발자".equals(snapshot.getIntro())
+                        && "지원 전용 상세 소개".equals(snapshot.getDescription())));
+        verify(applicationProfileSnapshotMapper).insertTechStack(1, "Spring", 0);
+        verify(applicationProfileSnapshotMapper).insertTechStack(1, "React", 1);
+    }
+
+    @Test
     @DisplayName("포트폴리오 스냅샷이 없는 레거시 지원도 회사 목록에서 빈 목록으로 조회")
     void getCompanyApplications_withoutPortfolioSnapshot_returnsEmptyPortfolios() {
         PageRequest pageRequest = new PageRequest();
@@ -506,6 +563,35 @@ class ApplicationServiceTest {
     }
 
     @Test
+    @DisplayName("지원 전 지원용 프로필 조회는 현재 포트폴리오 프로필을 초기값으로만 반환")
+    void getMineProfile_beforeApply_returnsCurrentPortfolioProfile() {
+        given(applicationMapper.findByRecruitmentAndApplicant(10, USER_EMAIL)).willReturn(null);
+        given(recruitmentMapper.findById(10)).willReturn(openRecruitment());
+        stubCurrentPortfolioProfile();
+
+        PortfolioProfileDTO result = applicationService.getMineProfile(10, USER_EMAIL, ROLE_USER);
+
+        assertThat(result.getDisplayName()).isEqualTo("지원 홍길동");
+        assertThat(result.getTechStacks()).containsExactly("Java", "Spring");
+        verify(applicationProfileSnapshotMapper, never()).findByApplicationId(anyInt());
+    }
+
+    @Test
+    @DisplayName("지원 후 지원용 프로필 조회는 포트폴리오 프로필 대신 지원 스냅샷을 반환")
+    void getMineProfile_afterApply_returnsApplicationProfileSnapshot() {
+        given(applicationMapper.findByRecruitmentAndApplicant(10, USER_EMAIL))
+                .willReturn(application(ApplicationStatus.PENDING, null, null));
+        stubPortfolioProfile();
+
+        PortfolioProfileDTO result = applicationService.getMineProfile(10, USER_EMAIL, ROLE_USER);
+
+        assertThat(result.getDisplayName()).isEqualTo("지원 홍길동");
+        assertThat(result.getDescription()).isEqualTo("지원 당시 상세 소개");
+        verify(portfolioService, never()).getMyProfile(any());
+        verify(recruitmentMapper, never()).findById(10);
+    }
+
+    @Test
     @DisplayName("내 지원 수정 성공")
     void updateMine_success() {
         ApplicationDTO existing = application(ApplicationStatus.PENDING, null, null);
@@ -527,6 +613,63 @@ class ApplicationServiceTest {
         verify(applicationPortfolioSnapshotMapper).deleteByApplicationId(1);
         verify(fileService).deletePortfolioFileIfUnreferenced(90);
         verify(applicationMapper).updateIntro(1, "수정 소개");
+    }
+
+    @Test
+    @DisplayName("내 지원 수정 시 지원용 프로필 스냅샷도 요청값으로 교체")
+    void updateMine_withProfileSnapshotRequest_replacesProfileSnapshot() {
+        ApplicationDTO existing = application(ApplicationStatus.PENDING, null, null);
+        ApplicationProfileSnapshotRequest profileRequest =
+                profileRequest("수정 지원자", 20, List.of("Kotlin"));
+        ApplicationProfileSnapshotDTO previousProfile = ApplicationProfileSnapshotDTO.builder()
+                .applicationId(1)
+                .displayName("기존 지원자")
+                .jobCategory(JobCategory.IT)
+                .profileFileId(10)
+                .intro("기존")
+                .description("기존 상세")
+                .build();
+        ApplicationProfileSnapshotDTO updatedProfile = ApplicationProfileSnapshotDTO.builder()
+                .applicationId(1)
+                .displayName("수정 지원자")
+                .jobCategory(JobCategory.IT)
+                .profileFileId(20)
+                .intro("백엔드 개발자")
+                .description("지원 전용 상세 소개")
+                .build();
+        given(applicationMapper.findByRecruitmentAndApplicant(10, USER_EMAIL)).willReturn(existing, existing);
+        given(recruitmentMapper.findById(10)).willReturn(openRecruitment());
+        given(portfolioMapper.countOwnedActiveByIds(USER_EMAIL, List.of(2, 4))).willReturn(2);
+        given(applicationMapper.updateIntro(1, "수정 소개")).willReturn(1);
+        given(applicationPortfolioSnapshotMapper.findFileIdsByApplicationId(1)).willReturn(List.of(90));
+        given(fileService.findById(20)).willReturn(FileDTO.builder()
+                .fileId(20)
+                .userEmail(USER_EMAIL)
+                .parentType(FileParentType.PORTFOLIO_PROFILE)
+                .build());
+        given(applicationProfileSnapshotMapper.findByApplicationId(1))
+                .willReturn(previousProfile, updatedProfile);
+        given(applicationProfileSnapshotMapper.findTechStacksByApplicationId(1))
+                .willReturn(List.of("Kotlin"));
+        stubPortfolioSnapshotWrites(List.of(2, 4));
+        given(applicationPortfolioSnapshotMapper.findSummariesByApplicationId(1))
+                .willReturn(portfolios(List.of(2, 4)));
+
+        ApplicationDetailResponse result = applicationService.updateMine(
+                10, request(" 수정 소개 ", List.of(2, 4), profileRequest), USER_EMAIL, ROLE_USER);
+
+        assertThat(result.getPortfolioProfile().getDisplayName()).isEqualTo("수정 지원자");
+        assertThat(result.getPortfolioProfile().getProfileFileId()).isEqualTo(20);
+        assertThat(result.getPortfolioProfile().getTechStacks()).containsExactly("Kotlin");
+        verify(applicationProfileSnapshotMapper).deleteTechStacksByApplicationId(1);
+        verify(applicationProfileSnapshotMapper).deleteByApplicationId(1);
+        verify(applicationProfileSnapshotMapper).insert(argThat(snapshot ->
+                "수정 지원자".equals(snapshot.getDisplayName())
+                        && snapshot.getProfileFileId().equals(20)));
+        verify(applicationProfileSnapshotMapper).insertTechStack(1, "Kotlin", 0);
+        verify(fileService).deleteProfileIfUnreferenced(10);
+        verify(fileService, never()).promoteOwned(eq(20), eq(FileParentType.APPLICATION_PROFILE), eq(USER_EMAIL));
+        verify(portfolioService, never()).getMyProfile(any());
     }
 
     @Test
@@ -779,6 +922,28 @@ class ApplicationServiceTest {
         ApplicationRequest request = new ApplicationRequest();
         request.setIntro(intro);
         request.setPortfolioIds(portfolioIds);
+        return request;
+    }
+
+    private ApplicationRequest request(String intro,
+                                       List<Integer> portfolioIds,
+                                       ApplicationProfileSnapshotRequest profileRequest) {
+        ApplicationRequest request = request(intro, portfolioIds);
+        request.setPortfolioProfile(profileRequest);
+        return request;
+    }
+
+    private ApplicationProfileSnapshotRequest profileRequest(String displayName,
+                                                             Integer profileFileId,
+                                                             List<String> techStacks) {
+        ApplicationProfileSnapshotRequest request = new ApplicationProfileSnapshotRequest();
+        request.setDisplayName(displayName);
+        request.setJobCategory(JobCategory.IT);
+        request.setProfileFileId(profileFileId);
+        request.setIsPortfolioPublic(false);
+        request.setIntro(" 백엔드 개발자 ");
+        request.setDescription(" 지원 전용 상세 소개 ");
+        request.setTechStacks(techStacks);
         return request;
     }
 

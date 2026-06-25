@@ -4,6 +4,7 @@ import com.ssafy.lancit.common.page.dto.PageRequest;
 import com.ssafy.lancit.common.page.dto.PageResponse;
 import com.ssafy.lancit.common.response.ApiResponse;
 import com.ssafy.lancit.common.util.SecurityUtil;
+import com.ssafy.lancit.domain.portfolio.dto.PortfolioProfileDTO;
 import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationDetailResponse;
 import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationRequest;
 import com.ssafy.lancit.domain.recruitment.application.dto.ApplicationStatusUpdateRequest;
@@ -121,7 +122,8 @@ public class ApplicationController {
                 applicationService.updateStatus(recruitmentId, applicationId, request, email, role)));
     }
 
-    @Operation(summary = "공고 지원 등록", description = "프리랜서 토큰이 필요합니다.")
+    @Operation(summary = "공고 지원 등록",
+            description = "프리랜서 토큰이 필요합니다. portfolioProfile을 보내면 지원용 프로필 카드 스냅샷으로 저장합니다.")
     @PostMapping
     public ResponseEntity<ApiResponse<ApplicationDetailResponse>> apply(
             @PathVariable int recruitmentId,
@@ -142,7 +144,20 @@ public class ApplicationController {
                 applicationService.getMine(recruitmentId, email, role)));
     }
 
-    @Operation(summary = "내 지원 수정", description = "프리랜서 토큰이 필요합니다. 요청값으로 전체 교체합니다.")
+    @Operation(summary = "내 지원용 프로필 카드 조회",
+            description = "프리랜서 토큰이 필요합니다. 지원 전에는 현재 포트폴리오 프로필 카드를 초기값으로 반환하고, "
+                    + "지원 후에는 지원 스냅샷을 반환합니다. 이 API는 포트폴리오용 프로필 카드를 수정하지 않습니다.")
+    @GetMapping("/me/profile")
+    public ResponseEntity<ApiResponse<PortfolioProfileDTO>> getMyApplicationProfile(
+            @PathVariable int recruitmentId) {
+        String email = SecurityUtil.getCurrentEmail();
+        String role = SecurityUtil.getCurrentRole();
+        return ResponseEntity.ok(ApiResponse.ok(
+                applicationService.getMineProfile(recruitmentId, email, role)));
+    }
+
+    @Operation(summary = "내 지원 수정",
+            description = "프리랜서 토큰이 필요합니다. 요청값으로 전체 교체하며, portfolioProfile을 보내면 지원용 프로필 카드 스냅샷도 교체합니다.")
     @PutMapping("/me")
     public ResponseEntity<ApiResponse<ApplicationDetailResponse>> updateMyApplication(
             @PathVariable int recruitmentId,

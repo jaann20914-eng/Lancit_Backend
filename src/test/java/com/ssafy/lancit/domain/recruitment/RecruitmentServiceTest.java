@@ -188,6 +188,36 @@ class RecruitmentServiceTest {
     }
 
     @Test
+    @DisplayName("취소 상태의 공고는 활성 지원자가 있어도 삭제 가능")
+    void delete_cancelledRecruitmentWithActiveApplications_success() {
+        RecruitmentDTO existing = baseRecruitment(1);
+        existing.setStatus(RecruitmentStatus.CANCELLED);
+        existing.setApplicantCount(3);
+        given(recruitmentMapper.findById(1)).willReturn(existing);
+        given(recruitmentMapper.softDeleteRecruitment(1)).willReturn(1);
+
+        recruitmentService.delete(1, COMPANY_EMAIL, "COMPANY");
+
+        verify(recruitmentMapper, never()).countActiveApplications(1);
+        verify(recruitmentMapper).softDeleteRecruitment(1);
+    }
+
+    @Test
+    @DisplayName("취소 상태의 내 공고는 활성 지원자가 있어도 삭제 권한이 true")
+    void getOne_cancelledRecruitmentWithActiveApplications_canDelete() {
+        RecruitmentDTO dto = baseRecruitment(1);
+        dto.setStatus(RecruitmentStatus.CANCELLED);
+        dto.setApplicantCount(3);
+        given(recruitmentMapper.findById(1)).willReturn(dto);
+        given(recruitmentMapper.findTechStacksByRecruitmentId(1)).willReturn(List.of());
+
+        RecruitmentDetailResponse result = recruitmentService.getOne(1, COMPANY_EMAIL, "COMPANY");
+
+        assertThat(result.getCanDelete()).isTrue();
+        assertThat(result.getPermission().getCanDelete()).isTrue();
+    }
+
+    @Test
     @DisplayName("공고 복사 원본에는 기존 이미지 ID를 포함하지 않는다")
     void getCopySource_excludesImage_success() {
         RecruitmentDTO existing = baseRecruitment(1);
