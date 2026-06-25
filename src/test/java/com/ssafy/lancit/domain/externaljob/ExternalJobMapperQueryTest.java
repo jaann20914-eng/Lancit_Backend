@@ -28,28 +28,63 @@ class ExternalJobMapperQueryTest {
     }
 
     @Test
-    @DisplayName("기본 조회는 서울시 공고만 노출하고 is_visible 기준으로 비노출 공고를 제외한다")
+    @DisplayName("기본 조회는 개인화 추천 결과가 있는 서울시 공고만 노출한다")
     void findExternalJobs_appliesDefaultVisibilityFilters() throws IOException {
         String xml = resource("mapper/ExternalJobMapper.xml");
+        String listQuery = section(xml,
+                "<select id=\"findExternalJobs\"",
+                "</select>");
+        String countQuery = section(xml,
+                "<select id=\"countExternalJobs\"",
+                "</select>");
+        String requiredJoin = section(xml,
+                "<sql id=\"PersonalRecommendationRequiredJoin\"",
+                "</sql>");
 
         assertThat(xml).contains("AND ej.source = 'SEOUL'");
         assertThat(xml).doesNotContain("condition.source");
         assertThat(xml).contains("AND ej.is_visible = 1");
         assertThat(xml).contains("AND ej.freelance_type != 'NOT_FREELANCE'");
-        assertThat(xml).contains("AND ej.recommendation_type != 'EXCLUDED'");
+        assertThat(xml).doesNotContain("AND ej.recommendation_type != 'EXCLUDED'");
         assertThat(xml).contains("freelance_type = 'NOT_FREELANCE'");
-        assertThat(xml).contains("recommendation_type = 'EXCLUDED'");
         assertThat(xml).contains("visibility_reason");
+        assertThat(listQuery).contains("<include refid=\"PersonalRecommendationRequiredJoin\"/>");
+        assertThat(countQuery).contains("<include refid=\"PersonalRecommendationRequiredJoin\"/>");
+        assertThat(requiredJoin).contains("INNER JOIN external_job_user_recommendation ejur");
+        assertThat(requiredJoin).contains("ejur.user_email = #{condition.userEmail}");
+        assertThat(requiredJoin).contains("ejur.job_category = #{condition.jobCategory}");
+        assertThat(requiredJoin).contains("ejur.recommendation_type != 'EXCLUDED'");
+        assertThat(requiredJoin).doesNotContain("ejur.recommendation_score &gt;= 60");
+        assertThat(requiredJoin).doesNotContain("ejur.recommendation_score >= 60");
+        assertThat(listQuery).doesNotContain("COALESCE(ejur.recommendation_score, ej.recommendation_score, 0)");
     }
 
     @Test
-    @DisplayName("외부 공고 조회는 유저별 점수를 우선하고 없으면 전역 점수로 추천순 정렬한다")
+    @DisplayName("개인화 refresh 후보는 노출 가능한 서울시 공고 중 NOT_FREELANCE만 제외하고 추천 등급으로 제한하지 않는다")
+    void findVisibleExternalJobsForRecommendation_usesFreelanceTypeOnly() throws IOException {
+        String xml = resource("mapper/ExternalJobMapper.xml");
+        String query = section(xml,
+                "<select id=\"findVisibleExternalJobsForRecommendation\"",
+                "</select>");
+
+        assertThat(query).contains("AND ej.source = 'SEOUL'");
+        assertThat(query).contains("AND ej.is_visible = 1");
+        assertThat(query).contains("AND ej.freelance_type != 'NOT_FREELANCE'");
+        assertThat(query).doesNotContain("AND ej.recommendation_type");
+        assertThat(query).doesNotContain("HIGHLY_RECOMMENDED");
+        assertThat(query).doesNotContain("RECOMMENDED");
+        assertThat(query).doesNotContain("LIMIT");
+    }
+
+    @Test
+    @DisplayName("외부 공고 조회는 유저별 추천 점수로만 추천순 정렬한다")
     void findExternalJobs_ordersByRecommendation() throws IOException {
         String xml = resource("mapper/ExternalJobMapper.xml");
 
-        assertThat(xml).contains("LEFT JOIN external_job_user_recommendation ejur");
-        assertThat(xml).contains("COALESCE(ejur.recommendation_score, ej.recommendation_score, 0)");
-        assertThat(xml).contains("COALESCE(ej.recommendation_score, 0)");
+        assertThat(xml).contains("INNER JOIN external_job_user_recommendation ejur");
+        assertThat(xml).contains("ejur.recommendation_score DESC");
+        assertThat(xml).doesNotContain("LEFT JOIN external_job_user_recommendation ejur");
+        assertThat(xml).doesNotContain("COALESCE(ejur.recommendation_score, ej.recommendation_score, 0)");
         assertThat(xml).contains("ej.collected_at DESC");
         assertThat(xml).contains("ej.id DESC");
         assertThat(xml).doesNotContain("condition.safeSort == 'DEADLINE'");
@@ -122,4 +157,11 @@ class ExternalJobMapperQueryTest {
         }
     }
 
+    private String section(String text, String startToken, String endToken) {
+        int start = text.indexOf(startToken);
+        assertThat(start).isGreaterThanOrEqualTo(0);
+        int end = text.indexOf(endToken, start);
+        assertThat(end).isGreaterThan(start);
+        return text.substring(start, end + endToken.length());
+    }
 }

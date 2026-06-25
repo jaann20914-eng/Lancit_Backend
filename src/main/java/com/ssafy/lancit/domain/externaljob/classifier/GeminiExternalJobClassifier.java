@@ -88,25 +88,35 @@ public class GeminiExternalJobClassifier implements ExternalJobClassifier {
 
     private String createPrompt(ExternalJobClassificationInput input) {
         return """
-                LANCIT 외부 공고 탭에 저장할 채용 공고를 분류하세요.
+                LANCIT 외부 공고 탭에 저장할 서울시 일자리 공고를 분류하세요.
+                목적은 엄격한 프리랜서 여부 판정이 아니라, 프리랜서 플랫폼에 노출 가능한
+                프로젝트/계약형/업무 단위 공고인지 판단하는 것입니다.
                 반드시 JSON 객체 하나만 반환하세요.
 
                 허용 값:
-                - freelanceType: TRUE_FREELANCE, PROJECT_LIKE, CONTRACT_LIKE, NOT_FREELANCE, UNKNOWN
+                - freelanceType: TRUE_FREELANCE, PROJECT_LIKE, CONTRACT_LIKE, NOT_FREELANCE
                 - recommendationType: HIGHLY_RECOMMENDED, RECOMMENDED, POSSIBLE, EXCLUDED
 
                 기준:
                 - 실제 직무/계약 조건에 프리랜서 또는 외주 수행이 명확하면 TRUE_FREELANCE
-                - 프로젝트 단위, 결과물 중심 디자인/개발/영상/콘텐츠/마케팅/글쓰기/교육/기획 업무는 PROJECT_LIKE
+                - 프로젝트 단위, 결과물 중심 디자인/개발/영상/콘텐츠/마케팅/글쓰기/교육/기획/운영 대행 업무는 PROJECT_LIKE
+                - IT/개발 관련 공고에서 제목, 직종명, 직무내용에 IT컨설턴트, ERP컨설턴트, 시스템컨설팅,
+                  IT프로젝트 PM, 컴퓨터시스템 설계 및 분석가, 개발, 소프트웨어, 데이터, 보안, 네트워크가
+                  포함되면 강한 positive로 보고 PROJECT_LIKE/HIGHLY_RECOMMENDED에 가깝게 분류
+                - 위 IT positive 공고는 주간 근무, 연봉 표기, 학력 무관/관계없음 같은 서울시 공고 기본 필드만으로
+                  NOT_FREELANCE 또는 EXCLUDED로 분류하지 말 것
+                - 단, 사무보조, 경리, 주차관리, 운전, 생산, 청소, 조리, 요양, 콜센터, 단순노무 등 hard negative가
+                  실제 직무에 있으면 EXCLUDED를 유지
                 - 재택/원격 가능성만 명확하면 TRUE_FREELANCE가 아니라 PROJECT_LIKE 또는 CONTRACT_LIKE 중 더 가까운 값
-                - 계약직, 기간제, 단기 근무이나 프리랜서가 관심 가질 수 있으면 CONTRACT_LIKE
-                - 정규직, 상근 필수, 교대근무, 생산/노무/영업점 상주 업무는 NOT_FREELANCE
-                - 청소/미화/조리/주차/물류/배송/요양/간병/경비/조립/용접/영업/판매/경리/생산/건설현장 업무는 NOT_FREELANCE
-                - 회사명, 사업요약, 발주 설명에만 "개발", "위탁", "용역", "소프트웨어"가 있으면 추천 근거로 쓰지 말 것
-                - 실제 직무가 제외 업무이면 회사명/사업명과 무관하게 NOT_FREELANCE
+                - 계약직, 기간제, 단기, 파트타임, 시간제, 임시직, 위촉, 촉탁, 대체인력, 업무지원, 사무보조는 CONTRACT_LIKE
+                - 청소/미화/조리/주차/물류/배송/요양/간병/경비/조립/용접/영업/판매/경리/생산/건설현장 업무라도
+                  계약직/기간제/단기/파트타임/위촉/업무지원이면 NOT_FREELANCE가 아니라 CONTRACT_LIKE
+                - NOT_FREELANCE는 명백한 정규직/상용직/무기계약/풀타임 일반 채용에만 사용
+                - 애매하면 NOT_FREELANCE 또는 UNKNOWN으로 보내지 말고 CONTRACT_LIKE 또는 PROJECT_LIKE 중 더 가까운 값
+                - 회사명, 사업요약, 발주 설명에만 "개발", "위탁", "용역", "소프트웨어"가 있으면 PROJECT_LIKE 근거로 쓰지 말 것
                 - freelanceType이 NOT_FREELANCE이거나 recommendationType이 EXCLUDED이면 recommendationScore는 0
                 - HIGHLY_RECOMMENDED 점수는 90~100, RECOMMENDED는 65~89, POSSIBLE은 30~64, EXCLUDED는 0
-                - 명확히 부적합하지 않으면 UNKNOWN이어도 recommendationType은 POSSIBLE 가능
+                - EXCLUDED는 NOT_FREELANCE일 때만 사용
 
                 응답 형식:
                 {

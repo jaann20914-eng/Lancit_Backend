@@ -9,6 +9,7 @@ import com.ssafy.lancit.domain.externaljob.dto.ExternalJobCollectCommand;
 import com.ssafy.lancit.domain.externaljob.dto.ExternalJobCollectResponse;
 import com.ssafy.lancit.domain.externaljob.dto.ExternalJobCollectResult;
 import com.ssafy.lancit.domain.externaljob.dto.ExternalJobCollectionLogCommand;
+import com.ssafy.lancit.domain.externaljob.dto.ExternalJobDTO;
 import com.ssafy.lancit.domain.externaljob.dto.ExternalJobUpsertCommand;
 import com.ssafy.lancit.domain.externaljob.mapper.ExternalJobMapper;
 import com.ssafy.lancit.domain.externaljob.normalizer.SeoulExternalJobNormalizer;
@@ -59,6 +60,53 @@ public class ExternalJobCollectService {
 
     public ExternalJobCollectResponse collectSeoulJobs(ExternalJobCollectCommand command) {
         return collectSeoulJobs(command, ExternalJobCollectionType.MANUAL);
+    }
+
+    public ExternalJobCollectResponse reclassifySeoulJobs() {
+        LocalDateTime reclassifiedAt = now();
+        List<ExternalJobDTO> jobs = externalJobMapper.findExternalJobsForReclassification(ExternalJobSource.SEOUL);
+        CollectionAccumulator accumulator = new CollectionAccumulator();
+        accumulator.fetchedCount = jobs.size();
+        accumulator.succeededPages = jobs.isEmpty() ? 0 : 1;
+
+        for (ExternalJobDTO job : jobs) {
+            try {
+                ExternalJobUpsertCommand classified = applyClassification(toUpsertCommand(job, reclassifiedAt),
+                        reclassifiedAt);
+                if (externalJobMapper.updateExternalJobClassification(
+                        job.getId(),
+                        classified.getFreelanceType(),
+                        classified.getRecommendationType(),
+                        classified.getRecommendationScore(),
+                        classified.getVisible(),
+                        classified.getVisibilityReason(),
+                        reclassifiedAt) > 0) {
+                    accumulator.upsertedCount++;
+                }
+            } catch (RuntimeException e) {
+                accumulator.failedCount++;
+                log.warn("Failed to reclassify Seoul external job. externalJobId={}",
+                        job == null ? null : job.getId(), e);
+            }
+        }
+
+        ExternalJobCollectionStatus status = resolveReclassificationStatus(accumulator);
+        return ExternalJobCollectResponse.builder()
+                .source(ExternalJobSource.SEOUL)
+                .collectionType(ExternalJobCollectionType.MANUAL)
+                .status(status)
+                .fetchedCount(accumulator.fetchedCount)
+                .upsertedCount(accumulator.upsertedCount)
+                .skippedCount(accumulator.skippedCount)
+                .failedCount(accumulator.failedCount)
+                .succeededPages(accumulator.succeededPages)
+                .failedPages(accumulator.failedCount > 0 ? 1 : 0)
+                .message("서울시 외부 공고 재분류 완료 / status=%s, fetched=%d, updated=%d, failed=%d"
+                        .formatted(status,
+                                accumulator.fetchedCount,
+                                accumulator.upsertedCount,
+                                accumulator.failedCount))
+                .build();
     }
 
     public ExternalJobCollectResponse collectSeoulJobs(ExternalJobCollectCommand command,
@@ -213,7 +261,7 @@ public class ExternalJobCollectService {
                 ExternalJobClassificationPolicy.normalize(externalJobClassifier.classify(toClassificationInput(command)));
         ExternalFreelanceType freelanceType = classification.getFreelanceType();
         ExternalJobRecommendationType recommendationType = classification.getRecommendationType();
-        VisibilityDecision visibility = resolveVisibility(command, freelanceType, recommendationType, collectionNow);
+        VisibilityDecision visibility = resolveVisibility(command, freelanceType, collectionNow);
 
         return command.toBuilder()
                 .freelanceType(freelanceType)
@@ -226,13 +274,9 @@ public class ExternalJobCollectService {
 
     private VisibilityDecision resolveVisibility(ExternalJobUpsertCommand command,
                                                  ExternalFreelanceType freelanceType,
-                                                 ExternalJobRecommendationType recommendationType,
                                                  LocalDateTime collectionNow) {
         if (ExternalFreelanceType.NOT_FREELANCE.equals(freelanceType)) {
             return new VisibilityDecision(false, "NOT_FREELANCE");
-        }
-        if (ExternalJobRecommendationType.EXCLUDED.equals(recommendationType)) {
-            return new VisibilityDecision(false, "EXCLUDED");
         }
         if (command.getDeadlineAt() != null && command.getDeadlineAt().isBefore(collectionNow)) {
             return new VisibilityDecision(false, "EXPIRED");
@@ -255,6 +299,32 @@ public class ExternalJobCollectService {
                 .employmentTypeRaw(command.getEmploymentTypeRaw())
                 .location(command.getLocation())
                 .salaryRaw(command.getSalaryRaw())
+                .build();
+    }
+
+    private ExternalJobUpsertCommand toUpsertCommand(ExternalJobDTO job, LocalDateTime updatedAt) {
+        return ExternalJobUpsertCommand.builder()
+                .source(job.getSource())
+                .sourceJobId(job.getSourceJobId())
+                .sourceUrl(job.getSourceUrl())
+                .title(job.getTitle())
+                .companyName(job.getCompanyName())
+                .location(job.getLocation())
+                .jobCategoryRaw(job.getJobCategoryRaw())
+                .employmentTypeRaw(job.getEmploymentTypeRaw())
+                .salaryRaw(job.getSalaryRaw())
+                .postedAt(job.getPostedAt())
+                .deadlineAt(job.getDeadlineAt())
+                .description(job.getDescription())
+                .originalPayloadJson(job.getOriginalPayloadJson())
+                .payloadHash(job.getPayloadHash())
+                .freelanceType(job.getFreelanceType())
+                .recommendationType(job.getRecommendationType())
+                .recommendationScore(job.getRecommendationScore())
+                .visible(job.getVisible())
+                .visibilityReason(job.getVisibilityReason())
+                .collectedAt(job.getCollectedAt())
+                .updatedAt(updatedAt)
                 .build();
     }
 
@@ -294,6 +364,16 @@ public class ExternalJobCollectService {
             return ExternalJobCollectionStatus.FAILED;
         }
         if (accumulator.failedPages > 0 || accumulator.failedCount > 0) {
+            return ExternalJobCollectionStatus.PARTIAL_SUCCESS;
+        }
+        return ExternalJobCollectionStatus.SUCCESS;
+    }
+
+    private ExternalJobCollectionStatus resolveReclassificationStatus(CollectionAccumulator accumulator) {
+        if (accumulator.failedCount > 0 && accumulator.upsertedCount == 0) {
+            return ExternalJobCollectionStatus.FAILED;
+        }
+        if (accumulator.failedCount > 0) {
             return ExternalJobCollectionStatus.PARTIAL_SUCCESS;
         }
         return ExternalJobCollectionStatus.SUCCESS;

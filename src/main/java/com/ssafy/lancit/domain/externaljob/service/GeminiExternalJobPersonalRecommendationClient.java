@@ -105,7 +105,7 @@ public class GeminiExternalJobPersonalRecommendationClient {
                     기준:
                     - userJobCategory와 실제 직무/업무 내용이 가까울수록 높은 점수
                     - recommendationType 허용 값: HIGHLY_RECOMMENDED, RECOMMENDED, POSSIBLE, EXCLUDED
-                    - HIGHLY_RECOMMENDED 점수는 90~100, RECOMMENDED는 65~89, POSSIBLE은 30~64, EXCLUDED는 0~29
+                    - HIGHLY_RECOMMENDED 점수는 80~100, RECOMMENDED는 60~79, POSSIBLE은 40~59, EXCLUDED는 0~39
                     - 점수는 0~100 정수
                     - 원본 공고 ID는 반드시 externalJobId로 그대로 반환
                     - 공고 목록에 없는 ID를 만들지 말 것
@@ -177,19 +177,16 @@ public class GeminiExternalJobPersonalRecommendationClient {
                     node.path("recommendationType").asText(null),
                     null);
             if (type == null) {
-                type = recommendationTypeForScore(score == null ? 30 : score);
+                type = recommendationTypeForScore(score == null
+                        ? defaultScore(ExternalJobRecommendationType.POSSIBLE)
+                        : score);
             }
-            if (ExternalJobRecommendationType.EXCLUDED.equals(type)) {
-                score = 0;
-            }
-            if (score == null) {
-                score = defaultScore(type);
-            }
+            int normalizedScore = normalizeRecommendationScore(score, type);
 
             recommendations.add(ExternalJobPersonalRecommendation.builder()
                     .externalJobId(externalJobId)
                     .recommendationType(type)
-                    .recommendationScore(clamp(score))
+                    .recommendationScore(normalizedScore)
                     .matchedBy(MATCHED_BY_GEMINI)
                     .build());
         }
@@ -295,13 +292,13 @@ public class GeminiExternalJobPersonalRecommendationClient {
     }
 
     private static ExternalJobRecommendationType recommendationTypeForScore(int score) {
-        if (score >= 90) {
+        if (score >= 80) {
             return ExternalJobRecommendationType.HIGHLY_RECOMMENDED;
         }
-        if (score >= 65) {
+        if (score >= 60) {
             return ExternalJobRecommendationType.RECOMMENDED;
         }
-        if (score >= 30) {
+        if (score >= 40) {
             return ExternalJobRecommendationType.POSSIBLE;
         }
         return ExternalJobRecommendationType.EXCLUDED;
@@ -318,6 +315,16 @@ public class GeminiExternalJobPersonalRecommendationClient {
             return 45;
         }
         return 0;
+    }
+
+    private static int normalizeRecommendationScore(Integer score, ExternalJobRecommendationType type) {
+        int candidate = score == null ? defaultScore(type) : clamp(score);
+        return switch (type) {
+            case HIGHLY_RECOMMENDED -> Math.max(80, candidate);
+            case RECOMMENDED -> Math.max(60, Math.min(79, candidate));
+            case POSSIBLE -> Math.max(40, Math.min(59, candidate));
+            case EXCLUDED -> Math.min(39, candidate);
+        };
     }
 
     private static int clamp(Integer score) {

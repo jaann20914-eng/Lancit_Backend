@@ -39,7 +39,7 @@ public class ExternalJobController {
 
     @Operation(
             summary = "외부 공고 목록 조회",
-            description = "노출 가능한 서울시 외부 공고를 조회합니다. NOT_FREELANCE, EXCLUDED, 마감 지난 공고와 장기 미마감 공고는 제외합니다.")
+            description = "노출 가능한 서울시 외부 공고를 조회합니다. NOT_FREELANCE, 마감 지난 공고와 장기 미마감 공고는 제외합니다.")
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<ExternalJobCardResponse>>> getExternalJobs(
             @ModelAttribute ExternalJobSearchCondition condition,
@@ -79,5 +79,13 @@ public class ExternalJobController {
             @RequestBody(required = false) ExternalJobCollectRequest request) {
         return ResponseEntity.ok(ApiResponse.ok(
                 externalJobCollectService.collectSeoulJobs(ExternalJobCollectCommand.from(request))));
+    }
+
+    @Operation(
+            summary = "서울시 외부 공고 재분류",
+            description = "기존 DB의 서울시 외부 공고를 현재 분류 정책으로 다시 분류하고 노출 여부를 갱신합니다.")
+    @PostMapping("/reclassify/seoul")
+    public ResponseEntity<ApiResponse<ExternalJobCollectResponse>> reclassifySeoulJobs() {
+        return ResponseEntity.ok(ApiResponse.ok(externalJobCollectService.reclassifySeoulJobs()));
     }
 }
