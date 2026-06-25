@@ -29,69 +29,87 @@
     </resultMap>
 
     <sql id="ExternalJobColumns">
-        id,
-        source,
-        source_job_id,
-        source_url,
-        title,
-        company_name,
-        location,
-        job_category_raw,
-        employment_type_raw,
-        salary_raw,
-        posted_at,
-        deadline_at,
-        description,
-        original_payload_json,
-        payload_hash,
-        freelance_type,
-        recommendation_type,
-        recommendation_score,
-        is_visible,
-        visibility_reason,
-        collected_at,
-        updated_at
+        ej.id,
+        ej.source,
+        ej.source_job_id,
+        ej.source_url,
+        ej.title,
+        ej.company_name,
+        ej.location,
+        ej.job_category_raw,
+        ej.employment_type_raw,
+        ej.salary_raw,
+        ej.posted_at,
+        ej.deadline_at,
+        ej.description,
+        ej.original_payload_json,
+        ej.payload_hash,
+        ej.freelance_type,
+        ej.recommendation_type,
+        ej.recommendation_score,
+        ej.is_visible,
+        ej.visibility_reason,
+        ej.collected_at,
+        ej.updated_at
+    </sql>
+
+    <sql id="ExternalJobListColumns">
+        ej.id,
+        ej.source,
+        ej.source_job_id,
+        ej.source_url,
+        ej.title,
+        ej.company_name,
+        ej.location,
+        ej.job_category_raw,
+        ej.employment_type_raw,
+        ej.salary_raw,
+        ej.posted_at,
+        ej.deadline_at,
+        ej.description,
+        ej.original_payload_json,
+        ej.payload_hash,
+        ej.freelance_type,
+        ejur.recommendation_type AS recommendation_type,
+        ejur.recommendation_score AS recommendation_score,
+        ej.is_visible,
+        ej.visibility_reason,
+        ej.collected_at,
+        ej.updated_at
     </sql>
 
     <sql id="VisibleExternalJobFilters">
-        AND source = 'SEOUL'
-        AND is_visible = 1
+        AND ej.source = 'SEOUL'
+        AND ej.is_visible = 1
+        AND ej.freelance_type != 'NOT_FREELANCE'
     </sql>
 
     <sql id="SearchFilters">
         <if test="condition != null and condition.keyword != null and condition.keyword != ''">
             AND (
-                title LIKE CONCAT('%', #{condition.keyword}, '%')
-                OR company_name LIKE CONCAT('%', #{condition.keyword}, '%')
-                OR description LIKE CONCAT('%', #{condition.keyword}, '%')
+                ej.title LIKE CONCAT('%', #{condition.keyword}, '%')
+                OR ej.company_name LIKE CONCAT('%', #{condition.keyword}, '%')
+                OR ej.description LIKE CONCAT('%', #{condition.keyword}, '%')
             )
         </if>
         <if test="condition != null and condition.recommendationType != null">
-            AND recommendation_type = #{condition.recommendationType}
+            AND ejur.recommendation_type = #{condition.recommendationType}
         </if>
+    </sql>
+
+    <sql id="PersonalRecommendationRequiredJoin">
+        INNER JOIN external_job_user_recommendation ejur
+            ON ejur.external_job_id = ej.id
+           AND ejur.user_email = #{condition.userEmail}
+           AND ejur.job_category = #{condition.jobCategory}
+           AND ejur.recommendation_type != 'EXCLUDED'
     </sql>
 
     <sql id="ExternalJobOrderBy">
         ORDER BY
-        <choose>
-            <when test="condition != null and condition.safeSort == 'LATEST'">
-                posted_at DESC,
-                collected_at DESC,
-                id DESC
-            </when>
-            <otherwise>
-                recommendation_score DESC,
-                CASE recommendation_type
-                    WHEN 'HIGHLY_RECOMMENDED' THEN 1
-                    WHEN 'RECOMMENDED' THEN 2
-                    WHEN 'POSSIBLE' THEN 3
-                    ELSE 4
-                END ASC,
-                posted_at DESC,
-                collected_at DESC,
-                id DESC
-            </otherwise>
-        </choose>
+        ejur.recommendation_score DESC,
+        ej.collected_at DESC,
+        ej.id DESC
     </sql>
 
     <sql id="Pagination">
@@ -167,12 +185,34 @@
             updated_at = VALUES(updated_at)
     </insert>
 
+    <insert id="upsertExternalJobUserRecommendation">
+        INSERT INTO external_job_user_recommendation (
+            user_email,
+            external_job_id,
+            job_category,
+            recommendation_type,
+            recommendation_score,
+            matched_by
+        ) VALUES (
+            #{userEmail},
+            #{externalJobId},
+            #{jobCategory},
+            #{recommendationType},
+            #{recommendationScore},
+            #{matchedBy}
+        )
+        ON DUPLICATE KEY UPDATE
+            recommendation_type = VALUES(recommendation_type),
+            recommendation_score = VALUES(recommendation_score),
+            matched_by = VALUES(matched_by),
+            updated_at = CURRENT_TIMESTAMP
+    </insert>
+
     <update id="refreshVisibilityByPolicy">
         UPDATE external_job
         SET
             is_visible = CASE
                 WHEN freelance_type = 'NOT_FREELANCE' THEN 0
-                WHEN recommendation_type = 'EXCLUDED' THEN 0
                 WHEN deadline_at IS NOT NULL AND deadline_at &lt; #{now} THEN 0
                 WHEN deadline_at IS NULL
                     AND COALESCE(posted_at, collected_at, updated_at) &lt; #{staleBefore} THEN 0
@@ -180,7 +220,6 @@
             END,
             visibility_reason = CASE
                 WHEN freelance_type = 'NOT_FREELANCE' THEN 'NOT_FREELANCE'
-                WHEN recommendation_type = 'EXCLUDED' THEN 'EXCLUDED'
                 WHEN deadline_at IS NOT NULL AND deadline_at &lt; #{now} THEN 'EXPIRED'
                 WHEN deadline_at IS NULL
                     AND COALESCE(posted_at, collected_at, updated_at) &lt; #{staleBefore} THEN 'NO_DEADLINE_STALE'
@@ -191,8 +230,9 @@
 
     <select id="findExternalJobs" resultMap="ExternalJobResultMap">
         SELECT
-        <include refid="ExternalJobColumns"/>
-        FROM external_job
+        <include refid="ExternalJobListColumns"/>
+        FROM external_job ej
+        <include refid="PersonalRecommendationRequiredJoin"/>
         WHERE 1 = 1
         <include refid="VisibleExternalJobFilters"/>
         <include refid="SearchFilters"/>
@@ -202,19 +242,56 @@
 
     <select id="countExternalJobs" resultType="long">
         SELECT COUNT(*)
-        FROM external_job
+        FROM external_job ej
+        <include refid="PersonalRecommendationRequiredJoin"/>
         WHERE 1 = 1
         <include refid="VisibleExternalJobFilters"/>
         <include refid="SearchFilters"/>
     </select>
 
+    <select id="findVisibleExternalJobsForRecommendation" resultMap="ExternalJobResultMap">
+        SELECT
+        <include refid="ExternalJobColumns"/>
+        FROM external_job ej
+        WHERE 1 = 1
+          AND ej.source = 'SEOUL'
+          AND ej.is_visible = 1
+          AND ej.freelance_type != 'NOT_FREELANCE'
+        ORDER BY
+            ej.recommendation_score DESC,
+            ej.collected_at DESC,
+            ej.id DESC
+    </select>
+
+    <select id="findExternalJobsForReclassification" resultMap="ExternalJobResultMap">
+        SELECT
+        <include refid="ExternalJobColumns"/>
+        FROM external_job ej
+        WHERE ej.source = #{source}
+        ORDER BY ej.id
+    </select>
+
+    <update id="updateExternalJobClassification">
+        UPDATE external_job
+        SET
+            freelance_type = #{freelanceType},
+            recommendation_type = #{recommendationType},
+            recommendation_score = #{recommendationScore},
+            is_visible = COALESCE(#{visible}, 1),
+            visibility_reason = COALESCE(#{visibilityReason}, 'VISIBLE'),
+            updated_at = #{updatedAt}
+        WHERE id = #{id}
+          AND source = 'SEOUL'
+    </update>
+
     <select id="findById" resultMap="ExternalJobResultMap">
         SELECT
         <include refid="ExternalJobColumns"/>
-        FROM external_job
-        WHERE id = #{id}
-          AND source = 'SEOUL'
-          AND is_visible = 1
+        FROM external_job ej
+        WHERE ej.id = #{id}
+          AND ej.source = 'SEOUL'
+          AND ej.is_visible = 1
+          AND ej.freelance_type != 'NOT_FREELANCE'
     </select>
 
     <insert id="insertCollectionLog">

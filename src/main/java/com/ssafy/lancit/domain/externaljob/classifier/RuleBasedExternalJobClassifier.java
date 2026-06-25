@@ -16,18 +16,17 @@ public class RuleBasedExternalJobClassifier implements ExternalJobClassifier {
             List.of("프리랜서", "외주", "재택", "원격");
     private static final List<String> PROJECT_KEYWORDS = List.of(
             "프로젝트", "디자인", "개발", "웹", "앱", "영상", "콘텐츠", "마케팅",
-            "글쓰기", "작가", "강사", "교육", "음악", "편집", "번역", "기획"
+            "글쓰기", "작가", "강사", "교육", "음악", "편집", "번역", "기획",
+            "pm", "컨설팅", "운영 대행", "제작"
     );
-    private static final List<String> CONTRACT_KEYWORDS =
-            List.of("계약직", "기간제", "단기", "파트타임", "시간제");
-    private static final List<String> NEGATIVE_KEYWORDS = List.of(
-            "정규직", "상근", "교대", "생산직", "운전", "배송", "주방", "홀서빙",
-            "요양보호", "요양원", "요양", "간병", "간병인", "경비", "미화", "청소",
-            "청소원", "조리", "조리사", "구내식당", "주차", "주차관리", "물류",
-            "입출고", "부품관리", "조립", "조립원", "간호조무", "콜센터 상주",
-            "경리", "영업", "판매", "용접", "현장소장", "건설현장", "건설",
-            "토공", "지반", "지질", "탐사", "시설관리", "생산 보조", "생산기계",
-            "산업기능요원", "보충역", "쿠팡"
+    private static final List<String> CONTRACT_KEYWORDS = List.of(
+            "계약직", "기간제", "단기", "파트타임", "시간제", "비상근", "위촉",
+            "촉탁", "임시직", "일용직", "아르바이트", "알바", "업무지원",
+            "업무 지원", "지원 업무", "사무보조", "사무 보조", "보조원",
+            "대체인력", "대체 인력", "시급", "시간 선택제"
+    );
+    private static final List<String> PERMANENT_EMPLOYMENT_KEYWORDS = List.of(
+            "정규직", "상용직", "무기계약", "풀타임", "전일제", "상근"
     );
 
     @Override
@@ -35,15 +34,7 @@ public class RuleBasedExternalJobClassifier implements ExternalJobClassifier {
         String exclusionText = exclusionText(input);
         String recommendationText = recommendationText(input);
 
-        if (containsAny(exclusionText, NEGATIVE_KEYWORDS)) {
-            return classification(
-                    ExternalFreelanceType.NOT_FREELANCE,
-                    ExternalJobRecommendationType.EXCLUDED,
-                    0,
-                    "외부 공고 탭 제외",
-                    0.9,
-                    "부적합 키워드 감지");
-        }
+        boolean hasContractSignal = containsAny(recommendationText, CONTRACT_KEYWORDS);
 
         if (containsAny(recommendationText, STRONG_FREELANCE_KEYWORDS)) {
             boolean explicitFreelance = recommendationText.contains("프리랜서")
@@ -59,6 +50,32 @@ public class RuleBasedExternalJobClassifier implements ExternalJobClassifier {
                     "프리랜서/외주성 키워드 감지");
         }
 
+        ExternalJobClassification strongItClassification =
+                ExternalJobItClassificationPolicy.classifyStrongItCandidate(input);
+        if (strongItClassification != null) {
+            return strongItClassification;
+        }
+
+        if (!hasContractSignal && containsAny(exclusionText, PERMANENT_EMPLOYMENT_KEYWORDS)) {
+            return classification(
+                    ExternalFreelanceType.NOT_FREELANCE,
+                    ExternalJobRecommendationType.EXCLUDED,
+                    0,
+                    "외부 공고 탭 제외",
+                    0.9,
+                    "정규직/상용직 등 명확한 일반 채용 신호 감지");
+        }
+
+        if (hasContractSignal) {
+            return classification(
+                    ExternalFreelanceType.CONTRACT_LIKE,
+                    ExternalJobRecommendationType.POSSIBLE,
+                    41,
+                    "계약형 공고",
+                    0.68,
+                    "계약/기간제 키워드 감지");
+        }
+
         if (containsAny(recommendationText, PROJECT_KEYWORDS)) {
             return classification(
                     ExternalFreelanceType.PROJECT_LIKE,
@@ -69,23 +86,13 @@ public class RuleBasedExternalJobClassifier implements ExternalJobClassifier {
                     "프로젝트/결과물 중심 키워드 감지");
         }
 
-        if (containsAny(recommendationText, CONTRACT_KEYWORDS)) {
-            return classification(
-                    ExternalFreelanceType.CONTRACT_LIKE,
-                    ExternalJobRecommendationType.POSSIBLE,
-                    41,
-                    "계약형 공고",
-                    0.68,
-                    "계약/기간제 키워드 감지");
-        }
-
         return classification(
-                ExternalFreelanceType.UNKNOWN,
+                ExternalFreelanceType.CONTRACT_LIKE,
                 ExternalJobRecommendationType.POSSIBLE,
-                30,
-                "검토 가능",
+                41,
+                "계약 가능성 공고",
                 0.45,
-                "명확한 제외 사유 없음");
+                "명확한 정규직/상용직 제외 사유 없음");
     }
 
     private static ExternalJobClassification classification(ExternalFreelanceType freelanceType,

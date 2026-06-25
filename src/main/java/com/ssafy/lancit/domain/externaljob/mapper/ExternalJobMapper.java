@@ -4,7 +4,10 @@ import com.ssafy.lancit.common.page.dto.PageRequest;
 import com.ssafy.lancit.domain.externaljob.dto.ExternalJobCollectionLogCommand;
 import com.ssafy.lancit.domain.externaljob.dto.ExternalJobDTO;
 import com.ssafy.lancit.domain.externaljob.dto.ExternalJobSearchCondition;
+import com.ssafy.lancit.domain.externaljob.dto.ExternalJobUserRecommendationCommand;
 import com.ssafy.lancit.domain.externaljob.dto.ExternalJobUpsertCommand;
+import com.ssafy.lancit.global.enums.ExternalFreelanceType;
+import com.ssafy.lancit.global.enums.ExternalJobRecommendationType;
 import com.ssafy.lancit.global.enums.ExternalJobSource;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -20,6 +23,20 @@ public interface ExternalJobMapper {
                                           @Param("pageRequest") PageRequest pageRequest);
 
     long countExternalJobs(@Param("condition") ExternalJobSearchCondition condition);
+
+    List<ExternalJobDTO> findVisibleExternalJobsForRecommendation();
+
+    List<ExternalJobDTO> findExternalJobsForReclassification(@Param("source") ExternalJobSource source);
+
+    int upsertExternalJobUserRecommendation(ExternalJobUserRecommendationCommand command);
+
+    int updateExternalJobClassification(@Param("id") Long id,
+                                        @Param("freelanceType") ExternalFreelanceType freelanceType,
+                                        @Param("recommendationType") ExternalJobRecommendationType recommendationType,
+                                        @Param("recommendationScore") Integer recommendationScore,
+                                        @Param("visible") Boolean visible,
+                                        @Param("visibilityReason") String visibilityReason,
+                                        @Param("updatedAt") LocalDateTime updatedAt);
 
     ExternalJobDTO findById(@Param("id") Long id);
 

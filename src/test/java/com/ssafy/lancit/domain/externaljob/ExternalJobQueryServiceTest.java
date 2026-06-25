@@ -2,9 +2,12 @@ package com.ssafy.lancit.domain.externaljob;
 
 import com.ssafy.lancit.common.exception.CustomException;
 import com.ssafy.lancit.common.exception.ErrorCode;
+import com.ssafy.lancit.common.page.dto.PageResponse;
+import com.ssafy.lancit.domain.externaljob.dto.ExternalJobCardResponse;
 import com.ssafy.lancit.domain.externaljob.dto.ExternalJobDTO;
 import com.ssafy.lancit.domain.externaljob.dto.ExternalJobCollectionLogCommand;
 import com.ssafy.lancit.domain.externaljob.dto.ExternalJobDetailResponse;
+import com.ssafy.lancit.domain.externaljob.dto.ExternalJobSearchCondition;
 import com.ssafy.lancit.domain.externaljob.mapper.ExternalJobMapper;
 import com.ssafy.lancit.domain.externaljob.service.ExternalJobQueryService;
 import com.ssafy.lancit.common.page.dto.PageRequest;
@@ -21,6 +24,23 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ExternalJobQueryServiceTest {
+
+    @Test
+    @DisplayName("외부 공고 목록은 유저/직무 추천 범위가 없으면 전역 후보로 fallback하지 않는다")
+    void listExternalJobs_withoutJobCategory_returnsEmptyPage() {
+        FakeExternalJobMapper mapper = new FakeExternalJobMapper(null);
+        ExternalJobQueryService externalJobQueryService = new ExternalJobQueryService(mapper);
+        ExternalJobSearchCondition condition = new ExternalJobSearchCondition();
+        condition.setUserEmail("user@lancit.com");
+
+        PageResponse<ExternalJobCardResponse> response =
+                externalJobQueryService.listExternalJobs(condition, new PageRequest());
+
+        assertThat(response.getContent()).isEmpty();
+        assertThat(response.getTotalElements()).isZero();
+        assertThat(mapper.findExternalJobsCallCount).isZero();
+        assertThat(mapper.countExternalJobsCallCount).isZero();
+    }
 
     @Test
     @DisplayName("외부 공고 상세 조회는 기존 공고 상세 UI에 필요한 상세 필드를 보강한다")
@@ -85,6 +105,8 @@ class ExternalJobQueryServiceTest {
 
     private static class FakeExternalJobMapper implements ExternalJobMapper {
         private final ExternalJobDTO detail;
+        private int findExternalJobsCallCount;
+        private int countExternalJobsCallCount;
 
         private FakeExternalJobMapper(ExternalJobDTO detail) {
             this.detail = detail;
@@ -98,11 +120,40 @@ class ExternalJobQueryServiceTest {
         @Override
         public List<ExternalJobDTO> findExternalJobs(com.ssafy.lancit.domain.externaljob.dto.ExternalJobSearchCondition condition,
                                                      PageRequest pageRequest) {
+            findExternalJobsCallCount++;
             return List.of();
         }
 
         @Override
         public long countExternalJobs(com.ssafy.lancit.domain.externaljob.dto.ExternalJobSearchCondition condition) {
+            countExternalJobsCallCount++;
+            return 0;
+        }
+
+        @Override
+        public List<ExternalJobDTO> findVisibleExternalJobsForRecommendation() {
+            return List.of();
+        }
+
+        @Override
+        public List<ExternalJobDTO> findExternalJobsForReclassification(ExternalJobSource source) {
+            return List.of();
+        }
+
+        @Override
+        public int upsertExternalJobUserRecommendation(
+                com.ssafy.lancit.domain.externaljob.dto.ExternalJobUserRecommendationCommand command) {
+            return 0;
+        }
+
+        @Override
+        public int updateExternalJobClassification(Long id,
+                                                   ExternalFreelanceType freelanceType,
+                                                   ExternalJobRecommendationType recommendationType,
+                                                   Integer recommendationScore,
+                                                   Boolean visible,
+                                                   String visibilityReason,
+                                                   LocalDateTime updatedAt) {
             return 0;
         }
 
