@@ -107,6 +107,17 @@ class ExternalJobQueryServiceTest {
         }
 
         @Override
+        public List<ExternalJobDTO> findVisibleExternalJobsForRecommendation() {
+            return List.of();
+        }
+
+        @Override
+        public int upsertExternalJobUserRecommendation(
+                com.ssafy.lancit.domain.externaljob.dto.ExternalJobUserRecommendationCommand command) {
+            return 0;
+        }
+
+        @Override
         public ExternalJobDTO findById(Long id) {
             return detail;
         }

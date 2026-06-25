@@ -17,6 +17,12 @@ public class ExternalJobSearchCondition {
     @Schema(description = "노출 대상 공고의 추천 분류", allowableValues = {"HIGHLY_RECOMMENDED", "RECOMMENDED", "POSSIBLE"})
     private ExternalJobRecommendationType recommendationType;
 
+    @Schema(description = "로그인 유저별 추천 점수 조회에 사용할 직종")
+    private String jobCategory;
+
+    @Schema(hidden = true)
+    private String userEmail;
+
     @Schema(description = "정렬", allowableValues = {"RECOMMENDED", "LATEST"}, defaultValue = "RECOMMENDED")
     private ExternalJobSort sort = ExternalJobSort.RECOMMENDED;
 

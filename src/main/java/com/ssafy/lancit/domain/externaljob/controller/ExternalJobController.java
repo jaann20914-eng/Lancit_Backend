@@ -3,14 +3,18 @@ package com.ssafy.lancit.domain.externaljob.controller;
 import com.ssafy.lancit.common.page.dto.PageRequest;
 import com.ssafy.lancit.common.page.dto.PageResponse;
 import com.ssafy.lancit.common.response.ApiResponse;
+import com.ssafy.lancit.common.util.SecurityUtil;
 import com.ssafy.lancit.domain.externaljob.dto.ExternalJobCardResponse;
 import com.ssafy.lancit.domain.externaljob.dto.ExternalJobCollectCommand;
 import com.ssafy.lancit.domain.externaljob.dto.ExternalJobCollectRequest;
 import com.ssafy.lancit.domain.externaljob.dto.ExternalJobCollectResponse;
 import com.ssafy.lancit.domain.externaljob.dto.ExternalJobDetailResponse;
+import com.ssafy.lancit.domain.externaljob.dto.ExternalJobRecommendationRefreshRequest;
+import com.ssafy.lancit.domain.externaljob.dto.ExternalJobRecommendationRefreshResponse;
 import com.ssafy.lancit.domain.externaljob.dto.ExternalJobSearchCondition;
 import com.ssafy.lancit.domain.externaljob.service.ExternalJobCollectService;
 import com.ssafy.lancit.domain.externaljob.service.ExternalJobQueryService;
+import com.ssafy.lancit.domain.externaljob.service.ExternalJobRecommendationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +35,7 @@ public class ExternalJobController {
 
     private final ExternalJobQueryService externalJobQueryService;
     private final ExternalJobCollectService externalJobCollectService;
+    private final ExternalJobRecommendationService externalJobRecommendationService;
 
     @Operation(
             summary = "외부 공고 목록 조회",
@@ -39,8 +44,22 @@ public class ExternalJobController {
     public ResponseEntity<ApiResponse<PageResponse<ExternalJobCardResponse>>> getExternalJobs(
             @ModelAttribute ExternalJobSearchCondition condition,
             @ModelAttribute PageRequest pageRequest) {
+        ExternalJobSearchCondition safeCondition = condition == null ? new ExternalJobSearchCondition() : condition;
+        safeCondition.setUserEmail(SecurityUtil.getCurrentEmailOrNull());
         return ResponseEntity.ok(ApiResponse.ok(
-                externalJobQueryService.listExternalJobs(condition, pageRequest)));
+                externalJobQueryService.listExternalJobs(safeCondition, pageRequest)));
+    }
+
+    @Operation(
+            summary = "외부 공고 개인화 추천 점수 갱신",
+            description = "로그인 유저와 요청 직종 기준으로 서울시 외부 공고의 개인화 추천 점수를 재계산합니다.")
+    @PostMapping("/recommendations/refresh")
+    public ResponseEntity<ApiResponse<ExternalJobRecommendationRefreshResponse>> refreshRecommendations(
+            @RequestBody(required = false) ExternalJobRecommendationRefreshRequest request) {
+        String email = SecurityUtil.getCurrentEmail();
+        String jobCategory = request == null ? null : request.getJobCategory();
+        return ResponseEntity.ok(ApiResponse.ok(
+                externalJobRecommendationService.refreshPersonalRecommendations(email, jobCategory)));
     }
 
     @Operation(

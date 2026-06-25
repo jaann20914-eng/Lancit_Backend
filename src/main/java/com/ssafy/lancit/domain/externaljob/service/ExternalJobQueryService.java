@@ -54,9 +54,9 @@ public class ExternalJobQueryService {
     private ExternalJobSearchCondition normalize(ExternalJobSearchCondition condition) {
         ExternalJobSearchCondition normalized = condition == null ? new ExternalJobSearchCondition() : condition;
         normalized.setKeyword(trimToNull(normalized.getKeyword()));
-        if (normalized.getSort() == null) {
-            normalized.setSort(ExternalJobSort.RECOMMENDED);
-        }
+        normalized.setJobCategory(trimToNull(normalized.getJobCategory()));
+        normalized.setUserEmail(trimToNull(normalized.getUserEmail()));
+        normalized.setSort(ExternalJobSort.RECOMMENDED);
         return normalized;
     }
 

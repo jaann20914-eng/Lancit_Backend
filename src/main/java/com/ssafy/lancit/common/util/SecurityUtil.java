@@ -2,6 +2,7 @@ package com.ssafy.lancit.common.util;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 
 import java.util.Locale;
 
@@ -22,10 +23,23 @@ public class SecurityUtil {
     // 현재 로그인한 유저(또는 회사)의 이메일 반환 :  로그인 안 된 상태면 UNAUTHORIZED 예외
     public static String getCurrentEmail() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated()) {
+        if (auth == null || !auth.isAuthenticated() || auth instanceof AnonymousAuthenticationToken) {
             throw new CustomException(ErrorCode.UNAUTHORIZED);
         }
-        return (String) auth.getPrincipal();
+        Object principal = auth.getPrincipal();
+        if (!(principal instanceof String email)) {
+            throw new CustomException(ErrorCode.UNAUTHORIZED);
+        }
+        return email;
+    }
+
+    public static String getCurrentEmailOrNull() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || auth instanceof AnonymousAuthenticationToken) {
+            return null;
+        }
+        Object principal = auth.getPrincipal();
+        return principal instanceof String email ? email : null;
     }
  
     // 현재 로그인한 역할 반환 (USER 인지 COMPANY) : 확인 불가 상태면 UNAUTHORIZED 예외

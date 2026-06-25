@@ -4,6 +4,7 @@ import com.ssafy.lancit.common.page.dto.PageRequest;
 import com.ssafy.lancit.domain.externaljob.dto.ExternalJobCollectionLogCommand;
 import com.ssafy.lancit.domain.externaljob.dto.ExternalJobDTO;
 import com.ssafy.lancit.domain.externaljob.dto.ExternalJobSearchCondition;
+import com.ssafy.lancit.domain.externaljob.dto.ExternalJobUserRecommendationCommand;
 import com.ssafy.lancit.domain.externaljob.dto.ExternalJobUpsertCommand;
 import com.ssafy.lancit.global.enums.ExternalJobSource;
 import org.apache.ibatis.annotations.Mapper;
@@ -20,6 +21,10 @@ public interface ExternalJobMapper {
                                           @Param("pageRequest") PageRequest pageRequest);
 
     long countExternalJobs(@Param("condition") ExternalJobSearchCondition condition);
+
+    List<ExternalJobDTO> findVisibleExternalJobsForRecommendation();
+
+    int upsertExternalJobUserRecommendation(ExternalJobUserRecommendationCommand command);
 
     ExternalJobDTO findById(@Param("id") Long id);
 
