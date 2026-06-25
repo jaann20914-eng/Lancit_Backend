@@ -4,15 +4,19 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.lancit.common.exception.CustomException;
 import com.ssafy.lancit.common.exception.ErrorCode;
 import com.ssafy.lancit.common.page.dto.PageRequest;
+import com.ssafy.lancit.domain.externaljob.dto.ExternalJobCategoryRecommendationCommand;
 import com.ssafy.lancit.domain.externaljob.dto.ExternalJobCollectionLogCommand;
 import com.ssafy.lancit.domain.externaljob.dto.ExternalJobDTO;
+import com.ssafy.lancit.domain.externaljob.dto.ExternalJobPersonalRecommendation;
+import com.ssafy.lancit.domain.externaljob.dto.ExternalJobRecommendationPrecomputeRequest;
+import com.ssafy.lancit.domain.externaljob.dto.ExternalJobRecommendationPrecomputeResponse;
 import com.ssafy.lancit.domain.externaljob.dto.ExternalJobRecommendationRefreshResponse;
 import com.ssafy.lancit.domain.externaljob.dto.ExternalJobSearchCondition;
 import com.ssafy.lancit.domain.externaljob.dto.ExternalJobUpsertCommand;
 import com.ssafy.lancit.domain.externaljob.dto.ExternalJobUserRecommendationCommand;
 import com.ssafy.lancit.domain.externaljob.mapper.ExternalJobMapper;
-import com.ssafy.lancit.domain.externaljob.service.GeminiExternalJobPersonalRecommendationClient;
 import com.ssafy.lancit.domain.externaljob.service.ExternalJobRecommendationService;
+import com.ssafy.lancit.domain.externaljob.service.GeminiExternalJobPersonalRecommendationClient;
 import com.ssafy.lancit.global.enums.ExternalFreelanceType;
 import com.ssafy.lancit.global.enums.ExternalJobRecommendationType;
 import com.ssafy.lancit.global.enums.ExternalJobSource;
@@ -30,269 +34,176 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class ExternalJobRecommendationServiceTest {
 
     @Test
-    @DisplayName("Gemini 클라이언트가 없어도 전역 점수 fallback으로 유저별 추천을 저장한다")
-    void refreshPersonalRecommendations_usesFallbackWhenGeminiUnavailable() {
-        FakeMapper mapper = new FakeMapper(List.of(
-                ExternalJobDTO.builder()
-                        .id(1L)
-                        .title("웹 개발 프로젝트")
-                        .jobCategoryRaw("IT 개발")
-                        .description("프론트엔드 개발 업무")
-                        .freelanceType(ExternalFreelanceType.PROJECT_LIKE)
-                        .recommendationType(ExternalJobRecommendationType.RECOMMENDED)
-                        .recommendationScore(70)
-                        .build(),
-                ExternalJobDTO.builder()
-                        .id(2L)
-                        .title("콘텐츠 편집")
-                        .jobCategoryRaw("콘텐츠")
-                        .description("영상 편집 업무")
-                        .freelanceType(ExternalFreelanceType.PROJECT_LIKE)
-                        .recommendationType(ExternalJobRecommendationType.POSSIBLE)
-                        .recommendationScore(45)
-                        .build()));
-        ObjectProvider<GeminiExternalJobPersonalRecommendationClient> provider = unavailableProvider();
-        ExternalJobRecommendationService service = new ExternalJobRecommendationService(mapper, provider);
-
-        ExternalJobRecommendationRefreshResponse response =
-                service.refreshPersonalRecommendations("user@lancit.com", "IT/개발");
-
-        assertThat(response.getJobCategory()).isEqualTo("IT/개발");
-        assertThat(response.getRefreshedCount()).isEqualTo(2);
-        assertThat(mapper.savedCommands).hasSize(2);
-        assertThat(mapper.savedCommands)
-                .extracting(ExternalJobUserRecommendationCommand::getMatchedBy)
-                .containsOnly("FALLBACK");
-        assertThat(mapper.savedCommands.get(0).getRecommendationScore()).isEqualTo(79);
-        assertThat(mapper.savedCommands.get(1).getRecommendationScore()).isEqualTo(45);
-    }
-
-    @Test
-    @DisplayName("fallback은 내부 직종 enum 키워드 매핑으로 서울시 직무 텍스트를 매칭한다")
-    void refreshPersonalRecommendations_usesMappedKeywordsForInternalJobCategory() {
-        FakeMapper mapper = new FakeMapper(List.of(
-                ExternalJobDTO.builder()
-                        .id(1L)
-                        .title("프론트엔드 개발자 모집")
-                        .jobCategoryRaw("컴퓨터시스템 설계 및 분석가")
-                        .description("React 기반 관리자 웹 개발 업무")
-                        .freelanceType(ExternalFreelanceType.PROJECT_LIKE)
-                        .recommendationType(ExternalJobRecommendationType.RECOMMENDED)
-                        .recommendationScore(70)
-                        .build()));
-        ExternalJobRecommendationService service = new ExternalJobRecommendationService(mapper, unavailableProvider());
+    @DisplayName("refresh는 사전 계산 결과만 확인하고 Gemini나 유저별 저장을 수행하지 않는다")
+    void refreshPersonalRecommendations_usesPrecomputedStatusOnly() {
+        FakeMapper mapper = new FakeMapper(List.of());
+        mapper.precomputedCount = 3;
+        ExternalJobRecommendationService service = new ExternalJobRecommendationService(
+                mapper,
+                availableProvider(List.of()));
 
         ExternalJobRecommendationRefreshResponse response =
                 service.refreshPersonalRecommendations("user@lancit.com", "IT");
 
-        assertThat(response.getJobCategory()).isEqualTo("IT");
-        assertThat(response.getRefreshedCount()).isEqualTo(1);
-        assertThat(mapper.savedCommands.get(0).getRecommendationScore()).isEqualTo(79);
+        assertThat(response.getStatus()).isEqualTo("READY");
+        assertThat(response.getMessage()).contains("사전 계산");
+        assertThat(response.getRefreshedCount()).isZero();
+        assertThat(response.getPrecomputedCount()).isEqualTo(3);
+        assertThat(mapper.savedCategoryCommands).isEmpty();
+        assertThat(mapper.savedUserCommands).isEmpty();
     }
 
     @Test
-    @DisplayName("fallback 결과가 POSSIBLE 30이어도 저장 직전 POSSIBLE 40으로 보정한다")
-    void refreshPersonalRecommendations_normalizesFallbackPossibleScoreBeforeSaving() {
-        FakeMapper mapper = new FakeMapper(List.of(
-                ExternalJobDTO.builder()
-                        .id(1L)
-                        .title("사무 지원 담당자")
-                        .jobCategoryRaw("업무지원")
-                        .description("문서 정리")
-                        .freelanceType(ExternalFreelanceType.CONTRACT_LIKE)
-                        .recommendationType(ExternalJobRecommendationType.POSSIBLE)
-                        .recommendationScore(30)
-                        .build()));
+    @DisplayName("refresh는 사전 계산 결과가 없으면 NOT_FOUND 상태를 즉시 반환한다")
+    void refreshPersonalRecommendations_returnsNotFoundWhenPrecomputedMissing() {
+        FakeMapper mapper = new FakeMapper(List.of());
         ExternalJobRecommendationService service = new ExternalJobRecommendationService(mapper, unavailableProvider());
 
-        service.refreshPersonalRecommendations("user@lancit.com", "IT");
+        ExternalJobRecommendationRefreshResponse response =
+                service.refreshPersonalRecommendations(null, "디자인");
 
-        assertThat(mapper.savedCommands.get(0).getRecommendationType())
-                .isEqualTo(ExternalJobRecommendationType.POSSIBLE);
-        assertThat(mapper.savedCommands.get(0).getRecommendationScore()).isEqualTo(40);
+        assertThat(response.getStatus()).isEqualTo("PRECOMPUTED_RECOMMENDATION_NOT_FOUND");
+        assertThat(response.getPrecomputedCount()).isZero();
+        assertThat(mapper.savedCategoryCommands).isEmpty();
     }
 
     @Test
-    @DisplayName("Gemini 결과도 저장 직전 추천 타입별 점수 구간으로 보정한다")
-    void refreshPersonalRecommendations_normalizesGeminiScoreBeforeSaving() {
+    @DisplayName("precompute는 Gemini가 없으면 fallback으로 직종별 추천 테이블에 저장한다")
+    void precomputeCategoryRecommendations_usesFallbackWhenGeminiUnavailable() {
         FakeMapper mapper = new FakeMapper(List.of(
-                candidate(1L, ExternalFreelanceType.PROJECT_LIKE, 77),
-                candidate(2L, ExternalFreelanceType.PROJECT_LIKE, 77),
-                candidate(3L, ExternalFreelanceType.PROJECT_LIKE, 77)));
+                job(1L, "웹 개발 프로젝트", "IT 개발", "React 프론트엔드 개발", 70),
+                job(2L, "콘텐츠 편집", "콘텐츠", "영상 편집 업무", 45)));
+        ExternalJobRecommendationService service = new ExternalJobRecommendationService(mapper, unavailableProvider());
+
+        ExternalJobRecommendationPrecomputeResponse response = service.precomputeCategoryRecommendations(
+                ExternalJobRecommendationPrecomputeRequest.builder()
+                        .jobCategories(List.of("IT"))
+                        .build());
+
+        assertThat(response.getProcessedJobCount()).isEqualTo(2);
+        assertThat(response.getProcessedCategoryCount()).isEqualTo(1);
+        assertThat(response.getSavedRecommendationCount()).isEqualTo(2);
+        assertThat(response.getFailedCount()).isZero();
+        assertThat(mapper.savedCategoryCommands)
+                .extracting(ExternalJobCategoryRecommendationCommand::getJobCategory)
+                .containsExactly("IT", "IT");
+        assertThat(mapper.savedCategoryCommands)
+                .extracting(ExternalJobCategoryRecommendationCommand::getMatchedBy)
+                .containsOnly("FALLBACK_PRECOMPUTED");
+        assertThat(mapper.savedUserCommands).isEmpty();
+    }
+
+    @Test
+    @DisplayName("precompute는 단일 jobCategory 요청을 허용한다")
+    void precomputeCategoryRecommendations_acceptsSingleJobCategory() {
+        FakeMapper mapper = new FakeMapper(List.of(
+                job(1L, "웹 개발 프로젝트", "IT 개발", "React 프론트엔드 개발", 70)));
+        ExternalJobRecommendationService service = new ExternalJobRecommendationService(mapper, unavailableProvider());
+
+        ExternalJobRecommendationPrecomputeResponse response = service.precomputeCategoryRecommendations(
+                ExternalJobRecommendationPrecomputeRequest.builder()
+                        .jobCategory(" IT ")
+                        .build());
+
+        assertThat(response.getProcessedCategoryCount()).isEqualTo(1);
+        assertThat(mapper.savedCategoryCommands)
+                .extracting(ExternalJobCategoryRecommendationCommand::getJobCategory)
+                .containsExactly("IT");
+    }
+
+    @Test
+    @DisplayName("precompute는 다중 직종의 공백과 중복을 제거해 한 번씩 처리한다")
+    void precomputeCategoryRecommendations_deduplicatesResolvedJobCategories() {
+        FakeMapper mapper = new FakeMapper(List.of(
+                job(1L, "백엔드 개발 프로젝트", "IT 개발", "Spring 백엔드 개발", 70)));
+        ExternalJobRecommendationService service = new ExternalJobRecommendationService(mapper, unavailableProvider());
+
+        ExternalJobRecommendationPrecomputeResponse response = service.precomputeCategoryRecommendations(
+                ExternalJobRecommendationPrecomputeRequest.builder()
+                        .jobCategory("IT")
+                        .jobCategories(List.of("IT", "IT", " 백엔드 개발자 ", " "))
+                        .build());
+
+        assertThat(response.getProcessedCategoryCount()).isEqualTo(2);
+        assertThat(mapper.savedCategoryCommands)
+                .extracting(ExternalJobCategoryRecommendationCommand::getJobCategory)
+                .containsExactly("IT", "백엔드 개발자");
+    }
+
+    @Test
+    @DisplayName("precompute는 Gemini 결과도 추천 타입별 점수 구간으로 보정해 저장한다")
+    void precomputeCategoryRecommendations_normalizesGeminiScoreBeforeSaving() {
+        FakeMapper mapper = new FakeMapper(List.of(
+                candidate(1L),
+                candidate(2L),
+                candidate(3L)));
         ExternalJobRecommendationService service = new ExternalJobRecommendationService(mapper, availableProvider(List.of(
                 personalRecommendation(1L, ExternalJobRecommendationType.POSSIBLE, 30),
                 personalRecommendation(2L, ExternalJobRecommendationType.RECOMMENDED, 85),
                 personalRecommendation(3L, ExternalJobRecommendationType.EXCLUDED, 70))));
 
-        service.refreshPersonalRecommendations("user@lancit.com", "IT");
+        service.precomputeCategoryRecommendations(ExternalJobRecommendationPrecomputeRequest.builder()
+                .jobCategories(List.of("IT"))
+                .build());
 
-        assertThat(mapper.savedCommands)
-                .extracting(ExternalJobUserRecommendationCommand::getRecommendationType,
-                        ExternalJobUserRecommendationCommand::getRecommendationScore)
+        assertThat(mapper.savedCategoryCommands)
+                .extracting(ExternalJobCategoryRecommendationCommand::getRecommendationType,
+                        ExternalJobCategoryRecommendationCommand::getRecommendationScore,
+                        ExternalJobCategoryRecommendationCommand::getMatchedBy)
                 .containsExactly(
-                        org.assertj.core.api.Assertions.tuple(ExternalJobRecommendationType.POSSIBLE, 40),
-                        org.assertj.core.api.Assertions.tuple(ExternalJobRecommendationType.RECOMMENDED, 79),
-                        org.assertj.core.api.Assertions.tuple(ExternalJobRecommendationType.EXCLUDED, 39)
+                        org.assertj.core.api.Assertions.tuple(ExternalJobRecommendationType.POSSIBLE, 40, "LLM_PRECOMPUTED"),
+                        org.assertj.core.api.Assertions.tuple(ExternalJobRecommendationType.RECOMMENDED, 79, "LLM_PRECOMPUTED"),
+                        org.assertj.core.api.Assertions.tuple(ExternalJobRecommendationType.EXCLUDED, 39, "LLM_PRECOMPUTED")
                 );
     }
 
     @Test
-    @DisplayName("IT 웹 개발자 공고는 EXCLUDED로 내려와도 hard negative가 없으면 POSSIBLE로 보정한다")
-    void refreshPersonalRecommendations_promotesItWebDeveloperExcludedRecommendation() {
-        FakeMapper mapper = new FakeMapper(List.of(
-                itJob(1L, "웹 개발자 모집", "웹 개발", "프론트엔드 웹 서비스 개발")));
-        ExternalJobRecommendationService service = new ExternalJobRecommendationService(mapper, availableProvider(List.of(
-                personalRecommendation(1L, ExternalJobRecommendationType.EXCLUDED, 20))));
+    @DisplayName("precompute 요청 직종이 비어 있으면 INVALID_INPUT을 반환한다")
+    void precomputeCategoryRecommendations_rejectsBlankCategories() {
+        ExternalJobRecommendationService service =
+                new ExternalJobRecommendationService(new FakeMapper(List.of()), unavailableProvider());
 
-        service.refreshPersonalRecommendations("user@lancit.com", "IT");
-
-        assertPossibleAtLeast40(mapper.savedCommands.get(0));
-    }
-
-    @Test
-    @DisplayName("IT 백엔드 개발자 공고는 EXCLUDED로 내려와도 POSSIBLE 이상으로 보정한다")
-    void refreshPersonalRecommendations_promotesItBackendDeveloperExcludedRecommendation() {
-        FakeMapper mapper = new FakeMapper(List.of(
-                itJob(1L, "백엔드 개발자 채용", "서버 개발", "Java Spring 기반 API 서버 개발")));
-        ExternalJobRecommendationService service = new ExternalJobRecommendationService(mapper, availableProvider(List.of(
-                personalRecommendation(1L, ExternalJobRecommendationType.EXCLUDED, 30))));
-
-        service.refreshPersonalRecommendations("user@lancit.com", "IT");
-
-        assertPossibleAtLeast40(mapper.savedCommands.get(0));
-    }
-
-    @Test
-    @DisplayName("IT 데이터/DB/클라우드 공고는 EXCLUDED로 내려와도 POSSIBLE 이상으로 보정한다")
-    void refreshPersonalRecommendations_promotesItDataDbCloudExcludedRecommendation() {
-        FakeMapper mapper = new FakeMapper(List.of(
-                itJob(1L, "데이터 엔지니어", "DB 관리", "Python 데이터 파이프라인 개발"),
-                itJob(2L, "DB 운영 담당자", "데이터베이스", "DB 성능 개선"),
-                itJob(3L, "클라우드 서버 엔지니어", "클라우드", "서버 인프라 운영")));
-        ExternalJobRecommendationService service = new ExternalJobRecommendationService(mapper, availableProvider(List.of(
-                personalRecommendation(1L, ExternalJobRecommendationType.EXCLUDED, 10),
-                personalRecommendation(2L, ExternalJobRecommendationType.EXCLUDED, 20),
-                personalRecommendation(3L, ExternalJobRecommendationType.EXCLUDED, 30))));
-
-        service.refreshPersonalRecommendations("user@lancit.com", "IT");
-
-        assertThat(mapper.savedCommands).allSatisfy(ExternalJobRecommendationServiceTest::assertPossibleAtLeast40);
-    }
-
-    @Test
-    @DisplayName("IT positive가 있어도 hard negative 사무보조/경리/주차관리 등은 EXCLUDED를 유지한다")
-    void refreshPersonalRecommendations_keepsHardNegativeItJobsExcluded() {
-        FakeMapper mapper = new FakeMapper(List.of(
-                itJob(1L, "IT 회사 사무보조", "사무보조", "문서 정리"),
-                itJob(2L, "IT 부서 경리", "경리", "회계 처리"),
-                itJob(3L, "IT 주차관리 운전 생산 담당자", "주차관리", "운전 및 생산 지원")));
-        ExternalJobRecommendationService service = new ExternalJobRecommendationService(mapper, availableProvider(List.of(
-                personalRecommendation(1L, ExternalJobRecommendationType.EXCLUDED, 70),
-                personalRecommendation(2L, ExternalJobRecommendationType.EXCLUDED, 70),
-                personalRecommendation(3L, ExternalJobRecommendationType.EXCLUDED, 70))));
-
-        service.refreshPersonalRecommendations("user@lancit.com", "IT");
-
-        assertThat(mapper.savedCommands)
-                .extracting(ExternalJobUserRecommendationCommand::getRecommendationType,
-                        ExternalJobUserRecommendationCommand::getRecommendationScore)
-                .containsExactly(
-                        org.assertj.core.api.Assertions.tuple(ExternalJobRecommendationType.EXCLUDED, 39),
-                        org.assertj.core.api.Assertions.tuple(ExternalJobRecommendationType.EXCLUDED, 39),
-                        org.assertj.core.api.Assertions.tuple(ExternalJobRecommendationType.EXCLUDED, 39)
-                );
-    }
-
-    @Test
-    @DisplayName("fallback도 IT 후보 EXCLUDED 결과를 저장 직전 POSSIBLE로 보정한다")
-    void refreshPersonalRecommendations_promotesFallbackItExcludedRecommendation() {
-        FakeMapper mapper = new FakeMapper(List.of(
-                ExternalJobDTO.builder()
-                        .id(1L)
-                        .title("소프트웨어 개발자 모집")
-                        .jobCategoryRaw("소프트웨어")
-                        .description("React 웹 앱 개발")
-                        .freelanceType(ExternalFreelanceType.PROJECT_LIKE)
-                        .recommendationType(ExternalJobRecommendationType.EXCLUDED)
-                        .recommendationScore(20)
-                        .build()));
-        ExternalJobRecommendationService service = new ExternalJobRecommendationService(mapper, unavailableProvider());
-
-        service.refreshPersonalRecommendations("user@lancit.com", "IT");
-
-        assertPossibleAtLeast40(mapper.savedCommands.get(0));
-    }
-
-    @Test
-    @DisplayName("refresh는 PROJECT_LIKE/CONTRACT_LIKE/TRUE_FREELANCE 후보 전체를 유저별 추천으로 저장한다")
-    void refreshPersonalRecommendations_savesEveryVisibleFreelanceCandidate() {
-        FakeMapper mapper = new FakeMapper(List.of(
-                candidate(1L, ExternalFreelanceType.PROJECT_LIKE, 77),
-                candidate(2L, ExternalFreelanceType.CONTRACT_LIKE, 41),
-                candidate(3L, ExternalFreelanceType.TRUE_FREELANCE, 88),
-                candidate(4L, ExternalFreelanceType.CONTRACT_LIKE, 35),
-                candidate(5L, ExternalFreelanceType.PROJECT_LIKE, 70)));
-        ExternalJobRecommendationService service = new ExternalJobRecommendationService(mapper, unavailableProvider());
-
-        ExternalJobRecommendationRefreshResponse response =
-                service.refreshPersonalRecommendations("user@lancit.com", "업무지원");
-
-        assertThat(response.getRefreshedCount()).isEqualTo(5);
-        assertThat(mapper.savedCommands)
-                .extracting(ExternalJobUserRecommendationCommand::getExternalJobId)
-                .containsExactly(1L, 2L, 3L, 4L, 5L);
-    }
-
-    @Test
-    @DisplayName("refresh 요청 직종이 비어 있으면 INVALID_INPUT을 반환한다")
-    void refreshPersonalRecommendations_rejectsBlankJobCategory() {
-        ObjectProvider<GeminiExternalJobPersonalRecommendationClient> provider = unavailableProvider();
-        ExternalJobRecommendationService service = new ExternalJobRecommendationService(new FakeMapper(List.of()), provider);
-
-        assertThatThrownBy(() -> service.refreshPersonalRecommendations("user@lancit.com", " "))
+        assertThatThrownBy(() -> service.precomputeCategoryRecommendations(
+                ExternalJobRecommendationPrecomputeRequest.builder()
+                        .jobCategories(List.of(" "))
+                        .build()))
                 .isInstanceOfSatisfying(CustomException.class,
                         exception -> assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INVALID_INPUT));
     }
 
-    private static ExternalJobDTO candidate(Long id, ExternalFreelanceType freelanceType, int score) {
+    private static ExternalJobDTO job(Long id, String title, String category, String description, int score) {
         return ExternalJobDTO.builder()
                 .id(id)
-                .title("서울시 업무지원 공고 " + id)
-                .jobCategoryRaw("업무지원")
-                .description("업무지원")
-                .freelanceType(freelanceType)
-                .recommendationType(score >= 65
+                .title(title)
+                .jobCategoryRaw(category)
+                .description(description)
+                .freelanceType(ExternalFreelanceType.PROJECT_LIKE)
+                .recommendationType(score >= 60
                         ? ExternalJobRecommendationType.RECOMMENDED
                         : ExternalJobRecommendationType.POSSIBLE)
                 .recommendationScore(score)
                 .build();
     }
 
-    private static ExternalJobDTO itJob(Long id, String title, String jobCategoryRaw, String description) {
+    private static ExternalJobDTO candidate(Long id) {
         return ExternalJobDTO.builder()
                 .id(id)
-                .title(title)
-                .jobCategoryRaw(jobCategoryRaw)
-                .description(description)
+                .title("서울시 업무지원 공고 " + id)
+                .jobCategoryRaw("업무지원")
+                .description("업무지원")
                 .freelanceType(ExternalFreelanceType.PROJECT_LIKE)
-                .recommendationType(ExternalJobRecommendationType.POSSIBLE)
-                .recommendationScore(40)
+                .recommendationType(ExternalJobRecommendationType.RECOMMENDED)
+                .recommendationScore(77)
                 .build();
     }
 
-    private static void assertPossibleAtLeast40(ExternalJobUserRecommendationCommand command) {
-        assertThat(command.getRecommendationType()).isEqualTo(ExternalJobRecommendationType.POSSIBLE);
-        assertThat(command.getRecommendationScore()).isGreaterThanOrEqualTo(40);
-    }
-
-    private static com.ssafy.lancit.domain.externaljob.dto.ExternalJobPersonalRecommendation personalRecommendation(
-            Long externalJobId,
-            ExternalJobRecommendationType recommendationType,
-            int recommendationScore) {
-        return com.ssafy.lancit.domain.externaljob.dto.ExternalJobPersonalRecommendation.builder()
+    private static ExternalJobPersonalRecommendation personalRecommendation(Long externalJobId,
+                                                                            ExternalJobRecommendationType type,
+                                                                            int score) {
+        return ExternalJobPersonalRecommendation.builder()
                 .externalJobId(externalJobId)
-                .recommendationType(recommendationType)
-                .recommendationScore(recommendationScore)
+                .recommendationType(type)
+                .recommendationScore(score)
                 .matchedBy("GEMINI")
                 .build();
     }
@@ -322,7 +233,7 @@ class ExternalJobRecommendationServiceTest {
     }
 
     private static ObjectProvider<GeminiExternalJobPersonalRecommendationClient> availableProvider(
-            List<com.ssafy.lancit.domain.externaljob.dto.ExternalJobPersonalRecommendation> recommendations) {
+            List<ExternalJobPersonalRecommendation> recommendations) {
         GeminiExternalJobPersonalRecommendationClient client = new StubGeminiClient(recommendations);
         return new ObjectProvider<>() {
             @Override
@@ -348,25 +259,24 @@ class ExternalJobRecommendationServiceTest {
     }
 
     private static class StubGeminiClient extends GeminiExternalJobPersonalRecommendationClient {
-        private final List<com.ssafy.lancit.domain.externaljob.dto.ExternalJobPersonalRecommendation> recommendations;
+        private final List<ExternalJobPersonalRecommendation> recommendations;
 
-        private StubGeminiClient(
-                List<com.ssafy.lancit.domain.externaljob.dto.ExternalJobPersonalRecommendation> recommendations) {
+        private StubGeminiClient(List<ExternalJobPersonalRecommendation> recommendations) {
             super(new ObjectMapper(), null);
             this.recommendations = recommendations;
         }
 
         @Override
-        public List<com.ssafy.lancit.domain.externaljob.dto.ExternalJobPersonalRecommendation> recommend(
-                String userJobCategory,
-                List<ExternalJobDTO> jobs) {
+        public List<ExternalJobPersonalRecommendation> recommend(String userJobCategory, List<ExternalJobDTO> jobs) {
             return recommendations;
         }
     }
 
     private static class FakeMapper implements ExternalJobMapper {
         private final List<ExternalJobDTO> jobs;
-        private final List<ExternalJobUserRecommendationCommand> savedCommands = new ArrayList<>();
+        private final List<ExternalJobCategoryRecommendationCommand> savedCategoryCommands = new ArrayList<>();
+        private final List<ExternalJobUserRecommendationCommand> savedUserCommands = new ArrayList<>();
+        private long precomputedCount;
 
         private FakeMapper(List<ExternalJobDTO> jobs) {
             this.jobs = jobs;
@@ -399,8 +309,19 @@ class ExternalJobRecommendationServiceTest {
 
         @Override
         public int upsertExternalJobUserRecommendation(ExternalJobUserRecommendationCommand command) {
-            savedCommands.add(command);
+            savedUserCommands.add(command);
             return 1;
+        }
+
+        @Override
+        public int upsertExternalJobCategoryRecommendation(ExternalJobCategoryRecommendationCommand command) {
+            savedCategoryCommands.add(command);
+            return 1;
+        }
+
+        @Override
+        public long countCategoryRecommendations(String jobCategory) {
+            return precomputedCount;
         }
 
         @Override
@@ -416,6 +337,11 @@ class ExternalJobRecommendationServiceTest {
 
         @Override
         public ExternalJobDTO findById(Long id) {
+            return null;
+        }
+
+        @Override
+        public ExternalJobDTO findBySourceAndSourceJobId(ExternalJobSource source, String sourceJobId) {
             return null;
         }
 

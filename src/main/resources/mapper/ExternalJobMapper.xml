@@ -70,8 +70,8 @@
         ej.original_payload_json,
         ej.payload_hash,
         ej.freelance_type,
-        ejur.recommendation_type AS recommendation_type,
-        ejur.recommendation_score AS recommendation_score,
+        ejcr.recommendation_type AS recommendation_type,
+        ejcr.recommendation_score AS recommendation_score,
         ej.is_visible,
         ej.visibility_reason,
         ej.collected_at,
@@ -79,7 +79,6 @@
     </sql>
 
     <sql id="VisibleExternalJobFilters">
-        AND ej.source = 'SEOUL'
         AND ej.is_visible = 1
         AND ej.freelance_type != 'NOT_FREELANCE'
     </sql>
@@ -93,22 +92,20 @@
             )
         </if>
         <if test="condition != null and condition.recommendationType != null">
-            AND ejur.recommendation_type = #{condition.recommendationType}
+            AND ejcr.recommendation_type = #{condition.recommendationType}
         </if>
     </sql>
 
-    <sql id="PersonalRecommendationRequiredJoin">
-        INNER JOIN external_job_user_recommendation ejur
-            ON ejur.external_job_id = ej.id
-           AND ejur.user_email = #{condition.userEmail}
-           AND ejur.job_category = #{condition.jobCategory}
-           AND ejur.recommendation_type != 'EXCLUDED'
+    <sql id="CategoryRecommendationRequiredJoin">
+        INNER JOIN external_job_category_recommendation ejcr
+            ON ejcr.external_job_id = ej.id
+           AND ejcr.job_category = #{condition.jobCategory}
+           AND ejcr.recommendation_type != 'EXCLUDED'
     </sql>
 
     <sql id="ExternalJobOrderBy">
         ORDER BY
-        ejur.recommendation_score DESC,
-        ej.collected_at DESC,
+        ejcr.recommendation_score DESC,
         ej.id DESC
     </sql>
 
@@ -208,6 +205,41 @@
             updated_at = CURRENT_TIMESTAMP
     </insert>
 
+    <insert id="upsertExternalJobCategoryRecommendation">
+        INSERT INTO external_job_category_recommendation (
+            job_category,
+            external_job_id,
+            recommendation_type,
+            recommendation_score,
+            matched_by,
+            reason
+        ) VALUES (
+            #{jobCategory},
+            #{externalJobId},
+            #{recommendationType},
+            #{recommendationScore},
+            COALESCE(#{matchedBy}, 'LLM_PRECOMPUTED'),
+            #{reason}
+        )
+        ON DUPLICATE KEY UPDATE
+            recommendation_type = VALUES(recommendation_type),
+            recommendation_score = VALUES(recommendation_score),
+            matched_by = VALUES(matched_by),
+            reason = VALUES(reason),
+            updated_at = CURRENT_TIMESTAMP
+    </insert>
+
+    <select id="countCategoryRecommendations" resultType="long">
+        SELECT COUNT(*)
+        FROM external_job_category_recommendation ejcr
+        INNER JOIN external_job ej
+            ON ej.id = ejcr.external_job_id
+        WHERE ejcr.job_category = #{jobCategory}
+          AND ejcr.recommendation_type != 'EXCLUDED'
+          AND ej.is_visible = 1
+          AND ej.freelance_type != 'NOT_FREELANCE'
+    </select>
+
     <update id="refreshVisibilityByPolicy">
         UPDATE external_job
         SET
@@ -232,7 +264,7 @@
         SELECT
         <include refid="ExternalJobListColumns"/>
         FROM external_job ej
-        <include refid="PersonalRecommendationRequiredJoin"/>
+        <include refid="CategoryRecommendationRequiredJoin"/>
         WHERE 1 = 1
         <include refid="VisibleExternalJobFilters"/>
         <include refid="SearchFilters"/>
@@ -243,7 +275,7 @@
     <select id="countExternalJobs" resultType="long">
         SELECT COUNT(*)
         FROM external_job ej
-        <include refid="PersonalRecommendationRequiredJoin"/>
+        <include refid="CategoryRecommendationRequiredJoin"/>
         WHERE 1 = 1
         <include refid="VisibleExternalJobFilters"/>
         <include refid="SearchFilters"/>
@@ -254,12 +286,10 @@
         <include refid="ExternalJobColumns"/>
         FROM external_job ej
         WHERE 1 = 1
-          AND ej.source = 'SEOUL'
           AND ej.is_visible = 1
           AND ej.freelance_type != 'NOT_FREELANCE'
         ORDER BY
             ej.recommendation_score DESC,
-            ej.collected_at DESC,
             ej.id DESC
     </select>
 
@@ -289,9 +319,16 @@
         <include refid="ExternalJobColumns"/>
         FROM external_job ej
         WHERE ej.id = #{id}
-          AND ej.source = 'SEOUL'
           AND ej.is_visible = 1
           AND ej.freelance_type != 'NOT_FREELANCE'
+    </select>
+
+    <select id="findBySourceAndSourceJobId" resultMap="ExternalJobResultMap">
+        SELECT
+        <include refid="ExternalJobColumns"/>
+        FROM external_job ej
+        WHERE ej.source = #{source}
+          AND ej.source_job_id = #{sourceJobId}
     </select>
 
     <insert id="insertCollectionLog">

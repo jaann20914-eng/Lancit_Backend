@@ -1,6 +1,7 @@
 package com.ssafy.lancit.domain.externaljob.mapper;
 
 import com.ssafy.lancit.common.page.dto.PageRequest;
+import com.ssafy.lancit.domain.externaljob.dto.ExternalJobCategoryRecommendationCommand;
 import com.ssafy.lancit.domain.externaljob.dto.ExternalJobCollectionLogCommand;
 import com.ssafy.lancit.domain.externaljob.dto.ExternalJobDTO;
 import com.ssafy.lancit.domain.externaljob.dto.ExternalJobSearchCondition;
@@ -30,6 +31,10 @@ public interface ExternalJobMapper {
 
     int upsertExternalJobUserRecommendation(ExternalJobUserRecommendationCommand command);
 
+    int upsertExternalJobCategoryRecommendation(ExternalJobCategoryRecommendationCommand command);
+
+    long countCategoryRecommendations(@Param("jobCategory") String jobCategory);
+
     int updateExternalJobClassification(@Param("id") Long id,
                                         @Param("freelanceType") ExternalFreelanceType freelanceType,
                                         @Param("recommendationType") ExternalJobRecommendationType recommendationType,
@@ -39,6 +44,9 @@ public interface ExternalJobMapper {
                                         @Param("updatedAt") LocalDateTime updatedAt);
 
     ExternalJobDTO findById(@Param("id") Long id);
+
+    ExternalJobDTO findBySourceAndSourceJobId(@Param("source") ExternalJobSource source,
+                                              @Param("sourceJobId") String sourceJobId);
 
     int refreshVisibilityByPolicy(@Param("source") ExternalJobSource source,
                                   @Param("now") LocalDateTime now,

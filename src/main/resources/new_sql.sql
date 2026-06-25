@@ -23,6 +23,7 @@ DROP TABLE IF EXISTS bookmark;
 
 DROP TABLE IF EXISTS external_job_collection_lock;
 DROP TABLE IF EXISTS external_job_collection_log;
+DROP TABLE IF EXISTS external_job_category_recommendation;
 DROP TABLE IF EXISTS external_job_user_recommendation;
 
 DROP TABLE IF EXISTS external_job;
@@ -249,12 +250,17 @@ CREATE TABLE external_job (
     payload_hash            VARCHAR(128)    NULL,
     freelance_type          VARCHAR(40)     NOT NULL,
     recommendation_type     VARCHAR(40)     NOT NULL,
+    recommendation_score    INT             NOT NULL    DEFAULT 0,
+    is_visible              TINYINT(1)      NOT NULL    DEFAULT 1,
+    visibility_reason       VARCHAR(80)     NOT NULL    DEFAULT 'VISIBLE',
     collected_at            DATETIME        NOT NULL,
     updated_at              DATETIME        NOT NULL,
     PRIMARY KEY (id),
     UNIQUE KEY uk_external_job_source_job_id (source, source_job_id),
     INDEX idx_external_job_source_collected_at (source, collected_at),
     INDEX idx_external_job_recommendation_type (recommendation_type),
+    INDEX idx_external_job_visibility (is_visible, freelance_type, deadline_at),
+    INDEX idx_external_job_recommendation_order (recommendation_type, recommendation_score),
     INDEX idx_external_job_deadline_at (deadline_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='외부 공고';
 
@@ -285,6 +291,36 @@ CREATE TABLE external_job_user_recommendation (
         REFERENCES external_job(id)
         ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='외부 공고 유저별 추천 결과';
+
+CREATE TABLE external_job_category_recommendation (
+    id                      BIGINT          NOT NULL    AUTO_INCREMENT,
+    job_category            VARCHAR(100)    NOT NULL,
+    external_job_id         BIGINT          NOT NULL,
+    recommendation_type     VARCHAR(50)     NOT NULL,
+    recommendation_score    INT             NOT NULL    DEFAULT 0,
+    matched_by              VARCHAR(30)     NOT NULL    DEFAULT 'LLM_PRECOMPUTED',
+    reason                  VARCHAR(1000)   NULL,
+    created_at              DATETIME        NOT NULL    DEFAULT CURRENT_TIMESTAMP,
+    updated_at              DATETIME        NOT NULL    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_external_job_category_recommendation (
+        job_category,
+        external_job_id
+    ),
+    INDEX idx_external_job_category_score (
+        job_category,
+        recommendation_score
+    ),
+    INDEX idx_external_job_category_type_score (
+        job_category,
+        recommendation_type,
+        recommendation_score
+    ),
+    CONSTRAINT fk_external_job_category_recommendation_job
+        FOREIGN KEY (external_job_id)
+        REFERENCES external_job(id)
+        ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='외부 공고 직종별 사전 추천 결과';
 
 CREATE TABLE external_job_collection_log (
     id                      BIGINT          NOT NULL    AUTO_INCREMENT,

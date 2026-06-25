@@ -2,10 +2,12 @@ package com.ssafy.lancit.domain.externaljob.service;
 
 import com.ssafy.lancit.common.exception.CustomException;
 import com.ssafy.lancit.common.exception.ErrorCode;
+import com.ssafy.lancit.domain.externaljob.dto.ExternalJobCategoryRecommendationCommand;
 import com.ssafy.lancit.domain.externaljob.dto.ExternalJobDTO;
 import com.ssafy.lancit.domain.externaljob.dto.ExternalJobPersonalRecommendation;
+import com.ssafy.lancit.domain.externaljob.dto.ExternalJobRecommendationPrecomputeRequest;
+import com.ssafy.lancit.domain.externaljob.dto.ExternalJobRecommendationPrecomputeResponse;
 import com.ssafy.lancit.domain.externaljob.dto.ExternalJobRecommendationRefreshResponse;
-import com.ssafy.lancit.domain.externaljob.dto.ExternalJobUserRecommendationCommand;
 import com.ssafy.lancit.domain.externaljob.mapper.ExternalJobMapper;
 import com.ssafy.lancit.global.enums.ExternalJobRecommendationType;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +32,8 @@ public class ExternalJobRecommendationService {
     private static final int CATEGORY_MATCH_BONUS = 12;
     private static final String MATCHED_BY_GEMINI = "GEMINI";
     private static final String MATCHED_BY_FALLBACK = "FALLBACK";
+    private static final String MATCHED_BY_LLM_PRECOMPUTED = "LLM_PRECOMPUTED";
+    private static final String MATCHED_BY_FALLBACK_PRECOMPUTED = "FALLBACK_PRECOMPUTED";
     private static final List<String> IT_POSITIVE_KEYWORDS = List.of(
             "IT", "it", "개발", "웹", "앱", "소프트웨어", "서버", "프론트엔드", "백엔드",
             "데이터", "DB", "클라우드", "Java", "Spring", "React", "Vue", "Python"
@@ -43,36 +47,73 @@ public class ExternalJobRecommendationService {
     private final ObjectProvider<GeminiExternalJobPersonalRecommendationClient> geminiClientProvider;
 
     public ExternalJobRecommendationRefreshResponse refreshPersonalRecommendations(String userEmail, String jobCategory) {
-        String safeUserEmail = trimToNull(userEmail);
         String safeJobCategory = trimToNull(jobCategory);
-        if (safeUserEmail == null || safeJobCategory == null) {
+        if (safeJobCategory == null) {
+            throw new CustomException(ErrorCode.INVALID_INPUT);
+        }
+
+        long precomputedCount = externalJobMapper.countCategoryRecommendations(safeJobCategory);
+        boolean ready = precomputedCount > 0;
+        return ExternalJobRecommendationRefreshResponse.builder()
+                .jobCategory(safeJobCategory)
+                .status(ready ? "READY" : "PRECOMPUTED_RECOMMENDATION_NOT_FOUND")
+                .message(ready
+                        ? "사전 계산된 추천 결과를 사용합니다."
+                        : "사전 계산된 추천 결과가 없습니다. 관리자 사전 계산 또는 CSV import가 필요합니다.")
+                .refreshedCount(0)
+                .precomputedCount(precomputedCount)
+                .build();
+    }
+
+    public ExternalJobRecommendationPrecomputeResponse precomputeCategoryRecommendations(
+            ExternalJobRecommendationPrecomputeRequest request) {
+        List<String> jobCategories = request == null ? List.of() : request.resolveJobCategories();
+        if (jobCategories.isEmpty()) {
+            log.warn("Invalid external job recommendation precompute request. "
+                            + "At least one non-blank field is required: jobCategory or jobCategories. "
+                            + "jobCategory={}, jobCategories={}",
+                    request == null ? null : request.getJobCategory(),
+                    request == null ? null : request.getJobCategories());
             throw new CustomException(ErrorCode.INVALID_INPUT);
         }
 
         List<ExternalJobDTO> jobs = externalJobMapper.findVisibleExternalJobsForRecommendation();
-        int refreshedCount = 0;
-        for (int start = 0; start < jobs.size(); start += GEMINI_BATCH_SIZE) {
-            List<ExternalJobDTO> batch = jobs.subList(start, Math.min(start + GEMINI_BATCH_SIZE, jobs.size()));
-            Map<Long, ExternalJobPersonalRecommendation> geminiRecommendations =
-                    recommendWithGemini(safeJobCategory, batch);
+        int savedRecommendationCount = 0;
+        int failedCount = 0;
 
-            for (ExternalJobDTO job : batch) {
-                if (job.getId() == null) {
-                    continue;
+        for (String jobCategory : jobCategories) {
+            for (int start = 0; start < jobs.size(); start += GEMINI_BATCH_SIZE) {
+                List<ExternalJobDTO> batch = jobs.subList(start, Math.min(start + GEMINI_BATCH_SIZE, jobs.size()));
+                Map<Long, ExternalJobPersonalRecommendation> geminiRecommendations =
+                        recommendWithGemini(jobCategory, batch);
+
+                for (ExternalJobDTO job : batch) {
+                    if (job.getId() == null) {
+                        continue;
+                    }
+                    ExternalJobPersonalRecommendation recommendation = geminiRecommendations.get(job.getId());
+                    if (recommendation == null) {
+                        recommendation = fallbackRecommendation(job, jobCategory);
+                    }
+                    try {
+                        if (externalJobMapper.upsertExternalJobCategoryRecommendation(
+                                toCategoryCommand(jobCategory, job, recommendation)) > 0) {
+                            savedRecommendationCount++;
+                        }
+                    } catch (RuntimeException e) {
+                        failedCount++;
+                        log.warn("Failed to save external job category recommendation. externalJobId={}, jobCategory={}",
+                                job.getId(), jobCategory, e);
+                    }
                 }
-                ExternalJobPersonalRecommendation recommendation = geminiRecommendations.get(job.getId());
-                if (recommendation == null) {
-                    recommendation = fallbackRecommendation(job, safeJobCategory);
-                }
-                externalJobMapper.upsertExternalJobUserRecommendation(
-                        toCommand(safeUserEmail, safeJobCategory, job, recommendation));
-                refreshedCount++;
             }
         }
 
-        return ExternalJobRecommendationRefreshResponse.builder()
-                .jobCategory(safeJobCategory)
-                .refreshedCount(refreshedCount)
+        return ExternalJobRecommendationPrecomputeResponse.builder()
+                .processedJobCount(jobs.size())
+                .processedCategoryCount(jobCategories.size())
+                .savedRecommendationCount(savedRecommendationCount)
+                .failedCount(failedCount)
                 .build();
     }
 
@@ -111,10 +152,9 @@ public class ExternalJobRecommendationService {
                 .build();
     }
 
-    private ExternalJobUserRecommendationCommand toCommand(String userEmail,
-                                                           String jobCategory,
-                                                           ExternalJobDTO job,
-                                                           ExternalJobPersonalRecommendation recommendation) {
+    private ExternalJobCategoryRecommendationCommand toCategoryCommand(String jobCategory,
+                                                                       ExternalJobDTO job,
+                                                                       ExternalJobPersonalRecommendation recommendation) {
         int score = clamp(recommendation.getRecommendationScore());
         ExternalJobRecommendationType type = recommendation.getRecommendationType();
         if (type == null) {
@@ -127,13 +167,14 @@ public class ExternalJobRecommendationService {
         score = normalizeRecommendationScore(score, type);
 
         String matchedBy = trimToNull(recommendation.getMatchedBy());
-        return ExternalJobUserRecommendationCommand.builder()
-                .userEmail(userEmail)
+        boolean geminiMatched = MATCHED_BY_GEMINI.equals(matchedBy);
+        return ExternalJobCategoryRecommendationCommand.builder()
                 .externalJobId(job.getId())
                 .jobCategory(jobCategory)
                 .recommendationType(type)
                 .recommendationScore(score)
-                .matchedBy(MATCHED_BY_GEMINI.equals(matchedBy) ? MATCHED_BY_GEMINI : MATCHED_BY_FALLBACK)
+                .matchedBy(geminiMatched ? MATCHED_BY_LLM_PRECOMPUTED : MATCHED_BY_FALLBACK_PRECOMPUTED)
+                .reason(geminiMatched ? "Gemini 사전 계산 결과" : "키워드 및 전역 추천 점수 기반 fallback")
                 .build();
     }
 

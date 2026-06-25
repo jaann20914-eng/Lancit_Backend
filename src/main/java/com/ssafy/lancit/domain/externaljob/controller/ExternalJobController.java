@@ -9,15 +9,20 @@ import com.ssafy.lancit.domain.externaljob.dto.ExternalJobCollectCommand;
 import com.ssafy.lancit.domain.externaljob.dto.ExternalJobCollectRequest;
 import com.ssafy.lancit.domain.externaljob.dto.ExternalJobCollectResponse;
 import com.ssafy.lancit.domain.externaljob.dto.ExternalJobDetailResponse;
+import com.ssafy.lancit.domain.externaljob.dto.ExternalJobImportResponse;
+import com.ssafy.lancit.domain.externaljob.dto.ExternalJobRecommendationPrecomputeRequest;
+import com.ssafy.lancit.domain.externaljob.dto.ExternalJobRecommendationPrecomputeResponse;
 import com.ssafy.lancit.domain.externaljob.dto.ExternalJobRecommendationRefreshRequest;
 import com.ssafy.lancit.domain.externaljob.dto.ExternalJobRecommendationRefreshResponse;
 import com.ssafy.lancit.domain.externaljob.dto.ExternalJobSearchCondition;
 import com.ssafy.lancit.domain.externaljob.service.ExternalJobCollectService;
+import com.ssafy.lancit.domain.externaljob.service.ExternalJobCsvImportService;
 import com.ssafy.lancit.domain.externaljob.service.ExternalJobQueryService;
 import com.ssafy.lancit.domain.externaljob.service.ExternalJobRecommendationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -25,7 +30,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @Tag(name = "External Jobs", description = "외부 공고 조회 및 수동 수집 API")
 @RestController
@@ -36,10 +43,11 @@ public class ExternalJobController {
     private final ExternalJobQueryService externalJobQueryService;
     private final ExternalJobCollectService externalJobCollectService;
     private final ExternalJobRecommendationService externalJobRecommendationService;
+    private final ExternalJobCsvImportService externalJobCsvImportService;
 
     @Operation(
             summary = "외부 공고 목록 조회",
-            description = "노출 가능한 서울시 외부 공고를 조회합니다. NOT_FREELANCE, 마감 지난 공고와 장기 미마감 공고는 제외합니다.")
+            description = "직종별 사전 추천 결과가 저장된 노출 가능 외부 공고를 조회합니다. NOT_FREELANCE 공고는 제외합니다.")
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<ExternalJobCardResponse>>> getExternalJobs(
             @ModelAttribute ExternalJobSearchCondition condition,
@@ -51,15 +59,33 @@ public class ExternalJobController {
     }
 
     @Operation(
-            summary = "외부 공고 개인화 추천 점수 갱신",
-            description = "로그인 유저와 요청 직종 기준으로 서울시 외부 공고의 개인화 추천 점수를 재계산합니다.")
+            summary = "외부 공고 사전 추천 준비 상태 확인",
+            description = "요청 직종 기준으로 DB에 저장된 사전 추천 결과가 있는지 확인합니다. 사용자 요청 중 Gemini/LLM을 호출하지 않습니다.")
     @PostMapping("/recommendations/refresh")
     public ResponseEntity<ApiResponse<ExternalJobRecommendationRefreshResponse>> refreshRecommendations(
             @RequestBody(required = false) ExternalJobRecommendationRefreshRequest request) {
-        String email = SecurityUtil.getCurrentEmail();
         String jobCategory = request == null ? null : request.getJobCategory();
         return ResponseEntity.ok(ApiResponse.ok(
-                externalJobRecommendationService.refreshPersonalRecommendations(email, jobCategory)));
+                externalJobRecommendationService.refreshPersonalRecommendations(null, jobCategory)));
+    }
+
+    @Operation(
+            summary = "외부 공고 CSV import",
+            description = "관리자/개발용으로 외부 공고 원본 CSV 또는 직종별 추천 결과 CSV를 DB에 적재합니다.")
+    @PostMapping(value = "/import/csv", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<ExternalJobImportResponse>> importCsv(
+            @RequestPart("file") MultipartFile file) {
+        return ResponseEntity.ok(ApiResponse.ok(externalJobCsvImportService.importCsv(file)));
+    }
+
+    @Operation(
+            summary = "외부 공고 직종별 추천 사전 계산",
+            description = "관리자/개발용으로 현재 DB의 노출 가능한 외부 공고에 대해 직종별 추천 결과를 미리 계산해 저장합니다.")
+    @PostMapping("/recommendations/precompute")
+    public ResponseEntity<ApiResponse<ExternalJobRecommendationPrecomputeResponse>> precomputeRecommendations(
+            @RequestBody ExternalJobRecommendationPrecomputeRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                externalJobRecommendationService.precomputeCategoryRecommendations(request)));
     }
 
     @Operation(
